@@ -12,7 +12,7 @@
 
 ---
 
-## Tools Required {#tools}
+## Tools Required <a name="tools"></a>
 
 | :warning: Important |
 | --- |
@@ -43,7 +43,7 @@
 
 ---
 
-## Getting Started {#started}
+## Getting Started <a name="started"></a>
 
 ### Development Server
 
@@ -64,7 +64,7 @@ sudo yarn dev
 
 ---
 
-## Committing Code {#commit}
+## Committing Code <a name="commit"></a>
 
 ```mermaid
 gitGraph
@@ -106,7 +106,7 @@ yarn run cm
 
 ---
 
-## FAQ {#faq}
+## FAQ <a name="faq"></a>
 
 ### App crashing at startup
 
@@ -117,7 +117,6 @@ Please ensure that you're .env file is in sync
 1. [ ] [Go to validator config](./src/global/config/config-validator.ts) and then update the schema with proper validation ![With message](./documentation/forgot-env.png)
 
 2. [ ] [Go to Secret Service](./src/secret/secret.service.ts) and update the ***prepare*** method to refect the **EnvironmentVariable class**
-
 
 > title: Senior Software Engineer
 > author: Ankur Datta
