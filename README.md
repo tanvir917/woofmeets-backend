@@ -10,6 +10,12 @@
 
 [![Conventional Commits](https://img.shields.io/badge/Conventional%20Commits-1.0.0-%23FE5196?logo=conventionalcommits&logoColor=white)](https://conventionalcommits.org)
 
+| :warning: **IMPORTANT** |
+| ---- |
+| [Credentials Repository](https://algosolver-llc.atlassian.net/wiki/spaces/WBD/pages/319455497/Platform+Credentials)     |
+| [Confluence Page](https://algosolver-llc.atlassian.net/wiki/spaces/WBD/pages/319193150/Development+Roadmap)|
+| [Woofmeets JIRA Board](https://algosolver-llc.atlassian.net/jira/software/c/projects/WOOF/boards/45)|
+
 ---
 
 ## Tools Required <a name="tools"></a>
@@ -59,7 +65,10 @@ yarn dev
 ```bash
 sudo yarn
 sudo yarn dbdeploy
-sudo yarn dev
+sudo yarn generate
+sudo yarn build
+sudo pm2 restart ecosystem.config.js
+sudo systemctl restart nginx
 ```
 
 ---
