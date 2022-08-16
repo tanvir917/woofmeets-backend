@@ -25,6 +25,38 @@ export class EnvironmentVariable {
 
   @IsEnum(['debug', 'info', 'warn', 'error', 'fatal'])
   LOG_LEVEL: 'debug' | 'info' | 'warn' | 'error' | 'fatal' = 'info';
+
+  @IsNotEmpty()
+  @IsString()
+  AWS_ACCESS_KEY: string;
+
+  @IsNotEmpty()
+  @IsString()
+  AWS_SECRET_ACCESS_KEY: string;
+
+  @IsNotEmpty()
+  @IsString()
+  BUCKET_NAME: string;
+
+  @IsNotEmpty()
+  @IsString()
+  AWS_BUCKET_REGION: string;
+
+  @IsNotEmpty()
+  @IsString()
+  AWS_UPLOAD_PATH: string;
+
+  @IsNotEmpty()
+  @IsInt()
+  AWS_UPLOAD_SIZE: number;
+
+  @IsNotEmpty()
+  @IsString()
+  AWS_API_VERSION: string;
+
+  @IsNotEmpty()
+  @IsString()
+  RND_TOKEN_STRING: string;
 }
 
 export function validateEnvironmentVariables(

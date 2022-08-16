@@ -12,6 +12,8 @@ import {
   ASYNC_LOGGER_CONFIG,
   validateEnvironmentVariables,
 } from './global/config';
+import { PrismaModule } from './prisma/prisma.module';
+import { CommonModule } from './common/common.module';
 
 @Module({
   imports: [
@@ -24,6 +26,8 @@ import {
     LoggerModule.forRootAsync(ASYNC_LOGGER_CONFIG),
     SwaggerModule,
     GlobalModule,
+    PrismaModule,
+    CommonModule,
   ],
   controllers: [AppController],
   providers: [AppService, SecretService, PrismaService],
