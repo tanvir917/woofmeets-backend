@@ -14,6 +14,8 @@ import {
 } from './global/config';
 import { PrismaModule } from './prisma/prisma.module';
 import { CommonModule } from './common/common.module';
+import { FileModule } from './file/file.module';
+import { AwsModule } from './aws/aws.module';
 
 @Module({
   imports: [
@@ -28,6 +30,8 @@ import { CommonModule } from './common/common.module';
     GlobalModule,
     PrismaModule,
     CommonModule,
+    FileModule,
+    AwsModule,
   ],
   controllers: [AppController],
   providers: [AppService, SecretService, PrismaService],

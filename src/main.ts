@@ -61,7 +61,7 @@ async function bootstrap() {
   // ended setting up swagger
 
   const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('docs', app, document);
+  SwaggerModule.setup('api-docs', app, document);
 
   const port = secretService.getPort();
 
