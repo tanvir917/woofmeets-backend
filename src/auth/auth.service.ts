@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { nanoid } from 'nanoid';
+import { CommonService } from 'src/common/common.service';
 import {
   throwBadRequestErrorCheck,
   throwConflictErrorCheck,
@@ -22,6 +22,7 @@ interface ILoginPayload {
 export class AuthService {
   constructor(
     private secretService: SecretService,
+    private commonService: CommonService,
     private jwtService: JwtService,
     private prismaService: PrismaService,
     private passwordService: PasswordService,
@@ -81,7 +82,7 @@ export class AuthService {
       password,
     );
 
-    let opk = nanoid();
+    let opk = this.commonService.getOpk();
     let opkGenerated = false;
     while (!opkGenerated) {
       const checkOpk = await this.prismaService.user.findFirst({
@@ -91,7 +92,7 @@ export class AuthService {
         },
       });
       if (checkOpk) {
-        opk = nanoid();
+        opk = this.commonService.getOpk();
       } else {
         opkGenerated = true;
       }
