@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { customAlphabet } from 'nanoid';
 import { SecretService } from 'src/secret/secret.service';
 
 @Injectable()
@@ -29,6 +30,15 @@ export class CommonService {
       .replace(/\-\-+/g, '-')
       .replace(/^-+/, '')
       .replace(/-+$/, '');
+  }
+
+  getOpk() {
+    const nanoid = customAlphabet(
+      this.secretService.getRndTokenString(),
+      this.secretService.getOpkLength(),
+    );
+
+    return nanoid();
   }
 
   static checkAllowedMimeType(mimeType: string): boolean {

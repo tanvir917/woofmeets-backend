@@ -70,6 +70,10 @@ export class EnvironmentVariable {
   @IsNotEmpty()
   @IsNumber()
   SALT_ROUND: number;
+
+  @IsNotEmpty()
+  @IsNumber()
+  OPK_LENGTH: number;
 }
 
 export function validateEnvironmentVariables(

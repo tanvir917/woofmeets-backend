@@ -42,7 +42,8 @@ export class SecretService {
       RND_TOKEN_STRING: this.configService.get<string>('RND_TOKEN_STRING'),
       JWT_SECRET: this.configService.get<string>('JWT_SECRET'),
       TOKEN_EXPIRE: this.configService.get<string>('TOKEN_EXPIRE'),
-      SALT_ROUND: this.configService.get<string>('SALT_ROUND'),
+      SALT_ROUND: this.configService.get<number>('SALT_ROUND'),
+      OPK_LENGTH: this.configService.get<number>('OPK_LENGTH'),
     });
   }
 
@@ -79,5 +80,9 @@ export class SecretService {
       jwtExpire: this.#environment.TOKEN_EXPIRE,
       saltRound: this.#environment.SALT_ROUND,
     };
+  }
+
+  getOpkLength(): number {
+    return this.#environment.OPK_LENGTH;
   }
 }
