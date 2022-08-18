@@ -44,6 +44,10 @@ export class SecretService {
       TOKEN_EXPIRE: this.configService.get<string>('TOKEN_EXPIRE'),
       SALT_ROUND: this.configService.get<number>('SALT_ROUND'),
       OPK_LENGTH: this.configService.get<number>('OPK_LENGTH'),
+      MAILGUN_USER_NAME: this.configService.get<string>('MAILGUN_USER_NAME'),
+      MAILGUN_API_KEY: this.configService.get<string>('MAILGUN_API_KEY'),
+      MAILGUN_DOMAIN: this.configService.get<string>('MAILGUN_DOMAIN'),
+      MAILGUN_MAIL_FROM: this.configService.get<string>('MAILGUN_MAIL_FROM'),
     });
   }
 
@@ -84,5 +88,14 @@ export class SecretService {
 
   getOpkLength(): number {
     return this.#environment.OPK_LENGTH;
+  }
+
+  getMailgunCreds() {
+    return {
+      userName: this.#environment.MAILGUN_USER_NAME,
+      apiKey: this.#environment.MAILGUN_API_KEY,
+      domain: this.#environment.MAILGUN_DOMAIN,
+      from: this.#environment.MAILGUN_MAIL_FROM,
+    };
   }
 }

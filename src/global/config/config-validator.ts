@@ -74,6 +74,22 @@ export class EnvironmentVariable {
   @IsNotEmpty()
   @IsNumber()
   OPK_LENGTH: number;
+
+  @IsNotEmpty()
+  @IsString()
+  MAILGUN_USER_NAME: string;
+
+  @IsNotEmpty()
+  @IsString()
+  MAILGUN_API_KEY: string;
+
+  @IsNotEmpty()
+  @IsString()
+  MAILGUN_DOMAIN: string;
+
+  @IsNotEmpty()
+  @IsString()
+  MAILGUN_MAIL_FROM: string;
 }
 
 export function validateEnvironmentVariables(
