@@ -11,13 +11,28 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum loginProvider {
+  LOCAL
+  FACEBOOK
+  GOOGLE
+}
+
 model User {
-  id        BigInt   @id @default(autoincrement())
-  name      String
-  email     String
-  // either local/google/facebook
-  provider  String?
-  password  String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @default(now())
+  id            BigInt        @id @default(autoincrement())
+  opk           String        @unique
+  email         String        @unique
+  emailVerified Boolean?      @default(true)
+  firstName     String
+  lastName      String
+  password      String?
+  zipcode       String?
+  image         Json?
+  loginProvider loginProvider
+  timezone      String?
+  facebook      String?
+  google        Boolean?
+  meta          Json?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime?     @updatedAt
+  deletedAt     DateTime?
 }
