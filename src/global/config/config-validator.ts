@@ -4,6 +4,7 @@ import {
   IsEnum,
   IsInt,
   IsNotEmpty,
+  IsNumber,
   IsOptional,
   IsString,
   validateSync,
@@ -57,6 +58,18 @@ export class EnvironmentVariable {
   @IsNotEmpty()
   @IsString()
   RND_TOKEN_STRING: string;
+
+  @IsNotEmpty()
+  @IsString()
+  JWT_SECRET: string;
+
+  @IsNotEmpty()
+  @IsString()
+  TOKEN_EXPIRE: string;
+
+  @IsNotEmpty()
+  @IsNumber()
+  SALT_ROUND: number;
 }
 
 export function validateEnvironmentVariables(

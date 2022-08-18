@@ -1,18 +1,19 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { SwaggerModule } from '@nestjs/swagger';
+import { LoggerModule } from 'nestjs-pino';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { SecretService } from './secret/secret.service';
-import { PrismaService } from './prisma/prisma.service';
-import { LoggerModule } from 'nestjs-pino';
-import { SecretModule } from './secret/secret.module';
-import { GlobalModule } from './global/global.module';
-import { SwaggerModule } from '@nestjs/swagger';
+import { AuthModule } from './auth/auth.module';
 import {
   ASYNC_LOGGER_CONFIG,
   validateEnvironmentVariables,
 } from './global/config';
+import { GlobalModule } from './global/global.module';
 import { PrismaModule } from './prisma/prisma.module';
+import { PrismaService } from './prisma/prisma.service';
+import { SecretModule } from './secret/secret.module';
+import { SecretService } from './secret/secret.service';
 import { CommonModule } from './common/common.module';
 import { FileModule } from './file/file.module';
 import { AwsModule } from './aws/aws.module';
@@ -30,6 +31,7 @@ import { AwsModule } from './aws/aws.module';
     GlobalModule,
     PrismaModule,
     CommonModule,
+    AuthModule,
     FileModule,
     AwsModule,
   ],

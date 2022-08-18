@@ -1,7 +1,6 @@
-import { forwardRef, Inject, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { plainToInstance } from 'class-transformer';
-import { PinoLogger } from 'nestjs-pino';
 import { EnvironmentVariable } from 'src/global/config';
 
 @Injectable()
@@ -41,6 +40,9 @@ export class SecretService {
         '2006-03-01',
       ),
       RND_TOKEN_STRING: this.configService.get<string>('RND_TOKEN_STRING'),
+      JWT_SECRET: this.configService.get<string>('JWT_SECRET'),
+      TOKEN_EXPIRE: this.configService.get<string>('TOKEN_EXPIRE'),
+      SALT_ROUND: this.configService.get<string>('SALT_ROUND'),
     });
   }
 
@@ -69,5 +71,13 @@ export class SecretService {
 
   getRndTokenString(): string {
     return this.#environment.RND_TOKEN_STRING;
+  }
+
+  getJwtCreds() {
+    return {
+      jwtSecret: this.#environment.JWT_SECRET,
+      jwtExpire: this.#environment.TOKEN_EXPIRE,
+      saltRound: this.#environment.SALT_ROUND,
+    };
   }
 }
