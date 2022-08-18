@@ -19,9 +19,9 @@ import {
 import { FileUploadBody } from './dto/file-upload-body.dto';
 import { FileService } from './file.service';
 import { FilesInterceptor } from '@nestjs/platform-express';
-import { throwBadRequestErrorCheck } from 'src/utils';
 import { MulterFileUploadService } from './multer-file-upload-service';
 import { SuccessfulUploadResponse } from './dto/upload-flie.dto';
+import { throwBadRequestErrorCheck } from 'src/global/exceptions/error-logic';
 
 @ApiTags('File System (Only For Backend Use)')
 @Controller('file')

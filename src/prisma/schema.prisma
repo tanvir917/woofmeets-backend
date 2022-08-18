@@ -17,6 +17,12 @@ enum loginProvider {
   GOOGLE
 }
 
+enum petTypeEnum {
+  DOG
+  CAT
+  ANY
+}
+
 model User {
   id            BigInt        @id @default(autoincrement())
   opk           String        @unique
@@ -35,4 +41,26 @@ model User {
   createdAt     DateTime      @default(now())
   updatedAt     DateTime?     @updatedAt
   deletedAt     DateTime?
+}
+
+model ServiceType {
+  id                              Int         @id @default(autoincrement())
+  name                            String
+  displayName                     String
+  slug                            String      @unique
+  description                     String?
+  shortDescription                String?
+  icon                            String
+  active                          Boolean     @default(true)
+  location                        String?
+  petType                         petTypeEnum @default(ANY)
+  browsable                       Boolean     @default(true)
+  start_date_selector_description String?
+  end_date_selector_description   String?
+  appRequired                     Boolean     @default(false)
+  sequence                        Int?
+  meta                            Json?
+  createdAt                       DateTime    @default(now()) @db.Timestamptz(3)
+  updatedAt                       DateTime?   @updatedAt @db.Timestamptz(3)
+  deletedAt                       DateTime?
 }
