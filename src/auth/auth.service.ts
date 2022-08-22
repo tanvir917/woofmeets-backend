@@ -10,6 +10,7 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { SecretService } from 'src/secret/secret.service';
 import { LoginProviderEnum } from 'src/utils/enums';
 import { checkZipcode } from 'src/utils/tools/zipcode.checker.tools';
+import { OAuthDto } from './dto/oauth.dto';
 import { SignupDto } from './dto/signup.dto';
 import { PasswordService } from './password.service';
 
@@ -118,6 +119,134 @@ export class AuthService {
 
     return {
       message: 'Signup is successful.',
+      data: response,
+    };
+  }
+
+  async OAuthSignup(signupDto: OAuthDto) {
+    const { email, firstName, lastName, provider, facebookId } = signupDto;
+
+    //Check unique email
+    const emailTaken = await this.prismaService.user.findFirst({
+      where: {
+        email,
+        deletedAt: null,
+      },
+    });
+
+    /*
+      check email is already taken
+      check loginProvider
+    */
+    if (!!emailTaken) {
+      const signinProvider =
+        emailTaken?.loginProvider == 'LOCAL'
+          ? 'REGULAR EMAIL'
+          : emailTaken?.loginProvider;
+
+      throwConflictErrorCheck(
+        emailTaken?.loginProvider != provider,
+        `Email already taken, please login through ${signinProvider} login.`,
+      );
+
+      return this.OAuthLogin(signupDto);
+    }
+
+    let opk = this.commonService.getOpk();
+    let opkGenerated = false;
+    while (!opkGenerated) {
+      const checkOpk = await this.prismaService.user.findFirst({
+        where: {
+          opk,
+          deletedAt: null,
+        },
+      });
+      if (checkOpk) {
+        opk = this.commonService.getOpk();
+      } else {
+        opkGenerated = true;
+      }
+    }
+
+    const user = await this.prismaService.user.create({
+      data: {
+        opk,
+        firstName,
+        lastName,
+        email,
+        loginProvider: provider,
+        google: provider == 'GOOGLE' ? true : null,
+        facebook: facebookId ?? null,
+      },
+    });
+
+    throwBadRequestErrorCheck(!user, 'User is not created');
+
+    const { password: ignoredPassword, ...others } = user;
+
+    const response = await this.login(others);
+
+    return {
+      message: 'Signup is successful.',
+      data: response,
+    };
+  }
+
+  async OAuthLogin(loginDto: OAuthDto) {
+    const { email, firstName, lastName, provider, facebookId } = loginDto;
+
+    let user = await this.prismaService.user.findFirst({
+      where: {
+        email,
+        deletedAt: null,
+      },
+    });
+
+    if (!user) {
+      let opk = this.commonService.getOpk();
+      let opkGenerated = false;
+      while (!opkGenerated) {
+        const checkOpk = await this.prismaService.user.findFirst({
+          where: {
+            opk,
+            deletedAt: null,
+          },
+        });
+        if (checkOpk) {
+          opk = this.commonService.getOpk();
+        } else {
+          opkGenerated = true;
+        }
+      }
+
+      user = await this.prismaService.user.create({
+        data: {
+          opk,
+          firstName,
+          lastName,
+          email,
+          loginProvider: provider,
+          google: provider == 'GOOGLE' ? true : null,
+          facebook: facebookId ?? null,
+        },
+      });
+
+      throwBadRequestErrorCheck(!user, 'User is not created');
+    } else {
+      const signinProvider =
+        user?.loginProvider == 'LOCAL' ? 'REGULAR EMAIL' : user?.loginProvider;
+      throwConflictErrorCheck(
+        user?.loginProvider != provider,
+        `Email already taken, please login through ${signinProvider} login.`,
+      );
+    }
+
+    const { password: ignoredPassword, ...others } = user;
+
+    const response = await this.login(others);
+
+    return {
+      message: 'Login successful.',
       data: response,
     };
   }
