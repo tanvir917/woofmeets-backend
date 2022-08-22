@@ -10,8 +10,8 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { SecretService } from 'src/secret/secret.service';
 import { LoginProviderEnum } from 'src/utils/enums';
 import { checkZipcode } from 'src/utils/tools/zipcode.checker.tools';
-import { OAuthDto } from './dto/oAuth.dto';
 import { SignupDto } from './dto/signup.dto';
+import { SocialAuthDto } from './dto/social.auth.dto';
 import { PasswordService } from './password.service';
 
 interface ILoginPayload {
@@ -123,7 +123,7 @@ export class AuthService {
     };
   }
 
-  async OAuthSignup(signupDto: OAuthDto) {
+  async OAuthSignup(signupDto: SocialAuthDto) {
     const { email, firstName, lastName, provider, facebookId } = signupDto;
 
     //Check unique email
@@ -192,7 +192,7 @@ export class AuthService {
     };
   }
 
-  async OAuthLogin(loginDto: OAuthDto) {
+  async OAuthLogin(loginDto: SocialAuthDto) {
     const { email, firstName, lastName, provider, facebookId } = loginDto;
 
     let user = await this.prismaService.user.findFirst({

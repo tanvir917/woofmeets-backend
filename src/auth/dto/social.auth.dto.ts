@@ -2,7 +2,7 @@ import { ApiProperty } from '@nestjs/swagger';
 import { IsEmail, IsEnum, IsNotEmpty, IsOptional } from 'class-validator';
 import { LoginProviderEnum } from 'src/utils/enums';
 
-export class OAuthDto {
+export class SocialAuthDto {
   @IsEmail()
   @IsNotEmpty()
   @ApiProperty()
