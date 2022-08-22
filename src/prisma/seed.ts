@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import { country } from './seeder/country';
 import { ServiceTypesSeeder } from './seeder/services';
 
 const prisma = new PrismaClient();
@@ -61,6 +62,18 @@ const addServiceTypes = async () => {
         sequence: obj?.sequence,
       },
     });
+  });
+
+  const previousCountries = await prisma.country.findMany({
+    where: { deletedAt: null },
+  });
+  const mapCountries = previousCountries.map((obj) => obj?.name);
+  await country.forEach(async (obj) => {
+    if (!mapCountries.includes(obj?.name)) {
+      await prisma.country.create({
+        data: obj,
+      });
+    }
   });
 };
 

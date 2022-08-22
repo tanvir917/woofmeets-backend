@@ -2,6 +2,7 @@ import { Body, Controller, Post } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
+import { OAuthDto } from './dto/oauth.dto';
 import { SignupDto } from './dto/signup.dto';
 
 @ApiTags('Auth')
@@ -18,5 +19,15 @@ export class AuthController {
   async login(@Body() loginDto: LoginDto) {
     const { email, password } = loginDto;
     return await this.authService.validateUser(email, password);
+  }
+
+  @Post('/OAuth/signup')
+  async OAuthSignup(@Body() signupDto: OAuthDto) {
+    return this.authService.OAuthSignup(signupDto);
+  }
+
+  @Post('/OAuth/login')
+  async googleLogin(@Body() loginDto: OAuthDto) {
+    return this.authService.OAuthLogin(loginDto);
   }
 }
