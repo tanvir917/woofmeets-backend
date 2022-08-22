@@ -10,7 +10,7 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { SecretService } from 'src/secret/secret.service';
 import { LoginProviderEnum } from 'src/utils/enums';
 import { checkZipcode } from 'src/utils/tools/zipcode.checker.tools';
-import { OAuthDto } from './dto/oauth.dto';
+import { OAuthDto } from './dto/oAuth.dto';
 import { SignupDto } from './dto/signup.dto';
 import { PasswordService } from './password.service';
 

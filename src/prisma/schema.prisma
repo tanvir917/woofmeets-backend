@@ -56,7 +56,7 @@ model User {
   meta          Json?
   createdAt     DateTime      @default(now()) @db.Timestamptz(3)
   updatedAt     DateTime?     @updatedAt @db.Timestamptz(3)
-  deletedAt     DateTime?
+  deletedAt     DateTime?     @db.Timestamptz(3)
   provider      Provider?
 }
 
@@ -72,7 +72,7 @@ model Country {
   meta         Json?
   createdAt    DateTime  @default(now()) @db.Timestamptz(3)
   updatedAt    DateTime? @updatedAt @db.Timestamptz(3)
-  deletedAt    DateTime?
+  deletedAt    DateTime? @db.Timestamptz(3)
 }
 
 model ServiceType {
@@ -94,7 +94,7 @@ model ServiceType {
   meta                            Json?
   createdAt                       DateTime           @default(now()) @db.Timestamptz(3)
   updatedAt                       DateTime?          @updatedAt @db.Timestamptz(3)
-  deletedAt                       DateTime?
+  deletedAt                       DateTime?          @db.Timestamptz(3)
   providerServices                ProviderServices[]
 }
 
