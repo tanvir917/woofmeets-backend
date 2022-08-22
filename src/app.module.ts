@@ -19,6 +19,7 @@ import { FileModule } from './file/file.module';
 import { AwsModule } from './aws/aws.module';
 import { EmailModule } from './email/email.module';
 import { ServiceTypesModule } from './service-types/service-types.module';
+import { ProviderServicesModule } from './provider-services/provider-services.module';
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import { ServiceTypesModule } from './service-types/service-types.module';
     AwsModule,
     EmailModule,
     ServiceTypesModule,
+    ProviderServicesModule,
   ],
   controllers: [AppController],
   providers: [AppService, SecretService, PrismaService],
