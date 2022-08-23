@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { CommonModule } from 'src/common/common.module';
+import { EmailModule } from 'src/email/email.module';
+import { EmailService } from 'src/email/email.service';
 import { PrismaModule } from 'src/prisma/prisma.module';
 import { SecretModule } from 'src/secret/secret.module';
 import { SecretService } from 'src/secret/secret.service';
@@ -14,6 +16,7 @@ import { PasswordService } from './password.service';
     SecretModule,
     PrismaModule,
     CommonModule,
+    EmailModule,
     JwtModule.registerAsync({
       imports: [SecretModule],
       inject: [SecretService],

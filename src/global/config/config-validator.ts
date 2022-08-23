@@ -16,7 +16,6 @@ import {
 export class EnvironmentVariable {
   @IsNotEmpty()
   @IsInt()
-  @Equals(5000)
   PORT: number;
 
   @IsNotEmpty()
