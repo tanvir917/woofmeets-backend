@@ -75,8 +75,8 @@ export class AuthService {
     throwConflictErrorCheck(!!emailTaken, 'Email already taken');
 
     /*
-        Zipcode verification
-      */
+      Zipcode verification
+    */
     throwNotFoundErrorCheck(!checkZipcode(zipcode), 'Zipcode not found');
 
     const hashedPassword = await this.passwordService.getHashedPassword(
