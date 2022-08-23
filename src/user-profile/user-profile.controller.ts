@@ -13,10 +13,14 @@ import { FilesInterceptor } from '@nestjs/platform-express';
 import { ApiBearerAuth, ApiConsumes, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 import { TransformInterceptor } from 'src/transform.interceptor';
+import { CreateProviderDetailsDto } from './dto/create-provider-details.dto';
 import { CreateBasicInfoDto } from './dto/create-user-basic-info.dto';
 import { ProfileImageUploadBodyDto } from './dto/profile-image-upload-body.dto';
+import { UpdateProviderDetailsDto } from './dto/update-provider-details.dto';
 import { UpdateBasicInfoDto } from './dto/update-user-basic-info';
+import { ProviderDetailsService } from './provider-details.service';
 import { UserProfileBasicInfoService } from './user-profile-basic-info.service';
+import { UserProfileService } from './user-profile.service';
 
 @ApiTags('User Profile')
 @UseInterceptors(TransformInterceptor)
@@ -24,7 +28,17 @@ import { UserProfileBasicInfoService } from './user-profile-basic-info.service';
 export class UserProfileController {
   constructor(
     private readonly userProfileBasicInfoService: UserProfileBasicInfoService,
+    private readonly userProfileService: UserProfileService,
+    private readonly providerDetailsService: ProviderDetailsService,
   ) {}
+
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard)
+  @Get()
+  get(@Request() req: any) {
+    const userId = BigInt(req.user?.id) ?? BigInt(-1);
+    return this.userProfileService.getUserProfile(userId);
+  }
 
   @ApiBearerAuth('access-token')
   @UseGuards(JwtAuthGuard)
@@ -75,12 +89,41 @@ export class UserProfileController {
     console.log('files', file);
     const userId = BigInt(req.user?.id) ?? BigInt(-1);
     return this.userProfileBasicInfoService.uploadProfilePicture(userId, file);
-    // throwBadRequestErrorCheck(!files?.length, 'No files uploaded');
-    // const uploadedFiles = await this.multerFileUploadService.uploadMultiple(
-    //   files,
-    //   'test-files',
-    // );
+  }
 
-    // return uploadedFiles;
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard)
+  @Post('provider-details')
+  createProviderDetails(
+    @Body() createProviderDetailsDto: CreateProviderDetailsDto,
+    @Request() req: any,
+  ) {
+    const userId = BigInt(req.user?.id) ?? BigInt(-1);
+    return this.providerDetailsService.createProviderDetails(
+      userId,
+      createProviderDetailsDto,
+    );
+  }
+
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard)
+  @Get('provider-details')
+  getProviderDetails(@Request() req: any) {
+    const userId = BigInt(req.user?.id) ?? BigInt(-1);
+    return this.providerDetailsService.getProviderDetails(userId);
+  }
+
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard)
+  @Patch('provider-details')
+  updateProviderDetails(
+    @Body() updateProviderDetailsDto: UpdateProviderDetailsDto,
+    @Request() req: any,
+  ) {
+    const userId = BigInt(req.user?.id) ?? BigInt(-1);
+    return this.providerDetailsService.updateProviderDetails(
+      userId,
+      updateProviderDetailsDto,
+    );
   }
 }
