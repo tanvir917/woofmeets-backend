@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "BasicInfo" ALTER COLUMN "dob" SET DATA TYPE DATE;
