@@ -1,11 +1,14 @@
-import { plainToClass } from 'class-transformer';
+import { plainToClass, Transform } from 'class-transformer';
 import {
   Equals,
+  IsBoolean,
+  IsBooleanString,
   IsEnum,
   IsInt,
   IsNotEmpty,
   IsNumber,
   IsOptional,
+  IsPhoneNumber,
   IsString,
   validateSync,
 } from 'class-validator';
@@ -90,6 +93,28 @@ export class EnvironmentVariable {
   @IsNotEmpty()
   @IsString()
   MAILGUN_MAIL_FROM: string;
+
+  @IsNotEmpty()
+  @IsString()
+  TWILIO_ACCOUNT_SID: string;
+
+  @IsNotEmpty()
+  @IsString()
+  TWILIO_AUTH_TOKEN: string;
+
+  @IsNotEmpty()
+  @IsString()
+  @IsPhoneNumber()
+  TWILIO_FROM_NUMBER: string;
+
+  @IsOptional()
+  @IsBoolean()
+  @Transform(({ value }) => {
+    if (value === 'true') return true;
+    if (value === 'false') return false;
+    return value ?? false;
+  })
+  ALLOW_TEST = false;
 }
 
 export function validateEnvironmentVariables(

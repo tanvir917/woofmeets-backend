@@ -14,7 +14,7 @@ export class SecretService {
   }
 
   prepare() {
-    this.#environment = plainToInstance(EnvironmentVariable, {
+    const env: EnvironmentVariable = {
       DATABASE_URL: this.configService.get<string>('DATABASE_URL'),
       PORT: this.configService.get<number>('PORT', 5000),
       LOGGER_CONTEXT: this.configService.get<string>(
@@ -48,7 +48,13 @@ export class SecretService {
       MAILGUN_API_KEY: this.configService.get<string>('MAILGUN_API_KEY'),
       MAILGUN_DOMAIN: this.configService.get<string>('MAILGUN_DOMAIN'),
       MAILGUN_MAIL_FROM: this.configService.get<string>('MAILGUN_MAIL_FROM'),
-    });
+      TWILIO_ACCOUNT_SID: this.configService.get<string>('TWILIO_ACCOUNT_SID'),
+      TWILIO_AUTH_TOKEN: this.configService.get<string>('TWILIO_AUTH_TOKEN'),
+      TWILIO_FROM_NUMBER: this.configService.get<string>('TWILIO_FROM_NUMBER'),
+      ALLOW_TEST: this.configService.get<boolean>('ALLOW_TEST', false),
+    };
+
+    this.#environment = plainToInstance(EnvironmentVariable, env);
   }
 
   getLoggerCreds() {
@@ -97,5 +103,23 @@ export class SecretService {
       domain: this.#environment.MAILGUN_DOMAIN,
       from: this.#environment.MAILGUN_MAIL_FROM,
     };
+  }
+
+  getTwilioCreds(): {
+    sid: string;
+    token: string;
+    number: string;
+    allowTest: boolean;
+  } {
+    return {
+      allowTest: this.#environment.ALLOW_TEST,
+      sid: this.#environment.TWILIO_ACCOUNT_SID,
+      token: this.#environment.TWILIO_AUTH_TOKEN,
+      number: this.#environment.TWILIO_FROM_NUMBER,
+    };
+  }
+
+  getEnv(): 'development' | 'production' | string {
+    return process.env?.NODE_ENV ?? 'development';
   }
 }
