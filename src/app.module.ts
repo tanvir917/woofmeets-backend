@@ -20,6 +20,8 @@ import { AwsModule } from './aws/aws.module';
 import { EmailModule } from './email/email.module';
 import { ServiceTypesModule } from './service-types/service-types.module';
 import { ProviderServicesModule } from './provider-services/provider-services.module';
+import { SmsService } from './sms/sms.service';
+import { SmsModule } from './sms/sms.module';
 
 @Module({
   imports: [
@@ -40,8 +42,9 @@ import { ProviderServicesModule } from './provider-services/provider-services.mo
     EmailModule,
     ServiceTypesModule,
     ProviderServicesModule,
+    SmsModule,
   ],
   controllers: [AppController],
-  providers: [AppService, SecretService, PrismaService],
+  providers: [AppService, SecretService, PrismaService, SmsService],
 })
 export class AppModule {}
