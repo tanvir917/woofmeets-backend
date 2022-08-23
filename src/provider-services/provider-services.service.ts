@@ -1,9 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { CommonService } from 'src/common/common.service';
-import { throwBadRequestErrorCheck } from 'src/global/exceptions/error-logic';
+import {
+  throwBadRequestErrorCheck,
+  throwNotFoundErrorCheck,
+} from 'src/global/exceptions/error-logic';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { customAlphabet } from 'nanoid';
-import { throwNotFoundErrorCheck } from 'src/utils';
 
 @Injectable()
 export class ProviderServicesService {

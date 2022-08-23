@@ -20,6 +20,7 @@ import { AwsModule } from './aws/aws.module';
 import { EmailModule } from './email/email.module';
 import { ServiceTypesModule } from './service-types/service-types.module';
 import { ProviderServicesModule } from './provider-services/provider-services.module';
+import { UserProfileModule } from './user-profile/user-profile.module';
 import { SmsService } from './sms/sms.service';
 import { SmsModule } from './sms/sms.module';
 
@@ -42,6 +43,7 @@ import { SmsModule } from './sms/sms.module';
     EmailModule,
     ServiceTypesModule,
     ProviderServicesModule,
+    UserProfileModule,
     SmsModule,
   ],
   controllers: [AppController],

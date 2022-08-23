@@ -8,11 +8,12 @@ import {
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
-import { ApiBearerAuth } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 import { TransformInterceptor } from 'src/transform.interceptor';
 import { ProviderServicesService } from './provider-services.service';
 
+@ApiTags('Provider Services')
 @Controller('provider-services')
 @UseInterceptors(TransformInterceptor)
 export class ProviderServicesController {

@@ -58,10 +58,11 @@ model User {
   updatedAt     DateTime?     @updatedAt @db.Timestamptz(3)
   deletedAt     DateTime?     @db.Timestamptz(3)
   provider      Provider?
+  basicInfo     BasicInfo?
 }
 
 model Country {
-  id           Int       @id @default(autoincrement())
+  id           Int         @id @default(autoincrement())
   name         String
   code         String
   currency     String?
@@ -70,9 +71,10 @@ model Country {
   alpha2       String?
   alpha3       String?
   meta         Json?
-  createdAt    DateTime  @default(now()) @db.Timestamptz(3)
-  updatedAt    DateTime? @updatedAt @db.Timestamptz(3)
-  deletedAt    DateTime? @db.Timestamptz(3)
+  createdAt    DateTime    @default(now()) @db.Timestamptz(3)
+  updatedAt    DateTime?   @updatedAt @db.Timestamptz(3)
+  deletedAt    DateTime?   @db.Timestamptz(3)
+  BasicInfo    BasicInfo[]
 }
 
 model ServiceType {
@@ -134,4 +136,26 @@ model ProviderServices {
   createdAt              DateTime    @default(now()) @db.Timestamptz(3)
   updatedAt              DateTime?   @updatedAt @db.Timestamptz(3)
   deletedAt              DateTime?   @db.Timestamptz(3)
+}
+
+model BasicInfo {
+  id               BigInt    @id @default(autoincrement())
+  userId           BigInt    @unique
+  user             User      @relation(fields: [userId], references: [id])
+  dob              DateTime  @db.Date
+  addressLine1     String
+  addressLine2     String?
+  street           String?
+  city             String
+  state            String
+  zipCode          String
+  countryId        Int
+  country          Country   @relation(fields: [countryId], references: [id])
+  latitude         Float?    @default(0)
+  longitude        Float?    @default(0)
+  detailsSubmitted Boolean   @default(false)
+  meta             Json?
+  createdAt        DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt        DateTime? @updatedAt @db.Timestamptz(3)
+  deletedAt        DateTime? @db.Timestamptz(3)
 }
