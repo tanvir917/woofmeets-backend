@@ -71,7 +71,6 @@ export class EnvironmentVariable {
 
   @IsNotEmpty()
   @IsNumber()
-  @IsNumber()
   SALT_ROUND: number;
 
   @IsNotEmpty()
@@ -119,6 +118,14 @@ export class EnvironmentVariable {
   @IsNotEmpty()
   @IsNumber()
   OTP_DURATION: number;
+
+  @IsNotEmpty()
+  @IsString()
+  MAILCHIMP_API_KEY: string;
+
+  @IsNotEmpty()
+  @IsString()
+  MAILCHIMP_SUBS_URL: string;
 }
 
 export function validateEnvironmentVariables(

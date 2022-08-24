@@ -23,6 +23,7 @@ import { ProviderServicesModule } from './provider-services/provider-services.mo
 import { UserProfileModule } from './user-profile/user-profile.module';
 import { SmsService } from './sms/sms.service';
 import { SmsModule } from './sms/sms.module';
+import { NewsletterModule } from './newsletter/newsletter.module';
 
 @Module({
   imports: [
@@ -45,6 +46,7 @@ import { SmsModule } from './sms/sms.module';
     ProviderServicesModule,
     UserProfileModule,
     SmsModule,
+    NewsletterModule,
   ],
   controllers: [AppController],
   providers: [AppService, SecretService, PrismaService, SmsService],
