@@ -52,7 +52,11 @@ export class SecretService {
       TWILIO_AUTH_TOKEN: this.configService.get<string>('TWILIO_AUTH_TOKEN'),
       TWILIO_FROM_NUMBER: this.configService.get<string>('TWILIO_FROM_NUMBER'),
       ALLOW_TEST: this.configService.get<boolean>('ALLOW_TEST', false),
-      OTP_DURATION: this.configService.get<number>('OTP_DURATION'),
+
+      MAILCHIMP_API_KEY: this.configService.get<string>('MAILCHIMP_API_KEY'),
+      MAILCHIMP_SUBS_URL: this.configService.get<string>('MAILCHIMP_SUBS_URL'),
+
+      OTP_DURATION: this.configService.get<number>('OTP_DURATION', 5),
     };
 
     this.#environment = plainToInstance(EnvironmentVariable, env);
@@ -126,5 +130,12 @@ export class SecretService {
 
   getEnv(): 'development' | 'production' | string {
     return process.env?.NODE_ENV ?? 'development';
+  }
+
+  getMailchimpCreds() {
+    return {
+      apiKey: this.#environment.MAILCHIMP_API_KEY,
+      subsUrl: this.#environment.MAILCHIMP_SUBS_URL,
+    };
   }
 }
