@@ -71,6 +71,7 @@ export class EnvironmentVariable {
 
   @IsNotEmpty()
   @IsNumber()
+  @IsNumber()
   SALT_ROUND: number;
 
   @IsNotEmpty()
@@ -114,6 +115,10 @@ export class EnvironmentVariable {
     return value ?? false;
   })
   ALLOW_TEST = false;
+
+  @IsNotEmpty()
+  @IsNumber()
+  OTP_DURATION: number;
 }
 
 export function validateEnvironmentVariables(

@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { MailgunService } from '@nextnm/nestjs-mailgun';
 import { SecretService } from 'src/secret/secret.service';
-import { ForgetPasswordEmailDto } from './dto/forgetpass.email.dto';
 import { TestEmailDto } from './dto/test.email.dto';
 import { ForgetPasswordTemplate } from './template/forget-password.template.dto';
+import { UpdatePasswordTemplate } from './template/update-password.template.dto';
 
 @Injectable()
 export class EmailService {
@@ -14,7 +14,7 @@ export class EmailService {
 
   async sendEmail(param: TestEmailDto) {
     const { email, subject, message } = param;
-    const content = new ForgetPasswordTemplate(email).html();
+    const content = new ForgetPasswordTemplate('').html();
     return this.mailgunService.createEmail(
       this.secretService.getMailgunCreds().domain,
       {
@@ -27,14 +27,27 @@ export class EmailService {
     );
   }
 
-  async forgetPasswordConfirmEmail(email: string, name?: string) {
-    const content = new ForgetPasswordTemplate(name).html();
+  async updatePasswordConfirmEmail(email: string, name?: string) {
+    const content = new UpdatePasswordTemplate(name).html();
     return this.mailgunService.createEmail(
       this.secretService.getMailgunCreds().domain,
       {
         from: this.secretService.getMailgunCreds().from,
         to: email,
         subject: 'Password changed for Woofmeets account.',
+        html: content,
+      },
+    );
+  }
+
+  async forgetPasswordOTPEmail(email: string, otp?: string) {
+    const content = new ForgetPasswordTemplate(otp).html();
+    return this.mailgunService.createEmail(
+      this.secretService.getMailgunCreds().domain,
+      {
+        from: this.secretService.getMailgunCreds().from,
+        to: email,
+        subject: 'Reset Password for Woofmeets account.',
         html: content,
       },
     );

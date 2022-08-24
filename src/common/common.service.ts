@@ -41,6 +41,11 @@ export class CommonService {
     return nanoid();
   }
 
+  getOtp() {
+    const code = customAlphabet('1234567890', 6);
+    return code();
+  }
+
   static checkAllowedMimeType(mimeType: string): boolean {
     const allowed = {
       'image/gif': true,
