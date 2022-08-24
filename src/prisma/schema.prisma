@@ -25,6 +25,7 @@ enum otpType {
 enum otpGenerationType {
   FORGET_PASSWORD
   PHONE_VERIFICATION
+  APPOINTMENT
 }
 
 enum petTypeEnum {
@@ -178,4 +179,30 @@ model ProviderDetails {
   createdAt              DateTime  @default(now()) @db.Timestamptz(3)
   updatedAt              DateTime? @updatedAt @db.Timestamptz(3)
   deletedAt              DateTime? @db.Timestamptz(3)
+}
+
+model Otp {
+  id             BigInt            @id @default(autoincrement())
+  recipient      String
+  code           String
+  type           otpType
+  generationType otpGenerationType
+  expireAt       DateTime          @db.Timestamptz(3)
+  delivered      Boolean
+  attempt        Int               @default(0)
+  success        Boolean           @default(false)
+  createdAt      DateTime          @default(now()) @db.Timestamptz(3)
+  updatedAt      DateTime?         @updatedAt @db.Timestamptz(3)
+  deletedAt      DateTime?         @db.Timestamptz(3)
+  OtpLog         OtpLog[]
+}
+
+model OtpLog {
+  id        BigInt    @id @default(autoincrement())
+  recipient String
+  otpId     BigInt
+  otp       Otp       @relation(fields: [otpId], references: [id])
+  createdAt DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime? @updatedAt @db.Timestamptz(3)
+  deletedAt DateTime? @db.Timestamptz(3)
 }

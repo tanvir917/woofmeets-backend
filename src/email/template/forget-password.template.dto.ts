@@ -1,7 +1,7 @@
 export class ForgetPasswordTemplate {
-  private data: any;
-  constructor(data: string) {
-    this.data = data;
+  private otp: string;
+  constructor(otp: string) {
+    this.otp = otp;
   }
 
   html() {
@@ -14,6 +14,7 @@ export class ForgetPasswordTemplate {
         <meta name="x-apple-disable-message-reformatting">
         <meta http-equiv="X-UA-Compatible" content="IE=edge">
         <meta content="telephone=no" name="format-detection">
+        <title>Appointment status</title>
         <!--[if gte mso 9]><style>sup { font-size: 100% !important; }</style><![endif]-->
     </head>
     
@@ -94,8 +95,9 @@ export class ForgetPasswordTemplate {
                                                                                 <tbody>
                                                                                     <tr>
                                                                                         <td class="esd-block-text es-p10b es-p15r es-p15l" align="left">
-                                                                                            <h2 style="color: #333333;">Dear ${this.data}, </h2>
-                                                                                            <p>Congratulations. You sucessfully update your password. Now, you will be able to log in with your email and new password.</p>
+                                                                                            <h2 style="color: #333333;">Hello,</h2>
+                                                                                            <p>You're receiving this e-mail because you requested a password reset for your user account on woofmeets.com. If you did not request a password reset, you may ignore this message.</p> 
+                                                                                            <p>Please use the password reset OTP to change your password. Your OTP is <b style="color:red;"> ${this.otp} </p>
                                                                                             <p>Thank you for using woofmeets.com.</p>
                                                                                             <p>If you have any questions, don't hesitate to get in touch!</p>
                                                                                             <p>Best Regards,</p>

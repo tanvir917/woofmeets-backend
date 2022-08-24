@@ -9,3 +9,14 @@ export enum PetTypeEnum {
   CAT = 'CAT',
   ANY = 'ANY',
 }
+
+export enum OtpTypeEnum {
+  EMAIL = 'EMAIL',
+  PHONE = 'PHONE',
+}
+
+export enum OtpGenerationTypeEnum {
+  FORGET_PASSWORD = 'FORGET_PASSWORD',
+  PHONE_VERIFICATION = 'PHONE_VERIFICATION',
+  APPOINTMENT = 'APPOINTMENT',
+}

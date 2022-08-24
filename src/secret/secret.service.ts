@@ -52,6 +52,7 @@ export class SecretService {
       TWILIO_AUTH_TOKEN: this.configService.get<string>('TWILIO_AUTH_TOKEN'),
       TWILIO_FROM_NUMBER: this.configService.get<string>('TWILIO_FROM_NUMBER'),
       ALLOW_TEST: this.configService.get<boolean>('ALLOW_TEST', false),
+      OTP_DURATION: this.configService.get<number>('OTP_DURATION'),
     };
 
     this.#environment = plainToInstance(EnvironmentVariable, env);
@@ -94,6 +95,10 @@ export class SecretService {
 
   getOpkLength(): number {
     return this.#environment.OPK_LENGTH;
+  }
+
+  getOtpDuration(): number {
+    return this.#environment.OTP_DURATION;
   }
 
   getMailgunCreds() {
