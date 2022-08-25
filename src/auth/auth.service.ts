@@ -53,7 +53,7 @@ export class AuthService {
       expires: new Date(
         new Date().getTime() + this.secretService.getCookieCreds().cookieExpire,
       ),
-      sameSite: 'strict',
+      sameSite: 'lax',
       httpOnly: true,
     });
 
@@ -134,7 +134,7 @@ export class AuthService {
       expires: new Date(
         new Date().getTime() + this.secretService.getCookieCreds().cookieExpire,
       ),
-      sameSite: 'strict',
+      sameSite: 'lax',
       httpOnly: true,
     });
 
@@ -205,7 +205,7 @@ export class AuthService {
       expires: new Date(
         new Date().getTime() + this.secretService.getCookieCreds().cookieExpire,
       ),
-      sameSite: 'strict',
+      sameSite: 'lax',
       httpOnly: true,
     });
 
@@ -231,6 +231,8 @@ export class AuthService {
       'User not found with the specific indentifier.',
     );
 
-    return { message: 'User info found successfully.', data: user };
+    const { password: ignoredPassword, ...others } = user;
+
+    return { message: 'User info found successfully.', data: others };
   }
 }
