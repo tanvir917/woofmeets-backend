@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
+import { Request as RequestType } from 'express';
 import { PinoLogger } from 'nestjs-pino';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { SecretService } from 'src/secret/secret.service';
-
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(
@@ -11,13 +11,27 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     private readonly logger: PinoLogger,
   ) {
     super({
-      jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+      jwtFromRequest: ExtractJwt.fromExtractors([
+        JwtStrategy.extractJWT,
+        ExtractJwt.fromAuthHeaderAsBearerToken(),
+      ]),
       secretOrKey: secretService.getJwtCreds().jwtSecret,
     });
   }
 
+  private static extractJWT(req: RequestType): string | null {
+    if (
+      req?.cookies &&
+      'token' in req?.cookies &&
+      req?.cookies?.token?.length > 0
+    ) {
+      return req.cookies.token;
+    }
+    return null;
+  }
+
   async validate(payload: any) {
-    // console.log('Got payload', payload);
+    console.log('Got payload', payload);
     this.logger.assign({
       user: {
         email: payload?.email,

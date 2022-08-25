@@ -10,6 +10,7 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { SecretService } from 'src/secret/secret.service';
 import { LoginProviderEnum } from 'src/utils/enums';
 import { checkZipcode } from 'src/utils/tools/zipcode.checker.tools';
+import { LoginDto } from './dto/login.dto';
 import { SignupDto } from './dto/signup.dto';
 import { SocialAuthDto } from './dto/social.auth.dto';
 import { PasswordService } from './password.service';
@@ -29,24 +30,35 @@ export class AuthService {
     private passwordService: PasswordService,
   ) {}
 
-  async validateUser(username: string, password: string) {
+  async validateUser(loginDto: LoginDto, res: any) {
+    const { email, password } = loginDto;
     const foundUser = await this.prismaService.user.findFirst({
       where: {
-        email: username,
+        email,
+        deletedAt: null,
       },
     });
-    throwNotFoundErrorCheck(!foundUser, 'User with this email not found');
+    throwNotFoundErrorCheck(!foundUser, 'Email not found please sign up.');
 
     const isPasswordValid = await this.passwordService.comparePassword(
       password,
       foundUser.password,
     );
-    throwBadRequestErrorCheck(!isPasswordValid, 'Password is not correct');
+    throwBadRequestErrorCheck(!isPasswordValid, 'Password is not correct.');
 
     const { password: ignoredPassword, ...others } = foundUser;
     const response = await this.login(others);
+
+    res.cookie('token', response?.access_token, {
+      expires: new Date(
+        new Date().getTime() + this.secretService.getCookieCreds().cookieExpire,
+      ),
+      sameSite: 'strict',
+      httpOnly: true,
+    });
+
     return {
-      message: 'Request processed successfully',
+      message: 'Login Successful.',
       data: response,
     };
   }
@@ -54,13 +66,14 @@ export class AuthService {
   async login<T extends ILoginPayload>(payload: T) {
     const token = this.jwtService.sign({ ...payload });
     const { password, ...other } = payload ?? {};
+    console.log({ token });
     return {
       access_token: token,
       info: other,
     };
   }
 
-  async signup(userInfo: SignupDto) {
+  async signup(userInfo: SignupDto, res: any) {
     const { email, firstName, lastName, zipcode, password } = userInfo;
 
     //Check unique email
@@ -117,84 +130,24 @@ export class AuthService {
 
     const response = await this.login(others);
 
+    res.cookie('token', response?.access_token, {
+      expires: new Date(
+        new Date().getTime() + this.secretService.getCookieCreds().cookieExpire,
+      ),
+      sameSite: 'strict',
+      httpOnly: true,
+    });
+
     return {
       message: 'Signup is successful.',
       data: response,
     };
   }
 
-  async OAuthSignup(signupDto: SocialAuthDto) {
+  async OAuthSignup(signupDto: SocialAuthDto, res: any) {
     const { email, firstName, lastName, provider, facebookId } = signupDto;
 
     //Check unique email
-    const emailTaken = await this.prismaService.user.findFirst({
-      where: {
-        email,
-        deletedAt: null,
-      },
-    });
-
-    /*
-      check email is already taken
-      check loginProvider
-    */
-    if (!!emailTaken) {
-      const signinProvider =
-        emailTaken?.loginProvider == 'LOCAL'
-          ? 'REGULAR EMAIL'
-          : emailTaken?.loginProvider;
-
-      throwConflictErrorCheck(
-        emailTaken?.loginProvider != provider,
-        `Email already taken, please login through ${signinProvider} login.`,
-      );
-
-      return this.OAuthLogin(signupDto);
-    }
-
-    let opk = this.commonService.getOpk();
-    let opkGenerated = false;
-    while (!opkGenerated) {
-      const checkOpk = await this.prismaService.user.findFirst({
-        where: {
-          opk,
-          deletedAt: null,
-        },
-      });
-      if (checkOpk) {
-        opk = this.commonService.getOpk();
-      } else {
-        opkGenerated = true;
-      }
-    }
-
-    const user = await this.prismaService.user.create({
-      data: {
-        opk,
-        firstName,
-        lastName,
-        email,
-        loginProvider: provider,
-        google: provider == 'GOOGLE' ? true : null,
-        facebook: facebookId ?? null,
-      },
-    });
-
-    throwBadRequestErrorCheck(!user, 'User is not created');
-
-    const { password: ignoredPassword, ...others } = user;
-
-    const response = await this.login(others);
-
-    return {
-      message: 'Signup is successful.',
-      data: response,
-    };
-  }
-
-  async OAuthLogin(loginDto: SocialAuthDto) {
-    const { email, firstName, lastName, provider, facebookId } = loginDto;
-
     let user = await this.prismaService.user.findFirst({
       where: {
         email,
@@ -227,17 +180,20 @@ export class AuthService {
           email,
           loginProvider: provider,
           google: provider == 'GOOGLE' ? true : null,
-          facebook: facebookId ?? null,
+          facebook: provider == 'FACEBOOK' ? facebookId ?? null : null,
         },
       });
 
       throwBadRequestErrorCheck(!user, 'User is not created');
     } else {
       const signinProvider =
-        user?.loginProvider == 'LOCAL' ? 'REGULAR EMAIL' : user?.loginProvider;
+        user?.loginProvider == 'LOCAL'
+          ? 'EMAIL and PASSWORD'
+          : user?.loginProvider;
+
       throwConflictErrorCheck(
         user?.loginProvider != provider,
-        `Email already taken, please login through ${signinProvider} login.`,
+        `Email already exists, please login through ${signinProvider} login.`,
       );
     }
 
@@ -245,9 +201,36 @@ export class AuthService {
 
     const response = await this.login(others);
 
+    res.cookie('token', response?.access_token, {
+      expires: new Date(
+        new Date().getTime() + this.secretService.getCookieCreds().cookieExpire,
+      ),
+      sameSite: 'strict',
+      httpOnly: true,
+    });
+
     return {
-      message: 'Login successful.',
+      message: 'Signup is successful.',
       data: response,
     };
+  }
+
+  async userInfo(userId: bigint) {
+    const user = await this.prismaService.user.findFirst({
+      where: {
+        id: userId,
+        deletedAt: null,
+      },
+      include: {
+        provider: true,
+      },
+    });
+
+    throwNotFoundErrorCheck(
+      !user,
+      'User not found with the specific indentifier.',
+    );
+
+    return { message: 'User info found successfully.', data: user };
   }
 }

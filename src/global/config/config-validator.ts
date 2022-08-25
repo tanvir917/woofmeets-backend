@@ -1,8 +1,6 @@
 import { plainToClass, Transform } from 'class-transformer';
 import {
-  Equals,
   IsBoolean,
-  IsBooleanString,
   IsEnum,
   IsInt,
   IsNotEmpty,
@@ -72,6 +70,10 @@ export class EnvironmentVariable {
   @IsNotEmpty()
   @IsNumber()
   SALT_ROUND: number;
+
+  @IsNotEmpty()
+  @IsNumber()
+  COOKIE_EXPIRE: number;
 
   @IsNotEmpty()
   @IsNumber()

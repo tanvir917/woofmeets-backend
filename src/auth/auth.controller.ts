@@ -1,18 +1,29 @@
-import { Body, Controller, Post, Request, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Post,
+  Request,
+  Response,
+  UseGuards,
+  UseInterceptors,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { TransformInterceptor } from 'src/transform.interceptor';
 import { AuthService } from './auth.service';
-import { PasswordService } from './password.service';
+import { CheckOtpForgetPasswordDto } from './dto/forget.otp.dto';
+import { ForgetPasswordOtpDto } from './dto/forgetpass.otp.dto';
 import { LoginDto } from './dto/login.dto';
 import { SignupDto } from './dto/signup.dto';
 import { SocialAuthDto } from './dto/social.auth.dto';
+import { UpdatePasswordOtpToken } from './dto/tokenpassword.dto';
 import { UpdatePasswordDto } from './dto/update.pass.dto';
 import { JwtAuthGuard } from './jwt-auth.guard';
-import { ForgetPasswordOtpDto } from './dto/forgetpass.otp.dto';
-import { CheckOtpForgetPasswordDto } from './dto/forget.otp.dto';
-import { UpdatePasswordOtpToken } from './dto/tokenpassword.dto';
+import { PasswordService } from './password.service';
 
 @ApiTags('Auth')
 @Controller('auth')
+@UseInterceptors(TransformInterceptor)
 export class AuthController {
   constructor(
     private readonly authService: AuthService,
@@ -20,24 +31,27 @@ export class AuthController {
   ) {}
 
   @Post('/signup')
-  async signup(@Body() signupDto: SignupDto) {
-    return this.authService.signup(signupDto);
+  async signup(
+    @Body() signupDto: SignupDto,
+    @Response({ passthrough: true }) res: any,
+  ) {
+    return await this.authService.signup(signupDto, res);
   }
 
   @Post('/login')
-  async login(@Body() loginDto: LoginDto) {
-    const { email, password } = loginDto;
-    return await this.authService.validateUser(email, password);
+  async login(
+    @Body() loginDto: LoginDto,
+    @Response({ passthrough: true }) res: any,
+  ) {
+    return await this.authService.validateUser(loginDto, res);
   }
 
   @Post('/OAuth/signup')
-  async OAuthSignup(@Body() signupDto: SocialAuthDto) {
-    return this.authService.OAuthSignup(signupDto);
-  }
-
-  @Post('/OAuth/login')
-  async googleLogin(@Body() loginDto: SocialAuthDto) {
-    return this.authService.OAuthLogin(loginDto);
+  async OAuthSignup(
+    @Body() signupDto: SocialAuthDto,
+    @Response({ passthrough: true }) res: any,
+  ) {
+    return await this.authService.OAuthSignup(signupDto, res);
   }
 
   @ApiBearerAuth('access-token')
@@ -73,5 +87,27 @@ export class AuthController {
     }
 
     return this.passwordService.updatePasswordWithOtpToken(email, body);
+  }
+
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard)
+  @Post('/whoami')
+  async userInfo(@Request() req: any) {
+    const userId = BigInt(req.user?.id) ?? BigInt(-1);
+
+    return await this.authService.userInfo(userId);
+  }
+
+  @Get('/logout')
+  async logout(@Response({ passthrough: true }) res: any) {
+    res.cookie('token', '', {
+      expires: new Date(),
+      sameSite: 'strict',
+      httpOnly: true,
+    });
+
+    return {
+      message: 'Log out successful.',
+    };
   }
 }
