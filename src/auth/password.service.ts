@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { CommonService } from 'src/common/common.service';
@@ -124,17 +124,15 @@ export class PasswordService {
     console.log('day', dayOtp, 'hour', hourOtp);
 
     if (dayOtp >= 5) {
-      return {
-        message:
-          'You reached out maximum number of OTP creation for a day. Please try 24 hours later.',
-      };
+      throw new BadRequestException(
+        'You reached out maximum number of OTP creation for a day. Please try again later.',
+      );
     }
 
     if (hourOtp >= 3) {
-      return {
-        message:
-          'You reached out maximum number of OTP creation. Please try a hour later.',
-      };
+      throw new BadRequestException(
+        'You reached out maximum number of OTP creation. Please try again later.',
+      );
     }
 
     const code = this.commonService.getOtp();
@@ -206,9 +204,7 @@ export class PasswordService {
         },
       });
 
-      return {
-        message: 'OTP does not matched.',
-      };
+      throw new BadRequestException('OTP does not matched.');
     }
 
     const user = await this.prismaService.user.findFirst({
