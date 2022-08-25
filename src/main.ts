@@ -1,6 +1,7 @@
 import { VersioningType } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import * as cookieParser from 'cookie-parser';
 import { Logger, LoggerErrorInterceptor } from 'nestjs-pino';
 import { AppModule } from './app.module';
 import { globalValidationPipe } from './global/error';
@@ -17,6 +18,8 @@ async function bootstrap() {
   const logger = app.get(Logger);
   app.useLogger(logger);
   app.flushLogs();
+
+  app.use(cookieParser());
 
   app.useGlobalInterceptors(new LoggerErrorInterceptor());
   // end setup logger

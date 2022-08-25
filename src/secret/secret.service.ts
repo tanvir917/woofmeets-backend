@@ -42,6 +42,7 @@ export class SecretService {
       RND_TOKEN_STRING: this.configService.get<string>('RND_TOKEN_STRING'),
       JWT_SECRET: this.configService.get<string>('JWT_SECRET'),
       TOKEN_EXPIRE: this.configService.get<string>('TOKEN_EXPIRE'),
+      COOKIE_EXPIRE: this.configService.get<number>('COOKIE_EXPIRE'),
       SALT_ROUND: this.configService.get<number>('SALT_ROUND'),
       OPK_LENGTH: this.configService.get<number>('OPK_LENGTH'),
       MAILGUN_USER_NAME: this.configService.get<string>('MAILGUN_USER_NAME'),
@@ -94,6 +95,12 @@ export class SecretService {
       jwtSecret: this.#environment.JWT_SECRET,
       jwtExpire: this.#environment.TOKEN_EXPIRE,
       saltRound: this.#environment.SALT_ROUND,
+    };
+  }
+
+  getCookieCreds() {
+    return {
+      cookieExpire: this.#environment.COOKIE_EXPIRE,
     };
   }
 

@@ -63,7 +63,9 @@ const addServiceTypes = async () => {
       },
     });
   });
+};
 
+const addCountries = async () => {
   const previousCountries = await prisma.country.findMany({
     where: { deletedAt: null },
   });
@@ -81,6 +83,7 @@ async function main() {
   console.log('.... Sedding Data ....');
 
   addServiceTypes();
+  addCountries();
 }
 
 main()
