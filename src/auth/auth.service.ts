@@ -40,10 +40,12 @@ export class AuthService {
     });
     throwNotFoundErrorCheck(!foundUser, 'Email not found please sign up.');
 
-    const isPasswordValid = await this.passwordService.comparePassword(
-      password,
-      foundUser.password,
-    );
+    const isPasswordValid = foundUser?.password
+      ? await this.passwordService.comparePassword(
+          password,
+          foundUser?.password,
+        )
+      : null;
     throwBadRequestErrorCheck(!isPasswordValid, 'Password is not correct.');
 
     const { password: ignoredPassword, ...others } = foundUser;
@@ -53,8 +55,9 @@ export class AuthService {
       expires: new Date(
         new Date().getTime() + this.secretService.getCookieCreds().cookieExpire,
       ),
-      sameSite: 'lax',
+      sameSite: 'none',
       httpOnly: true,
+      secure: true,
     });
 
     return {
@@ -66,7 +69,6 @@ export class AuthService {
   async login<T extends ILoginPayload>(payload: T) {
     const token = this.jwtService.sign({ ...payload });
     const { password, ...other } = payload ?? {};
-    console.log({ token });
     return {
       access_token: token,
       info: other,
@@ -134,8 +136,9 @@ export class AuthService {
       expires: new Date(
         new Date().getTime() + this.secretService.getCookieCreds().cookieExpire,
       ),
-      sameSite: 'lax',
+      sameSite: 'none',
       httpOnly: true,
+      secure: true,
     });
 
     return {
@@ -205,8 +208,9 @@ export class AuthService {
       expires: new Date(
         new Date().getTime() + this.secretService.getCookieCreds().cookieExpire,
       ),
-      sameSite: 'lax',
+      sameSite: 'none',
       httpOnly: true,
+      secure: true,
     });
 
     return {

@@ -70,6 +70,7 @@ model User {
   basicInfo              BasicInfo?
   userEmergencyContactId Int?
   Otp                    Otp[]
+  Gallery                Gallery[]
 }
 
 model UserContact {
@@ -229,6 +230,20 @@ model Otp {
   updatedAt      DateTime?         @updatedAt @db.Timestamptz(3)
   deletedAt      DateTime?         @db.Timestamptz(3)
   userId         BigInt?
+}
+
+model Gallery {
+  id        BigInt    @id @default(autoincrement())
+  userId    BigInt
+  user      User      @relation(fields: [userId], references: [id])
+  caption   String?
+  imageSrc  Json
+  sequence  Int?
+  public    Boolean   @default(true)
+  meta      Json?
+  createdAt DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime? @updatedAt @db.Timestamptz(3)
+  deletedAt DateTime? @db.Timestamptz(3)
 }
 
 model HomeAttributeTitle {

@@ -24,6 +24,7 @@ import { UserProfileModule } from './user-profile/user-profile.module';
 import { SmsService } from './sms/sms.service';
 import { SmsModule } from './sms/sms.module';
 import { NewsletterModule } from './newsletter/newsletter.module';
+import { GalleryModule } from './gallery/gallery.module';
 
 @Module({
   imports: [
@@ -47,6 +48,7 @@ import { NewsletterModule } from './newsletter/newsletter.module';
     UserProfileModule,
     SmsModule,
     NewsletterModule,
+    GalleryModule,
   ],
   controllers: [AppController],
   providers: [AppService, SecretService, PrismaService, SmsService],
