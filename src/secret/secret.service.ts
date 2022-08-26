@@ -58,6 +58,10 @@ export class SecretService {
       MAILCHIMP_SUBS_URL: this.configService.get<string>('MAILCHIMP_SUBS_URL'),
 
       OTP_DURATION: this.configService.get<number>('OTP_DURATION', 5),
+      OTP_VALIDATION_WINDOW: this.configService.get<number>(
+        'OTP_VALIDATION_WINDOW',
+        720,
+      ),
     };
 
     this.#environment = plainToInstance(EnvironmentVariable, env);
@@ -144,5 +148,9 @@ export class SecretService {
       apiKey: this.#environment.MAILCHIMP_API_KEY,
       subsUrl: this.#environment.MAILCHIMP_SUBS_URL,
     };
+  }
+
+  getOtpValidationWindow(): number {
+    return this.#environment.OTP_VALIDATION_WINDOW;
   }
 }

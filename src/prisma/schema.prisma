@@ -41,25 +41,51 @@ enum backGroundCheckEnum {
 }
 
 model User {
-  id            BigInt        @id @default(autoincrement())
-  opk           String        @unique
-  email         String        @unique
-  emailVerified Boolean?      @default(true)
-  firstName     String
-  lastName      String
-  password      String?
-  zipcode       String?
-  image         Json?
-  loginProvider loginProvider
-  timezone      String?
-  facebook      String?
-  google        Boolean?
-  meta          Json?
-  createdAt     DateTime      @default(now()) @db.Timestamptz(3)
-  updatedAt     DateTime?     @updatedAt @db.Timestamptz(3)
-  deletedAt     DateTime?     @db.Timestamptz(3)
-  provider      Provider?
-  basicInfo     BasicInfo?
+  id                     BigInt                @id @default(autoincrement())
+  opk                    String                @unique
+  email                  String                @unique
+  emailVerified          Boolean?              @default(true)
+  firstName              String
+  lastName               String
+  password               String?
+  zipcode                String?
+  image                  Json?
+  loginProvider          loginProvider
+  timezone               String?
+  facebook               String?
+  google                 Boolean?
+  meta                   Json?
+  contact                UserContact?
+  emergencyContact       UserEmergencyContact?
+  createdAt              DateTime              @default(now()) @db.Timestamptz(3)
+  updatedAt              DateTime?             @updatedAt @db.Timestamptz(3)
+  deletedAt              DateTime?             @db.Timestamptz(3)
+  provider               Provider?
+  basicInfo              BasicInfo?
+  userEmergencyContactId Int?
+  Otp                    Otp[]
+}
+
+model UserContact {
+  id         Int       @id @default(autoincrement())
+  phone      String    @unique
+  userId     BigInt    @unique
+  user       User      @relation(fields: [userId], references: [id])
+  verifiedAt DateTime? @db.Timestamptz(3)
+  createdAt  DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt  DateTime? @updatedAt @db.Timestamptz(3)
+}
+
+model UserEmergencyContact {
+  id         Int       @id @default(autoincrement())
+  name       String?
+  phone      String?
+  email      String?
+  userId     BigInt    @unique
+  user       User      @relation(fields: [userId], references: [id])
+  verifiedAt DateTime? @db.Timestamptz(3)
+  createdAt  DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt  DateTime? @updatedAt @db.Timestamptz(3)
 }
 
 model Country {
@@ -188,21 +214,13 @@ model Otp {
   type           otpType
   generationType otpGenerationType
   expireAt       DateTime          @db.Timestamptz(3)
+  invalidated    Boolean           @default(false)
   delivered      Boolean
+  user           User?             @relation(fields: [userId], references: [id])
   attempt        Int               @default(0)
   success        Boolean           @default(false)
   createdAt      DateTime          @default(now()) @db.Timestamptz(3)
   updatedAt      DateTime?         @updatedAt @db.Timestamptz(3)
   deletedAt      DateTime?         @db.Timestamptz(3)
-  OtpLog         OtpLog[]
-}
-
-model OtpLog {
-  id        BigInt    @id @default(autoincrement())
-  recipient String
-  otpId     BigInt
-  otp       Otp       @relation(fields: [otpId], references: [id])
-  createdAt DateTime  @default(now()) @db.Timestamptz(3)
-  updatedAt DateTime? @updatedAt @db.Timestamptz(3)
-  deletedAt DateTime? @db.Timestamptz(3)
+  userId         BigInt?
 }

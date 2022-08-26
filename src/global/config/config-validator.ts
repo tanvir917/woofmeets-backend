@@ -128,6 +128,10 @@ export class EnvironmentVariable {
   @IsNotEmpty()
   @IsString()
   MAILCHIMP_SUBS_URL: string;
+
+  @IsNotEmpty()
+  @IsNumber()
+  OTP_VALIDATION_WINDOW: number;
 }
 
 export function validateEnvironmentVariables(

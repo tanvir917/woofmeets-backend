@@ -6,6 +6,7 @@ import { SmsController } from './sms.controller';
 @Module({
   imports: [SecretModule],
   providers: [SmsService],
+  exports: [SmsService],
   controllers: [SmsController],
 })
 export class SmsModule {}
