@@ -1,6 +1,11 @@
 import { PrismaClient } from '@prisma/client';
 import { country } from './seeder/country';
 import { ServiceTypesSeeder } from './seeder/services';
+import {
+  homeAttributeBoardingHome,
+  homeAttributeHostAble,
+} from './seeder/homeAttributeTypes';
+import { profileSkills } from './seeder/profileSkills';
 
 const prisma = new PrismaClient();
 
@@ -79,11 +84,80 @@ const addCountries = async () => {
   });
 };
 
+const addHomeAttributeTypes = async () => {
+  const owner_expectation = await prisma.homeAttributeTitle.create({
+    data: {
+      displayName: 'What can pet owners expect when boarding at your home?',
+    },
+  });
+
+  await homeAttributeBoardingHome.forEach(async (ob) => {
+    await prisma.homeAttributeType.upsert({
+      where: {
+        slug: ob.slug,
+      },
+      create: {
+        ...ob,
+        homeAttributeTitleId: owner_expectation.id,
+      },
+      update: {
+        displayName: ob.displayName,
+        homeAttributeTitleId: owner_expectation.id,
+        deletedAt: null,
+      },
+    });
+  });
+
+  const host_able = await prisma.homeAttributeTitle.create({
+    data: {
+      displayName: 'Are you able to host any of the following?',
+    },
+  });
+
+  await homeAttributeHostAble.forEach(async (ob) => {
+    await prisma.homeAttributeType.upsert({
+      where: {
+        slug: ob.slug,
+      },
+      create: {
+        ...ob,
+        homeAttributeTitleId: host_able.id,
+      },
+      update: {
+        displayName: ob.displayName,
+        homeAttributeTitleId: host_able.id,
+        deletedAt: null,
+      },
+    });
+  });
+};
+
+const additionalSkills = async () => {
+  await profileSkills.forEach(async (ob) => {
+    await prisma.profileSkillType.upsert({
+      where: {
+        slug: ob.slug,
+      },
+      create: {
+        ...ob,
+      },
+      update: {
+        title: ob.title,
+        deletedAt: null,
+      },
+    });
+  });
+};
+
 async function main() {
-  console.log('.... Sedding Data ....');
+  console.log('.... Seeding Data ....');
 
   addServiceTypes();
   addCountries();
+  addHomeAttributeTypes();
+  additionalSkills();
+
+  console.log('✨  Seed Completed ✨ ');
 }
 
 main()

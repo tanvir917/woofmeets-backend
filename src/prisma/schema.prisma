@@ -40,6 +40,12 @@ enum backGroundCheckEnum {
   ENHANCE
 }
 
+enum optionTypeEnum {
+  CHECKBOX
+  RADIO
+  TEXT
+}
+
 model User {
   id                     BigInt                @id @default(autoincrement())
   opk                    String                @unique
@@ -147,23 +153,23 @@ model Provider {
 }
 
 model ProviderServices {
-  id                     BigInt      @id @default(autoincrement())
+  id                     BigInt                 @id @default(autoincrement())
   serviceTypeId          Int
-  serviceType            ServiceType @relation(fields: [serviceTypeId], references: [id])
+  serviceType            ServiceType            @relation(fields: [serviceTypeId], references: [id])
   providerId             BigInt
-  provider               Provider    @relation(fields: [providerId], references: [id])
-  slug                   String      @unique
-  isActive               Boolean     @default(true)
-  isAway                 Boolean     @default(false)
-  acceptsNewAppointments Boolean     @default(true)
-  acceptsNewCustomers    Boolean     @default(true)
-  isApproved             Boolean     @default(true)
-  petPerDay              Int         @default(1)
-  logStay                Boolean     @default(true)
+  provider               Provider               @relation(fields: [providerId], references: [id])
+  slug                   String                 @unique
+  isActive               Boolean                @default(true)
+  isAway                 Boolean                @default(false)
+  acceptsNewAppointments Boolean                @default(true)
+  acceptsNewCustomers    Boolean                @default(true)
+  isApproved             Boolean                @default(true)
+  logStay                Boolean                @default(true)
   meta                   Json?
-  createdAt              DateTime    @default(now()) @db.Timestamptz(3)
-  updatedAt              DateTime?   @updatedAt @db.Timestamptz(3)
-  deletedAt              DateTime?   @db.Timestamptz(3)
+  createdAt              DateTime               @default(now()) @db.Timestamptz(3)
+  updatedAt              DateTime?              @updatedAt @db.Timestamptz(3)
+  deletedAt              DateTime?              @db.Timestamptz(3)
+  ServicePetPreference   ServicePetPreference[]
 }
 
 model BasicInfo {
@@ -223,4 +229,60 @@ model Otp {
   updatedAt      DateTime?         @updatedAt @db.Timestamptz(3)
   deletedAt      DateTime?         @db.Timestamptz(3)
   userId         BigInt?
+}
+
+model HomeAttributeTitle {
+  id                BigInt              @id @default(autoincrement())
+  displayName       String
+  optionType        optionTypeEnum      @default(CHECKBOX)
+  required          Boolean             @default(false)
+  active            Boolean             @default(true)
+  sequence          Int?
+  createdAt         DateTime            @default(now()) @db.Timestamptz(3)
+  updatedAt         DateTime?           @updatedAt @db.Timestamptz(3)
+  deletedAt         DateTime?           @db.Timestamptz(3)
+  HomeAttributeType HomeAttributeType[]
+}
+
+model HomeAttributeType {
+  id                   BigInt             @id @default(autoincrement())
+  slug                 String             @unique
+  displayName          String
+  icon                 String?
+  homeAttributeTitleId BigInt
+  title                HomeAttributeTitle @relation(fields: [homeAttributeTitleId], references: [id])
+  active               Boolean            @default(true)
+  sequence             Int?
+  meta                 Json?
+  createdAt            DateTime           @default(now()) @db.Timestamptz(3)
+  updatedAt            DateTime?          @updatedAt @db.Timestamptz(3)
+  deletedAt            DateTime?          @db.Timestamptz(3)
+}
+
+model ProfileSkillType {
+  id        BigInt    @id @default(autoincrement())
+  title     String
+  slug      String    @unique
+  icon      String?
+  active    Boolean   @default(true)
+  sequence  Int?
+  meta      Json?
+  createdAt DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime? @updatedAt @db.Timestamptz(3)
+  deletedAt DateTime? @db.Timestamptz(3)
+}
+
+model ServicePetPreference {
+  id                 BigInt           @id @default(autoincrement())
+  providerServicesId BigInt
+  service            ProviderServices @relation(fields: [providerServicesId], references: [id])
+  petPerDay          Int              @default(1)
+  smallDog           Boolean          @default(true)
+  mediumDog          Boolean          @default(true)
+  largeDog           Boolean          @default(true)
+  giantDog           Boolean          @default(true)
+  cat                Boolean          @default(true)
+  createdAt          DateTime         @default(now()) @db.Timestamptz(3)
+  updatedAt          DateTime?        @updatedAt @db.Timestamptz(3)
+  deletedAt          DateTime?        @db.Timestamptz(3)
 }
