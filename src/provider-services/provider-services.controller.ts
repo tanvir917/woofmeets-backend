@@ -7,6 +7,7 @@ import {
   Request,
   UseGuards,
   UseInterceptors,
+  Param,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
@@ -24,7 +25,7 @@ export class ProviderServicesController {
   @ApiBearerAuth('access-token')
   @UseGuards(JwtAuthGuard)
   @Post('/:serviceTypeId')
-  create(@Query('serviceTypeId') serviceTypeId: number, @Request() req: any) {
+  create(@Param('serviceTypeId') serviceTypeId: number, @Request() req: any) {
     const userId = BigInt(req.user?.id) ?? BigInt(-1);
     return this.providerServicesService.create(userId, +serviceTypeId);
   }
