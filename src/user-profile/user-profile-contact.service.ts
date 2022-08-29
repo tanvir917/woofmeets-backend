@@ -229,9 +229,9 @@ export class UserProfileContactService {
       });
 
     if (
-      previousData.name === name &&
-      previousData.email === email &&
-      previousData.phone === phone
+      previousData?.name === name &&
+      previousData?.email === email &&
+      previousData?.phone === phone
     ) {
       return previousData;
     }
@@ -243,9 +243,9 @@ export class UserProfileContactService {
         },
         create: {
           userId: userId,
-          email,
-          name,
-          phone,
+          email: email,
+          name: name,
+          phone: phone,
         },
         update: {
           email: email ?? previousData?.email,
