@@ -25,6 +25,7 @@ import { SmsService } from './sms/sms.service';
 import { SmsModule } from './sms/sms.module';
 import { NewsletterModule } from './newsletter/newsletter.module';
 import { GalleryModule } from './gallery/gallery.module';
+import { PetPreferenceModule } from './pet-preference/pet-preference.module';
 
 @Module({
   imports: [
@@ -49,6 +50,7 @@ import { GalleryModule } from './gallery/gallery.module';
     SmsModule,
     NewsletterModule,
     GalleryModule,
+    PetPreferenceModule,
   ],
   controllers: [AppController],
   providers: [AppService, SecretService, PrismaService, SmsService],
