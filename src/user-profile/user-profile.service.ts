@@ -41,4 +41,16 @@ export class UserProfileService {
       data: user,
     };
   }
+
+  async getContactInfo(userId: bigint) {
+    return {
+      data: await this.prismaService.user.findUnique({
+        where: { id: userId },
+        select: {
+          contact: true,
+          emergencyContact: true,
+        },
+      }),
+    };
+  }
 }
