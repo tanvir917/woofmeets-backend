@@ -15,8 +15,9 @@ import { FilesInterceptor } from '@nestjs/platform-express';
 import { ApiBearerAuth, ApiConsumes, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 import { throwBadRequestErrorCheck } from 'src/global/exceptions/error-logic';
-import { GalleryPhotoUpdateBodyDto } from './dto/update.photo.dto';
-import { GalleryPhotoUploadBodyDto } from './dto/upload.photo.dto';
+import { GalleryPhotosDragDropDto } from './dto/draganddrop.photo.dto';
+import { GalleryPhotoUpdateDto } from './dto/update.photo.dto';
+import { GalleryPhotoUploadDto } from './dto/upload.photo.dto';
 import { GalleryService } from './gallery.service';
 
 @ApiTags('Gallery')
@@ -51,7 +52,7 @@ export class GalleryController {
   @UseInterceptors(FilesInterceptor('file', 1))
   async uploadPhoto(
     @UploadedFiles() file: Express.Multer.File,
-    @Body() body: GalleryPhotoUploadBodyDto,
+    @Body() body: GalleryPhotoUploadDto,
     @Request() req: any,
   ) {
     const userId = BigInt(req.user?.id) ?? BigInt(-1);
@@ -64,7 +65,7 @@ export class GalleryController {
   async updatePhoto(
     @Param('id') id: string,
     @Request() req: any,
-    @Body() galleryPhotoUpdateBodyDto: GalleryPhotoUpdateBodyDto,
+    @Body() galleryPhotoUpdateDto: GalleryPhotoUpdateDto,
   ) {
     const userId = BigInt(req.user?.id) ?? BigInt(-1);
     throwBadRequestErrorCheck(
@@ -74,7 +75,22 @@ export class GalleryController {
     return await this.galleryService.updatePhoto(
       userId,
       BigInt(id),
-      galleryPhotoUpdateBodyDto,
+      galleryPhotoUpdateDto,
+    );
+  }
+
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard)
+  @Put('/photo/drag-drops')
+  async dragAndDropPhotos(
+    @Request() req: any,
+    @Body() galleryPhotoDragDropsDto: GalleryPhotosDragDropDto,
+  ) {
+    const userId = BigInt(req.user?.id) ?? BigInt(-1);
+
+    return await this.galleryService.dragAndDropPhotos(
+      userId,
+      galleryPhotoDragDropsDto,
     );
   }
 

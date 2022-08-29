@@ -37,6 +37,13 @@ export class AuthService {
         email,
         deletedAt: null,
       },
+      include: {
+        provider: {
+          select: {
+            isApproved: true,
+          },
+        },
+      },
     });
     throwNotFoundErrorCheck(!foundUser, 'Email not found please sign up.');
 
@@ -48,15 +55,23 @@ export class AuthService {
       : null;
     throwBadRequestErrorCheck(!isPasswordValid, 'Password is not correct.');
 
-    const { password: ignoredPassword, ...others } = foundUser;
-    const response = await this.login(others);
+    const {
+      password: ignoredPassword,
+      provider: ignoredProvider,
+      ...others
+    } = foundUser;
+
+    const response = await this.login({
+      ...others,
+      provider: foundUser?.provider?.isApproved ? true : false,
+    });
 
     res.cookie('token', response?.access_token, {
       expires: new Date(
         new Date().getTime() + this.secretService.getCookieCreds().cookieExpire,
       ),
-      sameSite: 'none',
       httpOnly: true,
+      sameSite: 'none',
       secure: true,
     });
 
@@ -124,20 +139,34 @@ export class AuthService {
         zipcode,
         loginProvider: LoginProviderEnum.LOCAL,
       },
+      include: {
+        provider: {
+          select: {
+            isApproved: true,
+          },
+        },
+      },
     });
 
     throwBadRequestErrorCheck(!user, 'User is not created');
 
-    const { password: ignoredPassword, ...others } = user;
+    const {
+      password: ignoredPassword,
+      provider: ignoredProvider,
+      ...others
+    } = user;
 
-    const response = await this.login(others);
+    const response = await this.login({
+      ...others,
+      provider: user?.provider?.isApproved ? true : false,
+    });
 
     res.cookie('token', response?.access_token, {
       expires: new Date(
         new Date().getTime() + this.secretService.getCookieCreds().cookieExpire,
       ),
-      sameSite: 'none',
       httpOnly: true,
+      sameSite: 'none',
       secure: true,
     });
 
@@ -155,6 +184,13 @@ export class AuthService {
       where: {
         email,
         deletedAt: null,
+      },
+      include: {
+        provider: {
+          select: {
+            isApproved: true,
+          },
+        },
       },
     });
 
@@ -185,6 +221,13 @@ export class AuthService {
           google: provider == 'GOOGLE' ? true : null,
           facebook: provider == 'FACEBOOK' ? facebookId ?? null : null,
         },
+        include: {
+          provider: {
+            select: {
+              isApproved: true,
+            },
+          },
+        },
       });
 
       throwBadRequestErrorCheck(!user, 'User is not created');
@@ -200,16 +243,23 @@ export class AuthService {
       );
     }
 
-    const { password: ignoredPassword, ...others } = user;
+    const {
+      password: ignoredPassword,
+      provider: ignoredProvider,
+      ...others
+    } = user;
 
-    const response = await this.login(others);
+    const response = await this.login({
+      ...others,
+      provider: user?.provider?.isApproved ? true : false,
+    });
 
     res.cookie('token', response?.access_token, {
       expires: new Date(
         new Date().getTime() + this.secretService.getCookieCreds().cookieExpire,
       ),
-      sameSite: 'none',
       httpOnly: true,
+      sameSite: 'none',
       secure: true,
     });
 

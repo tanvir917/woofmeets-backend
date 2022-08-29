@@ -3,7 +3,8 @@ import { FileService } from 'src/file/file.service';
 import { throwBadRequestErrorCheck } from 'src/global/exceptions/error-logic';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { SecretService } from 'src/secret/secret.service';
-import { GalleryPhotoUpdateBodyDto } from './dto/update.photo.dto';
+import { GalleryPhotosDragDropDto } from './dto/draganddrop.photo.dto';
+import { GalleryPhotoUpdateDto } from './dto/update.photo.dto';
 
 @Injectable()
 export class GalleryService {
@@ -28,7 +29,10 @@ export class GalleryService {
       orderBy: [{ sequence: 'asc' }],
     });
 
-    throwBadRequestErrorCheck(!photos, 'Photos not found.');
+    throwBadRequestErrorCheck(
+      !photos || photos?.length <= 0,
+      'Photos not found.',
+    );
 
     return {
       message: 'Photos found successfully.',
@@ -114,7 +118,7 @@ export class GalleryService {
   async updatePhoto(
     userId: bigint,
     id: bigint,
-    photoInfo: GalleryPhotoUpdateBodyDto,
+    photoInfo: GalleryPhotoUpdateDto,
   ) {
     const user = await this.prismaService.user.findFirst({
       where: { id: userId, deletedAt: null },
@@ -150,6 +154,41 @@ export class GalleryService {
       message: 'Photo updated successfully.',
       data: photo,
     };
+  }
+
+  async dragAndDropPhotos(
+    userId: bigint,
+    galleryPhotosDragDropDto: GalleryPhotosDragDropDto,
+  ) {
+    const user = await this.prismaService.user.findFirst({
+      where: { id: userId, deletedAt: null },
+    });
+
+    throwBadRequestErrorCheck(!user, 'User not found.');
+
+    let { photos } = galleryPhotosDragDropDto;
+
+    const promises = [];
+
+    for (let i = 0; i < photos?.length; i++) {
+      promises.push(
+        await this.prismaService.gallery.update({
+          where: {
+            id: photos[i]?.id,
+          },
+          data: {
+            sequence: i + 1,
+          },
+        }),
+      );
+    }
+
+    await Promise.allSettled(promises);
+    photos = await this.getAllPhoto(userId);
+
+    throwBadRequestErrorCheck(!photos?.data, 'Could not drag and drop photos.');
+
+    return photos;
   }
 
   async deletePhoto(userId: bigint, id: bigint) {

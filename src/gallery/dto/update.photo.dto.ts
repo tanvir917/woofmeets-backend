@@ -1,7 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNumber, IsOptional, IsString } from 'class-validator';
+import { IsOptional, IsString } from 'class-validator';
 
-export class GalleryPhotoUpdateBodyDto {
+export class GalleryPhotoUpdateDto {
   @ApiProperty()
   @IsOptional()
   @IsString()
