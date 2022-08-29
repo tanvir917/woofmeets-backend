@@ -11,9 +11,16 @@ import {
   Req,
 } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
-import { ApiBearerAuth, ApiBody, ApiConsumes, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiBody,
+  ApiConsumes,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 import { TransformInterceptor } from 'src/transform.interceptor';
+import { ContactResponseDataDto } from './dto/contact-response.dto';
 import { CreateProviderDetailsDto } from './dto/create-provider-details.dto';
 import { CreateBasicInfoDto } from './dto/create-user-basic-info.dto';
 import {
@@ -46,6 +53,17 @@ export class UserProfileController {
   get(@Request() req: any) {
     const userId = BigInt(req.user?.id) ?? BigInt(-1);
     return this.userProfileService.getUserProfile(userId);
+  }
+
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard)
+  @ApiResponse({
+    type: ContactResponseDataDto,
+  })
+  @Get('/contact')
+  async getContact(@Request() req: any) {
+    const userId = BigInt(req.user?.id) ?? BigInt(-1);
+    return this.userProfileService.getContactInfo(userId);
   }
 
   @ApiBearerAuth('access-token')
