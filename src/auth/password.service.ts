@@ -62,6 +62,10 @@ export class PasswordService {
       !user,
       'User not found with the specific indentifier.',
     );
+    throwBadRequestErrorCheck(
+      !user.password,
+      'Password update unsuccessful due to social signup',
+    );
 
     const isPasswordValid = await this.comparePassword(
       dto.password,
