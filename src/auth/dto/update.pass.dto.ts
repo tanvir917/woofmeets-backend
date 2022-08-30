@@ -7,7 +7,7 @@ export class UpdatePasswordDto {
   @ApiProperty()
   password: string;
 
-  @MinLength(6)a
+  @MinLength(6)
   @IsNotEmpty()
   @ApiProperty()
   newPassword: string;
