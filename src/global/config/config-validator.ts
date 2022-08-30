@@ -72,6 +72,10 @@ export class EnvironmentVariable {
   SALT_ROUND: number;
 
   @IsNotEmpty()
+  @IsString()
+  COOKIE_DOMAIN: string;
+
+  @IsNotEmpty()
   @IsNumber()
   COOKIE_EXPIRE: number;
 

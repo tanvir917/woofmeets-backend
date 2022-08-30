@@ -71,7 +71,7 @@ export class AuthService {
         new Date().getTime() + this.secretService.getCookieCreds().cookieExpire,
       ),
       httpOnly: true,
-      sameSite: 'none',
+      domain: this.secretService.getCookieCreds().cookieDomain,
       secure: true,
     });
 
@@ -166,7 +166,7 @@ export class AuthService {
         new Date().getTime() + this.secretService.getCookieCreds().cookieExpire,
       ),
       httpOnly: true,
-      sameSite: 'none',
+      domain: this.secretService.getCookieCreds().cookieDomain,
       secure: true,
     });
 
@@ -259,7 +259,7 @@ export class AuthService {
         new Date().getTime() + this.secretService.getCookieCreds().cookieExpire,
       ),
       httpOnly: true,
-      sameSite: 'none',
+      domain: this.secretService.getCookieCreds().cookieDomain,
       secure: true,
     });
 
