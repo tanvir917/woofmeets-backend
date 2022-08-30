@@ -367,3 +367,14 @@ model ServiceRates {
   updatedAt          DateTime?        @updatedAt @db.Timestamptz(3)
   deletedAt          DateTime?        @db.Timestamptz(3)
 }
+
+model Breeds {
+  id        BigInt      @id @default(autoincrement())
+  name      String
+  petType   petTypeEnum
+  sequence  Int?
+  visible   Boolean     @default(true)
+  createdAt DateTime    @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime?   @updatedAt @db.Timestamptz(3)
+  deletedAt DateTime?   @db.Timestamptz(3)
+}

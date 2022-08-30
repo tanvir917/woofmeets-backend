@@ -1,11 +1,12 @@
 import { PrismaClient } from '@prisma/client';
+import { breeds } from './seeder/breeds';
 import { country } from './seeder/country';
-import { ServiceTypesSeeder } from './seeder/services';
 import {
   homeAttributeBoardingHome,
   homeAttributeHostAble,
 } from './seeder/homeAttributeTypes';
 import { profileSkills } from './seeder/profileSkills';
+import { ServiceTypesSeeder } from './seeder/services';
 
 const prisma = new PrismaClient();
 
@@ -149,6 +150,20 @@ const additionalSkills = async () => {
   });
 };
 
+const addBreeds = async () => {
+  const previousBreeds = await prisma.breeds.findMany({
+    where: { deletedAt: null },
+  });
+  const mapBreeds = previousBreeds.map((obj) => obj?.name);
+  await breeds.forEach(async (obj) => {
+    if (!mapBreeds.includes(obj?.name)) {
+      await prisma.breeds.create({
+        data: obj,
+      });
+    }
+  });
+};
+
 async function main() {
   console.log('.... Seeding Data ....');
 
@@ -156,6 +171,7 @@ async function main() {
   addCountries();
   addHomeAttributeTypes();
   additionalSkills();
+  addBreeds();
 
   console.log('✨  Seed Completed ✨ ');
 }
