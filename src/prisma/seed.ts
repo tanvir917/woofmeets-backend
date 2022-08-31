@@ -5,6 +5,7 @@ import {
   homeAttributeBoardingHome,
   homeAttributeHostAble,
 } from './seeder/homeAttributeTypes';
+import { mappedPolicies } from './seeder/policies';
 import { profileSkills } from './seeder/profileSkills';
 import { ServiceTypesSeeder } from './seeder/services';
 
@@ -86,11 +87,22 @@ const addCountries = async () => {
 };
 
 const addHomeAttributeTypes = async () => {
-  const owner_expectation = await prisma.homeAttributeTitle.create({
-    data: {
+  const get_owner_expectation = await prisma.homeAttributeTitle.findFirst({
+    where: {
       displayName: 'What can pet owners expect when boarding at your home?',
+      deletedAt: null,
     },
   });
+
+  let owner_expectation;
+
+  if (!get_owner_expectation) {
+    owner_expectation = await prisma.homeAttributeTitle.create({
+      data: {
+        displayName: 'What can pet owners expect when boarding at your home?',
+      },
+    });
+  }
 
   await homeAttributeBoardingHome.forEach(async (ob) => {
     await prisma.homeAttributeType.upsert({
@@ -99,21 +111,34 @@ const addHomeAttributeTypes = async () => {
       },
       create: {
         ...ob,
-        homeAttributeTitleId: owner_expectation.id,
+        homeAttributeTitleId:
+          get_owner_expectation?.id ?? owner_expectation?.id,
       },
       update: {
         displayName: ob.displayName,
-        homeAttributeTitleId: owner_expectation.id,
+        homeAttributeTitleId:
+          get_owner_expectation?.id ?? owner_expectation?.id,
         deletedAt: null,
       },
     });
   });
 
-  const host_able = await prisma.homeAttributeTitle.create({
-    data: {
+  const get_host_able = await prisma.homeAttributeTitle.findFirst({
+    where: {
       displayName: 'Are you able to host any of the following?',
+      deletedAt: null,
     },
   });
+
+  let host_able;
+
+  if (!get_host_able) {
+    host_able = await prisma.homeAttributeTitle.create({
+      data: {
+        displayName: 'Are you able to host any of the following?',
+      },
+    });
+  }
 
   await homeAttributeHostAble.forEach(async (ob) => {
     await prisma.homeAttributeType.upsert({
@@ -122,11 +147,11 @@ const addHomeAttributeTypes = async () => {
       },
       create: {
         ...ob,
-        homeAttributeTitleId: host_able.id,
+        homeAttributeTitleId: get_host_able?.id ?? host_able?.id,
       },
       update: {
         displayName: ob.displayName,
-        homeAttributeTitleId: host_able.id,
+        homeAttributeTitleId: get_host_able?.id ?? host_able?.id,
         deletedAt: null,
       },
     });
@@ -164,6 +189,29 @@ const addBreeds = async () => {
   });
 };
 
+const addPolicies = () => {
+  mappedPolicies.forEach(async (item) => {
+    await prisma.cancellationPolicy.upsert({
+      where: { slug: item.slug },
+      update: {
+        time: item?.time,
+        title: item?.title,
+        percentage: item?.percentage,
+        sequence: item?.sequence,
+        details: item?.details,
+      },
+      create: {
+        slug: item?.slug,
+        title: item?.title,
+        time: item?.time,
+        percentage: item?.percentage,
+        sequence: item?.sequence,
+        details: item?.details,
+      },
+    });
+  });
+};
+
 async function main() {
   console.log('.... Seeding Data ....');
 
@@ -172,6 +220,7 @@ async function main() {
   addHomeAttributeTypes();
   additionalSkills();
   addBreeds();
+  addPolicies();
 
   console.log('✨  Seed Completed ✨ ');
 }
