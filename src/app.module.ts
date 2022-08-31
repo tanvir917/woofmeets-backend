@@ -27,6 +27,8 @@ import { NewsletterModule } from './newsletter/newsletter.module';
 import { GalleryModule } from './gallery/gallery.module';
 import { PetModule } from './pet/pet.module';
 import { PetPreferenceModule } from './pet-preference/pet-preference.module';
+import { ProviderHomeModule } from './provider-home/provider-home.module';
+import { CancellationPolicyModule } from './cancellation-policy/cancellation-policy.module';
 
 @Module({
   imports: [
@@ -53,6 +55,8 @@ import { PetPreferenceModule } from './pet-preference/pet-preference.module';
     GalleryModule,
     PetModule,
     PetPreferenceModule,
+    ProviderHomeModule,
+    CancellationPolicyModule,
   ],
   controllers: [AppController],
   providers: [AppService, SecretService, PrismaService, SmsService],
