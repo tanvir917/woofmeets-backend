@@ -24,8 +24,9 @@
 | --- |
 | You will find important files here |
 
-1. [x] [.env](https://drive.google.com/drive/folders/1qj65FuDoKqRkBur2JjVA_qhXryiQSv24?usp=sharing) Env file can be found  over here
+1. [x] Sep 1 2021: [Sync env here](#env-how-to) (***Deperecated*** [.env](https://drive.google.com/drive/folders/1qj65FuDoKqRkBur2JjVA_qhXryiQSv24?usp=sharing) Env file can be found  over here)
 2. [x] [Confluence](https://algosolver-llc.atlassian.net/wiki/spaces/WBD/pages/319455497/Platform+Credentials) has important account links
+3. [x] [Dotenv-vault](https://www.dotenv.org/docs/getting-started/with-dotenv-vault) Used to manage and **sync** .dotenv during development **LOGIN WITH dev@algosolver.com**
 
 ### VSCODE AND Database Tooling
 
@@ -126,6 +127,15 @@ Please ensure that you're .env file is in sync
 1. [ ] [Go to validator config](./src/global/config/config-validator.ts) and then update the schema with proper validation ![With message](./documentation/forgot-env.png)
 
 2. [ ] [Go to Secret Service](./src/secret/secret.service.ts) and update the ***prepare*** method to refect the **EnvironmentVariable class**
+
+3. [ ] [How to sync .env](https://www.dotenv.org/docs/getting-started/with-dotenv-vault) Login with the **dev@algosolver.com** account <a name="env-how-to"></a> 
+
+```bash
+npx dotenv-vault pull# opens browser to authenticate if not logged in
+npx dotenv-vault open # shows .env in dashboard
+```
+
+![.ENV DASHBOARD DEMO](./documentation/dotenv-demo.png)
 
 > title: Senior Software Engineer
 > author: Ankur Datta
