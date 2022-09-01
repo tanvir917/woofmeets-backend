@@ -23,6 +23,7 @@ export class UserProfileService {
             photoSubmitted: true,
             backGroundCheck: true,
             providerDetails: true,
+            isApproved: true,
             providerServices: {
               include: {
                 serviceType: true,

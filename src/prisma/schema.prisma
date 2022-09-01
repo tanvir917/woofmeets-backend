@@ -72,6 +72,29 @@ enum yardTypeEnum {
   NO_YARD
 }
 
+enum genderTypeEnum {
+  MALE
+  FEMALE
+}
+
+enum weightTypeEnum {
+  KG
+  LBS
+}
+
+enum friendlyTypeEnum {
+  YES
+  NO
+  UNSURE
+  DEPENDS
+}
+
+enum energyLevelTypeEnum {
+  HIGH
+  MODERATE
+  LOW
+}
+
 model User {
   id                     BigInt                @id @default(autoincrement())
   opk                    String                @unique
@@ -97,6 +120,7 @@ model User {
   userEmergencyContactId Int?
   Otp                    Otp[]
   Gallery                Gallery[]
+  pet                    Pet[]
 }
 
 model UserContact {
@@ -361,6 +385,79 @@ model Breeds {
   createdAt DateTime    @default(now()) @db.Timestamptz(3)
   updatedAt DateTime?   @updatedAt @db.Timestamptz(3)
   deletedAt DateTime?   @db.Timestamptz(3)
+  petBreed  PetBreed[]
+}
+
+model Pet {
+  id                             BigInt               @id @default(autoincrement())
+  userId                         BigInt
+  user                           User                 @relation(fields: [userId], references: [id])
+  opk                            String               @unique
+  name                           String
+  type                           petTypeEnum
+  weight                         Float
+  weightUnit                     weightTypeEnum       @default(LBS)
+  ageYear                        Int
+  ageMonth                       Int
+  dob                            DateTime?
+  gender                         genderTypeEnum
+  profile_image                  Json?
+  microchipped                   Boolean?
+  spayedOrNeutered               Boolean?
+  houseTrained                   friendlyTypeEnum?
+  houseTrainedAdditionalDetails  String?
+  childFriendly                  friendlyTypeEnum?
+  childFrinedlyAdditionalDetails String?
+  dogFriendly                    friendlyTypeEnum?
+  dogFrinedlyAdditionalDetails   String?
+  catFriendly                    friendlyTypeEnum?
+  catFrinedlyAdditionalDetails   String?
+  about                          String?
+  energyLevel                    energyLevelTypeEnum?
+  feedingSchedule                String?
+  feedingScheduleDetails         String?
+  pottyBreakSchedule             String?
+  pottyBreakScheduleDetails      String?
+  canLeftAlone                   String?
+  canLeftAloneDetails            String?
+  pillMedication                 String?
+  topicalMedication              String?
+  injectionMedication            String?
+  sitterInstructions             String?
+  vetInfo                        String?
+  visible                        Boolean              @default(true)
+  meta                           Json?
+  createdAt                      DateTime             @default(now()) @db.Timestamptz(3)
+  updatedAt                      DateTime?            @updatedAt @db.Timestamptz(3)
+  deletedAt                      DateTime?            @db.Timestamptz(3)
+  petBreed                       PetBreed[]
+  petGallery                     PetGallery[]
+}
+
+model PetBreed {
+  id        BigInt    @id @default(autoincrement())
+  petId     BigInt
+  pet       Pet       @relation(fields: [petId], references: [id])
+  breedId   BigInt
+  breed     Breeds    @relation(fields: [breedId], references: [id])
+  createdAt DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime? @updatedAt @db.Timestamptz(3)
+  deletedAt DateTime? @db.Timestamptz(3)
+}
+
+model PetGallery {
+  id           BigInt    @id @default(autoincrement())
+  petId        BigInt
+  pet          Pet       @relation(fields: [petId], references: [id])
+  imageSrc     Json
+  caption      String?
+  sequence     Int?
+  responsive   Json?
+  profileImage Boolean   @default(false)
+  public       Boolean   @default(true)
+  createdAt    DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt    DateTime? @updatedAt @db.Timestamptz(3)
+  deletedAt    DateTime? @db.Timestamptz(3)
 }
 
 model ServiceRateType {

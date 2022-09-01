@@ -1,11 +1,11 @@
 import { Injectable } from '@nestjs/common';
+import { customAlphabet } from 'nanoid';
 import { CommonService } from 'src/common/common.service';
 import {
   throwBadRequestErrorCheck,
   throwNotFoundErrorCheck,
 } from 'src/global/exceptions/error-logic';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { customAlphabet } from 'nanoid';
 
 @Injectable()
 export class ProviderServicesService {
@@ -151,6 +151,18 @@ export class ProviderServicesService {
         where: {
           providerId: user.provider.id,
           deletedAt: null,
+        },
+        include: {
+          serviceType: {
+            select: {
+              name: true,
+              displayName: true,
+              description: true,
+              icon: true,
+              sequence: true,
+              appRequired: true,
+            },
+          },
         },
         orderBy: {
           createdAt: 'asc',

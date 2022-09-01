@@ -86,10 +86,6 @@ export const breeds = [
     petType: PetTypeEnum.DOG,
   },
   {
-    name: 'Border Collie',
-    petType: PetTypeEnum.DOG,
-  },
-  {
     name: 'Flat Coated Retriever',
     petType: PetTypeEnum.DOG,
   },

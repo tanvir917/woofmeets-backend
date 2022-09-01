@@ -20,3 +20,25 @@ export enum OtpGenerationTypeEnum {
   PHONE_VERIFICATION = 'PHONE_VERIFICATION',
   APPOINTMENT = 'APPOINTMENT',
 }
+
+export enum GenderTypeEnum {
+  MALE = 'MALE',
+  FEMALE = 'FEMALE',
+}
+export enum WeightTypeEnum {
+  KG = 'KG',
+  LBS = 'LBS',
+}
+
+export enum FriendlyTypeEnum {
+  YES = 'YES',
+  NO = 'NO',
+  UNSURE = 'UNSURE',
+  DEPENDS = 'DEPENDS',
+}
+
+export enum EnergyLevelTypeEnum {
+  HIGH = 'HIGH',
+  MODERATE = 'MODERATE',
+  LOW = 'LOW',
+}
