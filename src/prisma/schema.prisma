@@ -138,26 +138,27 @@ model Country {
 }
 
 model ServiceType {
-  id                              Int                @id @default(autoincrement())
+  id                              Int                   @id @default(autoincrement())
   name                            String
   displayName                     String
-  slug                            String             @unique
+  slug                            String                @unique
   description                     String?
   shortDescription                String?
   icon                            String
-  active                          Boolean            @default(true)
+  active                          Boolean               @default(true)
   location                        String?
-  petType                         petTypeEnum        @default(ANY)
-  browsable                       Boolean            @default(true)
+  petType                         petTypeEnum           @default(ANY)
+  browsable                       Boolean               @default(true)
   start_date_selector_description String?
   end_date_selector_description   String?
-  appRequired                     Boolean            @default(false)
+  appRequired                     Boolean               @default(false)
   sequence                        Int?
   meta                            Json?
-  createdAt                       DateTime           @default(now()) @db.Timestamptz(3)
-  updatedAt                       DateTime?          @updatedAt @db.Timestamptz(3)
-  deletedAt                       DateTime?          @db.Timestamptz(3)
+  createdAt                       DateTime              @default(now()) @db.Timestamptz(3)
+  updatedAt                       DateTime?             @updatedAt @db.Timestamptz(3)
+  deletedAt                       DateTime?             @db.Timestamptz(3)
   providerServices                ProviderServices[]
+  serviceTypeHasRate              ServiceTypeHasRates[]
 }
 
 model Provider {
@@ -188,23 +189,23 @@ model Provider {
 }
 
 model ProviderServices {
-  id                     BigInt         @id @default(autoincrement())
+  id                     BigInt            @id @default(autoincrement())
   serviceTypeId          Int
-  serviceType            ServiceType    @relation(fields: [serviceTypeId], references: [id])
+  serviceType            ServiceType       @relation(fields: [serviceTypeId], references: [id])
   providerId             BigInt
-  provider               Provider       @relation(fields: [providerId], references: [id])
-  slug                   String         @unique
-  isActive               Boolean        @default(true)
-  isAway                 Boolean        @default(false)
-  acceptsNewAppointments Boolean        @default(true)
-  acceptsNewCustomers    Boolean        @default(true)
-  isApproved             Boolean        @default(true)
-  logStay                Boolean        @default(true)
+  provider               Provider          @relation(fields: [providerId], references: [id])
+  slug                   String            @unique
+  isActive               Boolean           @default(true)
+  isAway                 Boolean           @default(false)
+  acceptsNewAppointments Boolean           @default(true)
+  acceptsNewCustomers    Boolean           @default(true)
+  isApproved             Boolean           @default(true)
+  logStay                Boolean           @default(true)
   meta                   Json?
-  createdAt              DateTime       @default(now()) @db.Timestamptz(3)
-  updatedAt              DateTime?      @updatedAt @db.Timestamptz(3)
-  deletedAt              DateTime?      @db.Timestamptz(3)
-  serviceRates           ServiceRates[]
+  createdAt              DateTime          @default(now()) @db.Timestamptz(3)
+  updatedAt              DateTime?         @updatedAt @db.Timestamptz(3)
+  deletedAt              DateTime?         @db.Timestamptz(3)
+  ServiceHasRates        ServiceHasRates[]
 }
 
 model BasicInfo {
@@ -351,25 +352,6 @@ model CancellationPolicy {
   Provider   Provider[]
 }
 
-model ServiceRates {
-  id                 BigInt           @id @default(autoincrement())
-  providerServicesId BigInt
-  providerService    ProviderServices @relation(fields: [providerServicesId], references: [id])
-  name               String
-  slug               String
-  icon               String?
-  unitRate           Float            @default(0)
-  unitCurrency       String           @default("usd")
-  unitLabel          String           @default("night")
-  unit               Int              @default(1)
-  helpText           String?
-  description        String?
-  active             Boolean          @default(true)
-  createdAt          DateTime         @default(now()) @db.Timestamptz(3)
-  updatedAt          DateTime?        @updatedAt @db.Timestamptz(3)
-  deletedAt          DateTime?        @db.Timestamptz(3)
-}
-
 model Breeds {
   id        BigInt      @id @default(autoincrement())
   name      String
@@ -381,6 +363,24 @@ model Breeds {
   deletedAt DateTime?   @db.Timestamptz(3)
 }
 
+model ServiceRateType {
+  id                  BigInt                @id @default(autoincrement())
+  name                String
+  slug                String
+  icon                String?
+  unitCurrency        String                @default("usd")
+  unitLabel           String                @default("night")
+  unit                Int                   @default(1)
+  helpText            String?
+  description         String?
+  active              Boolean               @default(true)
+  createdAt           DateTime              @default(now()) @db.Timestamptz(3)
+  updatedAt           DateTime?             @updatedAt @db.Timestamptz(3)
+  deletedAt           DateTime?             @db.Timestamptz(3)
+  ServiceTypeHasRates ServiceTypeHasRates[]
+  meta                Json?
+}
+
 model HomeAttributes {
   id                  BigInt            @id @default(autoincrement())
   providerId          BigInt
@@ -390,4 +390,28 @@ model HomeAttributes {
   createdAt           DateTime          @default(now()) @db.Timestamptz(3)
   updatedAt           DateTime?         @updatedAt @db.Timestamptz(3)
   deletedAt           DateTime?         @db.Timestamptz(3)
+}
+
+model ServiceTypeHasRates {
+  id                BigInt            @id @default(autoincrement())
+  serviceTypeId     Int
+  serviceRateTypeId BigInt
+  ServiceType       ServiceType       @relation(fields: [serviceTypeId], references: [id])
+  serviceRateType   ServiceRateType   @relation(fields: [serviceRateTypeId], references: [id])
+  createdAt         DateTime          @default(now()) @db.Timestamptz(3)
+  updatedAt         DateTime?         @updatedAt @db.Timestamptz(3)
+  deletedAt         DateTime?         @db.Timestamptz(3)
+  ServiceHasRates   ServiceHasRates[]
+}
+
+model ServiceHasRates {
+  id                    BigInt              @id @default(autoincrement())
+  providerServicesId    BigInt
+  serviceTypeHasRatesId BigInt
+  amount                Float
+  service               ProviderServices    @relation(fields: [providerServicesId], references: [id])
+  serviceTypeRate       ServiceTypeHasRates @relation(fields: [serviceTypeHasRatesId], references: [id])
+  createdAt             DateTime            @default(now()) @db.Timestamptz(3)
+  updatedAt             DateTime?           @updatedAt @db.Timestamptz(3)
+  deletedAt             DateTime?           @db.Timestamptz(3)
 }

@@ -8,6 +8,7 @@ import {
 import { mappedPolicies } from './seeder/policies';
 import { profileSkills } from './seeder/profileSkills';
 import { ServiceTypesSeeder } from './seeder/services';
+import { rateTypes } from './seeder/rateTypes';
 
 const prisma = new PrismaClient();
 
@@ -212,6 +213,24 @@ const addPolicies = () => {
   });
 };
 
+const addServiceRateTypes = async () => {
+  const existingRateTypes = await prisma.serviceRateType.findMany({
+    where: {
+      deletedAt: null,
+    },
+  });
+
+  const types = existingRateTypes.map((obj) => obj?.slug);
+
+  await rateTypes.forEach(async (ob) => {
+    if (!types.includes(ob?.slug)) {
+      await prisma.serviceRateType.create({
+        data: ob,
+      });
+    }
+  });
+};
+
 async function main() {
   console.log('.... Seeding Data ....');
 
@@ -221,6 +240,7 @@ async function main() {
   additionalSkills();
   addBreeds();
   addPolicies();
+  addServiceRateTypes();
 
   console.log('✨  Seed Completed ✨ ');
 }
