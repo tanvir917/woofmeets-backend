@@ -125,7 +125,7 @@ export class PasswordService {
         },
       },
     });
-    console.log('day', dayOtp, 'hour', hourOtp);
+    //console.log('day', dayOtp, 'hour', hourOtp);
 
     if (dayOtp >= 5) {
       throw new BadRequestException(
