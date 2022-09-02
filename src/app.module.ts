@@ -29,6 +29,7 @@ import { PetModule } from './pet/pet.module';
 import { PetPreferenceModule } from './pet-preference/pet-preference.module';
 import { ProviderHomeModule } from './provider-home/provider-home.module';
 import { CancellationPolicyModule } from './cancellation-policy/cancellation-policy.module';
+import { ServiceRatesModule } from './service-rates/service-rates.module';
 
 @Module({
   imports: [
@@ -57,6 +58,7 @@ import { CancellationPolicyModule } from './cancellation-policy/cancellation-pol
     PetPreferenceModule,
     ProviderHomeModule,
     CancellationPolicyModule,
+    ServiceRatesModule,
   ],
   controllers: [AppController],
   providers: [AppService, SecretService, PrismaService, SmsService],
