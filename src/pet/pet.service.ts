@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { CommonService } from 'src/common/common.service';
 import { FileService } from 'src/file/file.service';
 import { MulterFileUploadService } from 'src/file/multer-file-upload-service';
@@ -156,7 +157,7 @@ export class PetService {
   async createPet(
     userId: bigint,
     createPetDto: CreatePetDto,
-    profile_image: Express.Multer.File,
+    profile_image: Express.Multer.File[],
     gallery: Express.Multer.File[],
   ) {
     const user = await this.prismaService.user.findFirst({
@@ -183,7 +184,7 @@ export class PetService {
 
     let uploadedFile: any;
 
-    if (profile_image[0]) {
+    if (profile_image?.length > 0) {
       const mappedFile = this.fileService.mapFileToType({
         buffer: profile_image[0].buffer,
         encoding: profile_image[0].encoding,
@@ -252,7 +253,7 @@ export class PetService {
               key: uploadedFile?.key,
               Key: uploadedFile?.Key,
             }
-          : null,
+          : undefined,
         microchipped,
         spayedOrNeutered,
         houseTrained: houseTrained?.length > 0 ? houseTrained : null,
@@ -392,7 +393,7 @@ export class PetService {
     ]);
 
     return {
-      message: 'Cat created successfully.',
+      message: 'Pet created successfully.',
       data: {
         ...pet,
         breeds: dbBredds,
@@ -404,7 +405,7 @@ export class PetService {
   async updatePet(
     userId: bigint,
     opk: string,
-    profile_image: Express.Multer.File,
+    profile_image: Express.Multer.File[],
     updatePetDto: UpdatePetDto,
   ) {
     const user = await this.prismaService.user.findFirst({
@@ -420,7 +421,7 @@ export class PetService {
     throwBadRequestErrorCheck(!pet, 'Pet not found.');
 
     let uploadedFile: any;
-    if (profile_image[0]) {
+    if (profile_image?.length > 0) {
       const mappedFile = this.fileService.mapFileToType({
         buffer: profile_image[0].buffer,
         encoding: profile_image[0].encoding,
@@ -492,7 +493,7 @@ export class PetService {
               key: uploadedFile?.key,
               Key: uploadedFile?.Key,
             }
-          : null,
+          : Prisma.DbNull,
         microchipped,
         spayedOrNeutered,
         houseTrained: houseTrained?.length > 0 ? houseTrained : null,
@@ -541,6 +542,36 @@ export class PetService {
     });
 
     throwBadRequestErrorCheck(!pet, 'Pet can not update now.');
+
+    const oldBreeds = await this.prismaService.petBreed.findMany({
+      where: {
+        petId: pet?.id,
+        deletedAt: null,
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    const oldBreedsId = oldBreeds.map((obj) => {
+      return obj?.id;
+    });
+
+    const deleteOldBreeds = await this.prismaService.petBreed.updateMany({
+      where: {
+        id: {
+          in: oldBreedsId,
+        },
+      },
+      data: {
+        deletedAt: new Date(),
+      },
+    });
+
+    throwBadRequestErrorCheck(
+      !deleteOldBreeds,
+      'Old breeds can not delete now.',
+    );
 
     const breedsArray = [...JSON.parse(breeds)];
 
@@ -597,7 +628,7 @@ export class PetService {
     ]);
 
     return {
-      message: 'Cat updated successfully.',
+      message: 'Pet updated successfully.',
       data: {
         ...pet,
         breeds: dbBredds,
