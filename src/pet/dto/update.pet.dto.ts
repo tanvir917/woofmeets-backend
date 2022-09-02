@@ -16,8 +16,7 @@ import { ToBoolean } from 'src/utils/tools/boolean.transform';
 
 export class UpdatePetDto {
   @ApiProperty({ type: 'string', format: 'binary' })
-  @IsNotEmpty()
-  profile_image: any;
+  profile_image?: any;
 
   @ApiProperty({ required: false })
   @IsNotEmpty()
