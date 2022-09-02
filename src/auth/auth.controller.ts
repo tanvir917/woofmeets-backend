@@ -93,7 +93,7 @@ export class AuthController {
 
   @ApiBearerAuth('access-token')
   @UseGuards(JwtAuthGuard)
-  @Post('/whoami')
+  @Get('/whoami')
   async userInfo(@Request() req: any) {
     const userId = BigInt(req.user?.id) ?? BigInt(-1);
 

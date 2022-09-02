@@ -16,14 +16,15 @@ import { ToBoolean } from 'src/utils/tools/boolean.transform';
 
 export class CreatePetDto {
   @ApiProperty({ type: 'string', format: 'binary' })
+  @IsOptional()
   profile_image?: any;
 
-  @ApiProperty({ required: false })
+  @ApiProperty()
   @IsNotEmpty()
   @IsString()
   name: string;
 
-  @ApiProperty({ required: false })
+  @ApiProperty()
   @IsNotEmpty()
   @IsEnum(PetTypeEnum)
   type: PetTypeEnum;

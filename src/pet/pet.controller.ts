@@ -15,7 +15,12 @@ import {
   FileFieldsInterceptor,
   FilesInterceptor,
 } from '@nestjs/platform-express';
-import { ApiBearerAuth, ApiConsumes, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiConsumes,
+  ApiOperation,
+  ApiTags,
+} from '@nestjs/swagger';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 import { GalleryPhotosDragDropDto } from 'src/gallery/dto/draganddrop.photo.dto';
 import { GalleryPhotoUpdateDto } from 'src/gallery/dto/update.photo.dto';
@@ -72,11 +77,12 @@ export class PetController {
     @Request() req: any,
     @UploadedFiles()
     files: {
-      profile_image?: Express.Multer.File;
+      profile_image?: Express.Multer.File[];
       gallery?: Express.Multer.File[];
     },
   ) {
     const userId = BigInt(req.user?.id) ?? BigInt(-1);
+
     return await this.petService.createPet(
       userId,
       createPetDto,
@@ -92,7 +98,7 @@ export class PetController {
   @Put('/update/:opk')
   async updatePet(
     @Param('opk') opk: string,
-    @UploadedFiles() profile_image: Express.Multer.File,
+    @UploadedFiles() profile_image: Express.Multer.File[],
     @Body() updatePetDto: UpdatePetDto,
     @Request() req: any,
   ) {
@@ -182,6 +188,9 @@ export class PetController {
     );
   }
 
+  @ApiOperation({
+    deprecated: true,
+  })
   @ApiBearerAuth('access-token')
   @UseGuards(JwtAuthGuard)
   @Put('/photo/drag-drops/:opk')

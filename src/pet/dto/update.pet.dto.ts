@@ -16,6 +16,7 @@ import { ToBoolean } from 'src/utils/tools/boolean.transform';
 
 export class UpdatePetDto {
   @ApiProperty({ type: 'string', format: 'binary' })
+  @IsOptional()
   profile_image?: any;
 
   @ApiProperty({ required: false })
