@@ -47,6 +47,11 @@ export class UserProfileController {
     private readonly userContactService: UserProfileContactService,
   ) {}
 
+  @Get('/country')
+  async getCountry() {
+    return this.userProfileService.getCountry();
+  }
+
   @ApiBearerAuth('access-token')
   @UseGuards(JwtAuthGuard)
   @Get()

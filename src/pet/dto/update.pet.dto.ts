@@ -162,4 +162,8 @@ export class UpdatePetDto {
   @IsOptional()
   @IsString()
   vetInfo?: string;
+
+  @ApiProperty({ type: 'array', items: { type: 'string', format: 'binary' } })
+  @IsOptional()
+  gallery?: any[];
 }

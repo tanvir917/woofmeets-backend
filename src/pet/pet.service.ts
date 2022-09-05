@@ -1,5 +1,4 @@
 import { Injectable } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
 import { CommonService } from 'src/common/common.service';
 import { FileService } from 'src/file/file.service';
 import { MulterFileUploadService } from 'src/file/multer-file-upload-service';
@@ -150,7 +149,12 @@ export class PetService {
 
     return {
       message: 'Pet found successfully.',
-      data: pet,
+      data: {
+        ...pet,
+        pill: pet?.pillMedication ? true : false,
+        topical: pet?.topicalMedication ? true : false,
+        injection: pet?.injectionMedication ? true : false,
+      },
     };
   }
 
@@ -396,6 +400,9 @@ export class PetService {
       message: 'Pet created successfully.',
       data: {
         ...pet,
+        pill: pet?.pillMedication ? true : false,
+        topical: pet?.topicalMedication ? true : false,
+        injection: pet?.injectionMedication ? true : false,
         breeds: dbBredds,
         gallery: dbGallery,
       },
@@ -406,6 +413,7 @@ export class PetService {
     userId: bigint,
     opk: string,
     profile_image: Express.Multer.File[],
+    gallery: Express.Multer.File[],
     updatePetDto: UpdatePetDto,
   ) {
     const user = await this.prismaService.user.findFirst({
@@ -493,7 +501,7 @@ export class PetService {
               key: uploadedFile?.key,
               Key: uploadedFile?.Key,
             }
-          : Prisma.DbNull,
+          : pet?.profile_image,
         microchipped,
         spayedOrNeutered,
         houseTrained: houseTrained?.length > 0 ? houseTrained : null,
@@ -575,7 +583,7 @@ export class PetService {
 
     const breedsArray = [...JSON.parse(breeds)];
 
-    const promises = [];
+    let promises = [];
 
     for (let i = 0; i < breedsArray?.length; i++) {
       promises.push(
@@ -589,6 +597,41 @@ export class PetService {
     }
 
     await Promise.allSettled(promises);
+
+    if (gallery?.length > 0) {
+      const uploadedGallery = await this.multerFileUploadService.uploadMultiple(
+        gallery,
+        'pet/gallery',
+      );
+
+      throwBadRequestErrorCheck(
+        !uploadedGallery,
+        'Gallery can not be uploaded.',
+      );
+
+      promises = [];
+
+      const photoCount = await this.prismaService.petGallery.aggregate({
+        where: {
+          petId: pet?.id,
+        },
+        _count: {
+          id: true,
+        },
+      });
+
+      for (let i = 0; i < uploadedGallery?.length; i++) {
+        promises.push(
+          await this.prismaService.petGallery.create({
+            data: {
+              petId: pet?.id,
+              imageSrc: Object(uploadedGallery[i]),
+              sequence: photoCount?._count?.id + i + 1,
+            },
+          }),
+        );
+      }
+    }
 
     const [dbBredds, dbGallery] = await this.prismaService.$transaction([
       this.prismaService.petBreed.findMany({
@@ -631,6 +674,9 @@ export class PetService {
       message: 'Pet updated successfully.',
       data: {
         ...pet,
+        pill: pet?.pillMedication ? true : false,
+        topical: pet?.topicalMedication ? true : false,
+        injection: pet?.injectionMedication ? true : false,
         breeds: dbBredds,
         gallery: dbGallery,
       },

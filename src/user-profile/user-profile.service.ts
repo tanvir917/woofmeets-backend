@@ -6,6 +6,22 @@ import { PrismaService } from 'src/prisma/prisma.service';
 export class UserProfileService {
   constructor(private prismaService: PrismaService) {}
 
+  async getCountry() {
+    const country = await this.prismaService.country.findMany({
+      where: { deletedAt: null },
+    });
+
+    throwNotFoundErrorCheck(
+      !country || country?.length <= 0,
+      'Country not found',
+    );
+
+    return {
+      message: 'Country found successfully.',
+      data: country,
+    };
+  }
+
   async getUserProfile(userId: bigint) {
     const user = await this.prismaService.user.findFirst({
       where: { id: userId, deletedAt: null },
