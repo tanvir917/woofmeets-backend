@@ -94,11 +94,20 @@ export class PetController {
   @ApiBearerAuth('access-token')
   @UseGuards(JwtAuthGuard)
   @ApiConsumes('multipart/form-data')
-  @UseInterceptors(FilesInterceptor('profile_image', 1))
+  @UseInterceptors(
+    FileFieldsInterceptor([
+      { name: 'profile_image', maxCount: 1 },
+      { name: 'gallery', maxCount: 15 },
+    ]),
+  )
   @Put('/update/:opk')
   async updatePet(
     @Param('opk') opk: string,
-    @UploadedFiles() profile_image: Express.Multer.File[],
+    @UploadedFiles()
+    files: {
+      profile_image?: Express.Multer.File[];
+      gallery?: Express.Multer.File[];
+    },
     @Body() updatePetDto: UpdatePetDto,
     @Request() req: any,
   ) {
@@ -111,7 +120,8 @@ export class PetController {
     return await this.petService.updatePet(
       userId,
       opk,
-      profile_image,
+      files?.profile_image,
+      files?.gallery,
       updatePetDto,
     );
   }
