@@ -118,6 +118,9 @@ export class PetService {
       },
       include: {
         petBreed: {
+          where: {
+            deletedAt: null,
+          },
           select: {
             id: true,
             petId: true,
@@ -131,6 +134,9 @@ export class PetService {
           },
         },
         petGallery: {
+          where: {
+            deletedAt: null,
+          },
           select: {
             id: true,
             petId: true,
@@ -501,7 +507,9 @@ export class PetService {
               key: uploadedFile?.key,
               Key: uploadedFile?.Key,
             }
-          : pet?.profile_image,
+          : pet?.profile_image
+          ? pet?.profile_image
+          : undefined,
         microchipped,
         spayedOrNeutered,
         houseTrained: houseTrained?.length > 0 ? houseTrained : null,
