@@ -63,6 +63,9 @@ export class SecretService {
         'OTP_VALIDATION_WINDOW',
         720,
       ),
+
+      STRIPE_SECRET_KEY: this.configService.get<string>('STRIPE_SECRET_KEY'),
+      STRIPE_API_VERSION: this.configService.get<string>('STRIPE_API_VERSION'),
     };
 
     this.#environment = plainToInstance(EnvironmentVariable, env);
@@ -154,5 +157,12 @@ export class SecretService {
 
   getOtpValidationWindow(): number {
     return this.#environment.OTP_VALIDATION_WINDOW;
+  }
+
+  getStripeCreds() {
+    return {
+      secretKey: this.#environment.STRIPE_SECRET_KEY,
+      apiVersion: this.#environment.STRIPE_API_VERSION,
+    };
   }
 }

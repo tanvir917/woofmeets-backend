@@ -30,6 +30,7 @@ import { PetPreferenceModule } from './pet-preference/pet-preference.module';
 import { ProviderHomeModule } from './provider-home/provider-home.module';
 import { CancellationPolicyModule } from './cancellation-policy/cancellation-policy.module';
 import { ServiceRatesModule } from './service-rates/service-rates.module';
+import { StripePaymentMethodModule } from './stripe-payment-method/stripe-payment-method.module';
 
 @Module({
   imports: [
@@ -59,6 +60,7 @@ import { ServiceRatesModule } from './service-rates/service-rates.module';
     ProviderHomeModule,
     CancellationPolicyModule,
     ServiceRatesModule,
+    StripePaymentMethodModule,
   ],
   controllers: [AppController],
   providers: [AppService, SecretService, PrismaService, SmsService],

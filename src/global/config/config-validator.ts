@@ -10,6 +10,7 @@ import {
   IsString,
   validateSync,
 } from 'class-validator';
+import Stripe from 'stripe';
 
 export class EnvironmentVariable {
   @IsNotEmpty()
@@ -136,6 +137,17 @@ export class EnvironmentVariable {
   @IsNotEmpty()
   @IsNumber()
   OTP_VALIDATION_WINDOW: number;
+
+  @IsNotEmpty()
+  @IsString()
+  STRIPE_SECRET_KEY: string;
+
+  // @IsNotEmpty()
+  // @IsString()
+  // STRIPE_WEBHOOK_SECRET: string;
+
+  @IsNotEmpty()
+  STRIPE_API_VERSION: any;
 }
 
 export function validateEnvironmentVariables(
