@@ -31,6 +31,7 @@ import { ProviderHomeModule } from './provider-home/provider-home.module';
 import { CancellationPolicyModule } from './cancellation-policy/cancellation-policy.module';
 import { ServiceRatesModule } from './service-rates/service-rates.module';
 import { StripePaymentMethodModule } from './stripe-payment-method/stripe-payment-method.module';
+import { AvailabilityModule } from './availability/availability.module';
 
 @Module({
   imports: [
@@ -61,6 +62,7 @@ import { StripePaymentMethodModule } from './stripe-payment-method/stripe-paymen
     CancellationPolicyModule,
     ServiceRatesModule,
     StripePaymentMethodModule,
+    AvailabilityModule,
   ],
   controllers: [AppController],
   providers: [AppService, SecretService, PrismaService, SmsService],
