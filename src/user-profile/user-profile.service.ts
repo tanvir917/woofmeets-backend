@@ -48,6 +48,10 @@ export class UserProfileService {
           },
         },
         basicInfo: true,
+        contact: true,
+        emergencyContact: true,
+        Gallery: true,
+        pet: true,
       },
     });
 
