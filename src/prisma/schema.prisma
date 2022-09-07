@@ -233,6 +233,11 @@ model ProviderServices {
   updatedAt              DateTime?         @updatedAt @db.Timestamptz(3)
   deletedAt              DateTime?         @db.Timestamptz(3)
   ServiceHasRates        ServiceHasRates[]
+  pottyBreak             String?
+  advanceNotice          Int               @default(0)
+  fulltime               Boolean           @default(true)
+  radius                 Int               @default(10)
+  AvailableDay           AvailableDay[]
 }
 
 model BasicInfo {
@@ -555,4 +560,20 @@ model UserStripeCard {
   createdAt        DateTime  @default(now()) @db.Timestamptz(3)
   updatedAt        DateTime? @updatedAt @db.Timestamptz(3)
   deletedAt        DateTime? @db.Timestamptz(3)
+}
+
+model AvailableDay {
+  id                BigInt           @id @default(autoincrement())
+  providerServiceId BigInt
+  service           ProviderServices @relation(fields: [providerServiceId], references: [id])
+  sat               Boolean          @default(false)
+  sun               Boolean          @default(false)
+  mon               Boolean          @default(false)
+  tue               Boolean          @default(false)
+  wed               Boolean          @default(false)
+  thu               Boolean          @default(false)
+  fri               Boolean          @default(false)
+  createdAt         DateTime         @default(now()) @db.Timestamptz(3)
+  updatedAt         DateTime?        @updatedAt @db.Timestamptz(3)
+  deletedAt         DateTime?        @db.Timestamptz(3)
 }
