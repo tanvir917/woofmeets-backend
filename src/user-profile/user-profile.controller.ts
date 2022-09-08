@@ -32,6 +32,7 @@ import { ProfileImageUploadBodyDto } from './dto/profile-image-upload-body.dto';
 import { UpdateProviderDetailsDto } from './dto/update-provider-details.dto';
 import { UpdateBasicInfoDto } from './dto/update-user-basic-info';
 import { ProviderDetailsService } from './provider-details.service';
+import { UserOnboardingProgressService } from './user-onboarding-progress.service';
 import { UserProfileBasicInfoService } from './user-profile-basic-info.service';
 import { UserProfileContactService } from './user-profile-contact.service';
 import { UserProfileService } from './user-profile.service';
@@ -45,6 +46,7 @@ export class UserProfileController {
     private readonly userProfileService: UserProfileService,
     private readonly providerDetailsService: ProviderDetailsService,
     private readonly userContactService: UserProfileContactService,
+    private readonly userOnboardingService: UserOnboardingProgressService,
   ) {}
 
   @Get('/country')
@@ -206,6 +208,16 @@ export class UserProfileController {
     const userId = BigInt(req.user?.id) ?? BigInt(-1);
     return {
       data: await this.userContactService.addEmergencyContact(userId, body),
+    };
+  }
+
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard)
+  @Get('onboarding-progress')
+  async getOnboardingProgress(@Req() req) {
+    const userId = BigInt(req.user?.id) ?? BigInt(-1);
+    return {
+      data: await this.userOnboardingService.getUserOnboardingProgress(userId),
     };
   }
 }
