@@ -9,6 +9,7 @@ import { mappedPolicies } from './seeder/policies';
 import { profileSkills } from './seeder/profileSkills';
 import { ServiceTypesSeeder } from './seeder/services';
 import { rateTypes } from './seeder/rateTypes';
+import { quizSets } from './seeder/quiz';
 
 const prisma = new PrismaClient();
 
@@ -231,6 +232,21 @@ const addServiceRateTypes = async () => {
   });
 };
 
+const addQuizQuestions = async () => {
+  const exists = await prisma.quiz.findMany({
+    where: { deletedAt: null },
+  });
+
+  const quizs = exists.map((q) => q.question);
+  await quizSets.forEach(async (obj) => {
+    if (!quizs.includes(obj?.question)) {
+      await prisma.quiz.create({
+        data: obj,
+      });
+    }
+  });
+};
+
 async function main() {
   console.log('.... Seeding Data ....');
 
@@ -241,6 +257,7 @@ async function main() {
   addBreeds();
   addPolicies();
   addServiceRateTypes();
+  addQuizQuestions();
 
   console.log('✨  Seed Completed ✨ ');
 }

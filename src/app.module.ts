@@ -32,6 +32,7 @@ import { CancellationPolicyModule } from './cancellation-policy/cancellation-pol
 import { ServiceRatesModule } from './service-rates/service-rates.module';
 import { StripePaymentMethodModule } from './stripe-payment-method/stripe-payment-method.module';
 import { AvailabilityModule } from './availability/availability.module';
+import { QuizModule } from './quiz/quiz.module';
 
 @Module({
   imports: [
@@ -63,6 +64,7 @@ import { AvailabilityModule } from './availability/availability.module';
     ServiceRatesModule,
     StripePaymentMethodModule,
     AvailabilityModule,
+    QuizModule,
   ],
   controllers: [AppController],
   providers: [AppService, SecretService, PrismaService, SmsService],
