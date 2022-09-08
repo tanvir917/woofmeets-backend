@@ -580,6 +580,16 @@ model AvailableDay {
   deletedAt         DateTime?        @db.Timestamptz(3)
 }
 
+model Quiz {
+  id        BigInt    @id @default(autoincrement())
+  question  String
+  options   Json[]
+  answer    String
+  active    Boolean   @default(true)
+  createdAt DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime? @updatedAt @db.Timestamptz(3)
+  deletedAt DateTime? @db.Timestamptz(3)
+}
 model SubscriptionPlan {
   id                       BigInt                     @id @default(autoincrement())
   name                     String
