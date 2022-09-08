@@ -4,8 +4,7 @@ import { throwBadRequestErrorCheck } from '../global/exceptions/error-logic';
 import { PrismaService } from '../prisma/prisma.service';
 import { SecretService } from '../secret/secret.service';
 import { AddCardDto, CreateTokenDto } from './dto/add-card.dto';
-import { CreateStripePaymentMethodDto } from './dto/create-stripe-payment-method.dto';
-import { UpdateStripePaymentMethodDto } from './dto/update-stripe-payment-method.dto';
+import { UpdateCardDto } from './dto/update-card.dto';
 
 @Injectable()
 export class StripePaymentMethodService {
@@ -252,7 +251,292 @@ export class StripePaymentMethodService {
     }
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} stripePaymentMethod`;
+  async getDefaultCardInfo(userId: bigint) {
+    try {
+      const user = await this.prismaService.user.findFirst({
+        where: {
+          id: userId,
+          deletedAt: null,
+        },
+        select: {
+          id: true,
+          userStripeCustomerAccount: true,
+        },
+      });
+
+      throwBadRequestErrorCheck(!user, 'User not found.');
+
+      throwBadRequestErrorCheck(
+        !user?.userStripeCustomerAccount,
+        'User is not a stripe customer.',
+      );
+
+      const cardInfo = await this.prismaService.userStripeCard.findFirst({
+        where: {
+          userId: user?.id,
+          isDefault: true,
+          deletedAt: null,
+        },
+        select: {
+          id: true,
+          userId: true,
+          brand: true,
+          country: true,
+          expMonth: true,
+          expYear: true,
+          last4: true,
+          funding: true,
+          isDefault: true,
+          name: true,
+          addressLine1: true,
+          addressLine2: true,
+          city: true,
+          customerCountry: true,
+          state: true,
+          zipCode: true,
+        },
+      });
+
+      throwBadRequestErrorCheck(!cardInfo, 'No card found.');
+
+      return {
+        message: 'Card information found!',
+        data: cardInfo,
+      };
+    } catch (e) {
+      throw e as Error;
+    }
+  }
+
+  async updateCustomerCard(
+    userId: bigint,
+    cardId: bigint,
+    updateCardDto: UpdateCardDto,
+  ) {
+    try {
+      const { expMonth, expYear } = updateCardDto;
+
+      const user = await this.prismaService.user.findFirst({
+        where: {
+          id: userId,
+          deletedAt: null,
+        },
+        select: {
+          id: true,
+          userStripeCustomerAccount: true,
+        },
+      });
+
+      throwBadRequestErrorCheck(!user, 'User not found.');
+
+      throwBadRequestErrorCheck(
+        !user?.userStripeCustomerAccount,
+        'user is not a stripe customer.',
+      );
+
+      const cardInfo = await this.prismaService.userStripeCard.findFirst({
+        where: {
+          id: cardId,
+          userId: user?.id,
+          deletedAt: null,
+        },
+      });
+
+      throwBadRequestErrorCheck(!cardInfo, 'Card not found.');
+
+      const updatedCard = await this.stripe.customers.updateSource(
+        cardInfo?.stripeCustomerId,
+        cardInfo?.stripeCardId,
+        { exp_month: expMonth, exp_year: expYear },
+      );
+
+      throwBadRequestErrorCheck(
+        !updatedCard,
+        'Could not update card info! Please try again later.',
+      );
+
+      const card = await this.prismaService.userStripeCard.update({
+        where: { id: cardId },
+        data: { expMonth: parseInt(expMonth), expYear: parseInt(expYear) },
+      });
+
+      return {
+        message: 'Card updated successfully!',
+        data: card,
+      };
+    } catch (error) {
+      throw error as Error;
+    }
+  }
+
+  async makeCardDefault(userId: bigint, cardId: bigint) {
+    try {
+      const user = await this.prismaService.user.findFirst({
+        where: {
+          id: userId,
+          deletedAt: null,
+        },
+        select: {
+          id: true,
+          userStripeCustomerAccount: true,
+        },
+      });
+
+      throwBadRequestErrorCheck(!user, 'User not found.');
+
+      throwBadRequestErrorCheck(
+        !user?.userStripeCustomerAccount,
+        'user is not a stripe customer.',
+      );
+
+      const card = await this.prismaService.userStripeCard.findFirst({
+        where: { id: cardId, deletedAt: null },
+      });
+
+      const updateCustomer = await this.stripe.customers.update(
+        user?.userStripeCustomerAccount?.stripeCustomerId,
+        { default_source: card?.stripeCardId },
+      );
+
+      throwBadRequestErrorCheck(
+        Object(updateCustomer)?.default_source != card?.stripeCardId,
+        'Could not update default card! Please try again later.',
+      );
+
+      const defaultCard = await this.prismaService.userStripeCard.update({
+        where: { id: cardId },
+        data: {
+          isDefault: true,
+        },
+      });
+
+      await this.prismaService.userStripeCard.updateMany({
+        where: { userId: user?.id, id: { not: cardId } },
+        data: {
+          isDefault: false,
+        },
+      });
+
+      return {
+        message: 'Card set to default!',
+        data: defaultCard,
+      };
+    } catch (error) {
+      throw error as Error;
+    }
+  }
+
+  async deleteCustomerCard(userId: bigint, cardId: bigint) {
+    try {
+      const user = await this.prismaService.user.findFirst({
+        where: {
+          id: userId,
+          deletedAt: null,
+        },
+        select: {
+          id: true,
+          userStripeCustomerAccount: true,
+        },
+      });
+
+      throwBadRequestErrorCheck(!user, 'User not found.');
+
+      throwBadRequestErrorCheck(
+        !user?.userStripeCustomerAccount,
+        'user is not a stripe customer.',
+      );
+
+      const cardInfo = await this.prismaService.userStripeCard.findFirst({
+        where: {
+          id: cardId,
+          userId: user?.id,
+          deletedAt: null,
+        },
+      });
+
+      throwBadRequestErrorCheck(!cardInfo, 'No card found with specific id!');
+
+      if (cardInfo?.isDefault) {
+        const otherCard = await this.prismaService.userStripeCard.findMany({
+          where: {
+            userId: user?.id,
+            deletedAt: null,
+            id: {
+              not: cardId,
+            },
+          },
+        });
+
+        if (otherCard || otherCard?.length) {
+          await this.stripe.customers.update(otherCard[0]?.stripeCustomerId, {
+            default_source: otherCard[0]?.stripeCardId,
+          });
+
+          await this.prismaService.userStripeCard.update({
+            where: { id: otherCard[0]?.id },
+            data: { isDefault: true },
+          });
+        }
+      }
+
+      try {
+        await this.stripe.customers.retrieveSource(
+          cardInfo?.stripeCustomerId,
+          cardInfo?.stripeCardId,
+        );
+      } catch (error) {
+        console.log(error);
+        if (error.type == 'StripeInvalidRequestError') {
+          const deleteCardFromDb =
+            await this.prismaService.userStripeCard.update({
+              where: {
+                id: cardId,
+              },
+              data: {
+                deletedAt: new Date(),
+              },
+            });
+          throwBadRequestErrorCheck(
+            !deleteCardFromDb,
+            'Can not delete card, please try again later!',
+          );
+          return {
+            message: 'Card deleted!',
+          };
+        }
+      }
+
+      const deleteCard = await this.stripe.customers.deleteSource(
+        cardInfo?.stripeCustomerId,
+        cardInfo?.stripeCardId,
+      );
+
+      throwBadRequestErrorCheck(
+        !Object(deleteCard)?.deleted,
+        'Can not delete card, please try again later!',
+      );
+
+      const deleteCardFromDb = await this.prismaService.userStripeCard.update({
+        where: {
+          id: cardId,
+        },
+        data: {
+          active: false,
+          isDefault: false,
+          deletedAt: new Date(),
+        },
+      });
+
+      throwBadRequestErrorCheck(
+        !deleteCardFromDb,
+        'Can not delete card! Please try again later.',
+      );
+
+      return {
+        message: 'Card deleted!',
+      };
+    } catch (error) {
+      throw error as Error;
+    }
   }
 }
