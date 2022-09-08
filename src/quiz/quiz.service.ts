@@ -1,5 +1,8 @@
 import { Injectable } from '@nestjs/common';
-import { throwNotFoundErrorCheck } from 'src/global/exceptions/error-logic';
+import {
+  throwBadRequestErrorCheck,
+  throwNotFoundErrorCheck,
+} from 'src/global/exceptions/error-logic';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateQuizDto } from './dto/create-quiz.dto';
 import { UpdateQuizDto } from './dto/update-quiz.dto';
@@ -62,7 +65,7 @@ export class QuizService {
 
     throwNotFoundErrorCheck(!quiz, 'Quiz not found.');
 
-    const data = await this.prismaService.quiz.update({
+    await this.prismaService.quiz.update({
       where: {
         id,
       },
@@ -71,5 +74,26 @@ export class QuizService {
       },
     });
     return { message: 'Quiz deleted successfully.' };
+  }
+
+  async quizCompletation(userId: bigint) {
+    const user = await this.prismaService.user.findFirst({
+      where: { id: userId, deletedAt: null },
+      include: { provider: true },
+    });
+
+    throwBadRequestErrorCheck(!user, 'User not found');
+    throwBadRequestErrorCheck(!user.provider, 'User is not a provider');
+
+    await this.prismaService.provider.update({
+      where: { id: user?.provider.id },
+      data: {
+        quizPassed: true,
+      },
+    });
+
+    return {
+      message: 'Quiz status updated.',
+    };
   }
 }
