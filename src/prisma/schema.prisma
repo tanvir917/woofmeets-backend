@@ -123,6 +123,7 @@ model User {
   pet                       Pet[]
   userStripeCustomerAccount UserStripeCustomerAccount?
   userStripeCard            UserStripeCard[]
+  userSubscriptionPlanInfo  UserSubscriptionPlanInfo[]
 }
 
 model UserContact {
@@ -535,31 +536,32 @@ model UserStripeCustomerAccount {
 }
 
 model UserStripeCard {
-  id               BigInt    @id @default(autoincrement())
-  userId           BigInt
-  user             User      @relation(fields: [userId], references: [id])
-  stripeCardId     String
-  brand            String?
-  customerCountry  String?
-  name             String?
-  stripeCustomerId String
-  last4            String
-  expMonth         Int
-  expYear          Int
-  funding          String?
-  addressLine1     String?
-  addressLine2     String?
-  city             String?
-  state            String?
-  zipCode          String?
-  countryId        Int?
-  country          Country?  @relation(fields: [countryId], references: [id])
-  active           Boolean   @default(true)
-  isDefault        Boolean   @default(false)
-  meta             Json?
-  createdAt        DateTime  @default(now()) @db.Timestamptz(3)
-  updatedAt        DateTime? @updatedAt @db.Timestamptz(3)
-  deletedAt        DateTime? @db.Timestamptz(3)
+  id                       BigInt                     @id @default(autoincrement())
+  userId                   BigInt
+  user                     User                       @relation(fields: [userId], references: [id])
+  stripeCardId             String
+  brand                    String?
+  customerCountry          String?
+  name                     String?
+  stripeCustomerId         String
+  last4                    String
+  expMonth                 Int
+  expYear                  Int
+  funding                  String?
+  addressLine1             String?
+  addressLine2             String?
+  city                     String?
+  state                    String?
+  zipCode                  String?
+  countryId                Int?
+  country                  Country?                   @relation(fields: [countryId], references: [id])
+  active                   Boolean                    @default(true)
+  isDefault                Boolean                    @default(false)
+  meta                     Json?
+  createdAt                DateTime                   @default(now()) @db.Timestamptz(3)
+  updatedAt                DateTime?                  @updatedAt @db.Timestamptz(3)
+  deletedAt                DateTime?                  @db.Timestamptz(3)
+  userSubscriptionPlanInfo UserSubscriptionPlanInfo[]
 }
 
 model AvailableDay {
@@ -576,4 +578,44 @@ model AvailableDay {
   createdAt         DateTime         @default(now()) @db.Timestamptz(3)
   updatedAt         DateTime?        @updatedAt @db.Timestamptz(3)
   deletedAt         DateTime?        @db.Timestamptz(3)
+}
+
+model SubscriptionPlan {
+  id                       BigInt                     @id @default(autoincrement())
+  name                     String
+  slug                     String
+  displayName              String
+  rate                     Float
+  cropRate                 Float
+  discount                 Float?
+  details                  String?
+  features                 Json?
+  active                   Boolean                    @default(true)
+  sequence                 Int?
+  meta                     Json?
+  createdAt                DateTime                   @default(now()) @db.Timestamptz(3)
+  updatedAt                DateTime?                  @updatedAt @db.Timestamptz(3)
+  deletedAt                DateTime?                  @db.Timestamptz(3)
+  userSubscriptionPlanInfo UserSubscriptionPlanInfo[]
+}
+
+model UserSubscriptionPlanInfo {
+  id                   BigInt           @id @default(autoincrement())
+  userId               BigInt
+  user                 User             @relation(fields: [userId], references: [id])
+  subscriptionPlanId   BigInt
+  subscriptionPlan     SubscriptionPlan @relation(fields: [subscriptionPlanId], references: [id])
+  cardId               BigInt?
+  card                 UserStripeCard?  @relation(fields: [cardId], references: [id])
+  stripeSubscriptionId String?
+  amount               Float            @default(0)
+  currency             String?
+  currentPeriodStart   DateTime?        @db.Timestamptz(3)
+  currentPeriodEnd     DateTime?        @db.Timestamptz(3)
+  status               String?
+  src                  Json?
+  meta                 Json?
+  createdAt            DateTime         @default(now()) @db.Timestamptz(3)
+  updatedAt            DateTime?        @updatedAt @db.Timestamptz(3)
+  deletedAt            DateTime?        @db.Timestamptz(3)
 }
