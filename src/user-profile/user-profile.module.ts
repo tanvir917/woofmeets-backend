@@ -8,6 +8,7 @@ import { UserProfileService } from './user-profile.service';
 import { SmsModule } from 'src/sms/sms.module';
 import { UserProfileContactService } from './user-profile-contact.service';
 import { SecretModule } from 'src/secret/secret.module';
+import { UserOnboardingProgressService } from './user-onboarding-progress.service';
 
 @Module({
   imports: [PrismaModule, SmsModule, FileModule, SecretModule],
@@ -17,6 +18,7 @@ import { SecretModule } from 'src/secret/secret.module';
     UserProfileBasicInfoService,
     ProviderDetailsService,
     UserProfileContactService,
+    UserOnboardingProgressService,
   ],
 })
 export class UserProfileModule {}
