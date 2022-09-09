@@ -33,6 +33,7 @@ import { ServiceRatesModule } from './service-rates/service-rates.module';
 import { StripePaymentMethodModule } from './stripe-payment-method/stripe-payment-method.module';
 import { AvailabilityModule } from './availability/availability.module';
 import { QuizModule } from './quiz/quiz.module';
+import { ProviderModule } from './provider/provider.module';
 
 @Module({
   imports: [
@@ -65,6 +66,7 @@ import { QuizModule } from './quiz/quiz.module';
     StripePaymentMethodModule,
     AvailabilityModule,
     QuizModule,
+    ProviderModule,
   ],
   controllers: [AppController],
   providers: [AppService, SecretService, PrismaService, SmsService],
