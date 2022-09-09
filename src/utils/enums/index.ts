@@ -42,3 +42,9 @@ export enum EnergyLevelTypeEnum {
   MODERATE = 'MODERATE',
   LOW = 'LOW',
 }
+
+export enum HavePetsTypeEnum {
+  NOT_SELECTED = 'NOT_SELECTED',
+  YES = 'YES',
+  NO = 'NO',
+}
