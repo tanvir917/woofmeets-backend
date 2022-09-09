@@ -1,20 +1,21 @@
 import {
-  Controller,
-  Post,
   Body,
-  UseInterceptors,
-  UseGuards,
-  Request,
+  Controller,
   Get,
   Patch,
-  UploadedFiles,
+  Post,
   Req,
+  Request,
+  UploadedFiles,
+  UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
 import {
   ApiBearerAuth,
   ApiBody,
   ApiConsumes,
+  ApiOperation,
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
@@ -28,6 +29,7 @@ import {
   CreateUserContactDto,
   GeneratePhoneOTPDto,
 } from './dto/create-user-contact.dto';
+import { CheckHavePetDTo } from './dto/have-pets.dto';
 import { ProfileImageUploadBodyDto } from './dto/profile-image-upload-body.dto';
 import { UpdateProviderDetailsDto } from './dto/update-provider-details.dto';
 import { UpdateBasicInfoDto } from './dto/update-user-basic-info';
@@ -73,6 +75,9 @@ export class UserProfileController {
     return this.userProfileService.getContactInfo(userId);
   }
 
+  @ApiOperation({
+    summary: 'Create basic information for proflie section of a user.',
+  })
   @ApiBearerAuth('access-token')
   @UseGuards(JwtAuthGuard)
   @Post('basic-info')
@@ -87,6 +92,9 @@ export class UserProfileController {
     );
   }
 
+  @ApiOperation({
+    summary: 'Get basic information for proflie section of a user.',
+  })
   @ApiBearerAuth('access-token')
   @UseGuards(JwtAuthGuard)
   @Get('basic-info')
@@ -95,6 +103,9 @@ export class UserProfileController {
     return this.userProfileBasicInfoService.getBasicInfo(userId);
   }
 
+  @ApiOperation({
+    summary: 'Update basic information for proflie section of a user.',
+  })
   @ApiBearerAuth('access-token')
   @UseGuards(JwtAuthGuard)
   @Patch('basic-info')
@@ -124,6 +135,9 @@ export class UserProfileController {
     return this.userProfileBasicInfoService.uploadProfilePicture(userId, file);
   }
 
+  @ApiOperation({
+    summary: 'Create details for proflie section of a user.',
+  })
   @ApiBearerAuth('access-token')
   @UseGuards(JwtAuthGuard)
   @Post('provider-details')
@@ -138,6 +152,9 @@ export class UserProfileController {
     );
   }
 
+  @ApiOperation({
+    summary: 'Get details for proflie section of a user.',
+  })
   @ApiBearerAuth('access-token')
   @UseGuards(JwtAuthGuard)
   @Get('provider-details')
@@ -146,6 +163,9 @@ export class UserProfileController {
     return this.providerDetailsService.getProviderDetails(userId);
   }
 
+  @ApiOperation({
+    summary: 'Update details for proflie section of a user.',
+  })
   @ApiBearerAuth('access-token')
   @UseGuards(JwtAuthGuard)
   @Patch('provider-details')
@@ -179,6 +199,9 @@ export class UserProfileController {
     };
   }
 
+  @ApiOperation({
+    summary: 'Can be used for both create and update the contact number.',
+  })
   @ApiBearerAuth('access-token')
   @UseGuards(JwtAuthGuard)
   @ApiBody({
@@ -195,6 +218,9 @@ export class UserProfileController {
     };
   }
 
+  @ApiOperation({
+    summary: 'Can be used for both create and update the emergency contact.',
+  })
   @ApiBearerAuth('access-token')
   @UseGuards(JwtAuthGuard)
   @ApiBody({
@@ -209,6 +235,20 @@ export class UserProfileController {
     return {
       data: await this.userContactService.addEmergencyContact(userId, body),
     };
+  }
+
+  @ApiOperation({
+    summary: 'For checking have pets in profile section.',
+  })
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard)
+  @ApiBody({
+    type: CheckHavePetDTo,
+  })
+  @Post('check-have-pets')
+  async checkProfileHavePet(@Req() req, @Body() body: CheckHavePetDTo) {
+    const userId = BigInt(req.user?.id) ?? BigInt(-1);
+    return await this.userProfileService.checkProfileHavePet(userId, body);
   }
 
   @ApiBearerAuth('access-token')

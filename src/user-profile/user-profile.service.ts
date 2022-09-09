@@ -1,6 +1,10 @@
 import { Injectable } from '@nestjs/common';
-import { throwNotFoundErrorCheck } from 'src/global/exceptions/error-logic';
+import {
+  throwBadRequestErrorCheck,
+  throwNotFoundErrorCheck,
+} from 'src/global/exceptions/error-logic';
 import { PrismaService } from 'src/prisma/prisma.service';
+import { CheckHavePetDTo } from './dto/have-pets.dto';
 
 @Injectable()
 export class UserProfileService {
@@ -72,6 +76,38 @@ export class UserProfileService {
           emergencyContact: true,
         },
       }),
+    };
+  }
+
+  async checkProfileHavePet(userId: bigint, checkHavePetDTo: CheckHavePetDTo) {
+    const user = await this.prismaService.user.findFirst({
+      where: { id: userId, deletedAt: null },
+      include: {
+        provider: {
+          select: {
+            id: true,
+          },
+        },
+      },
+    });
+
+    throwBadRequestErrorCheck(!user, 'User not found.');
+    throwBadRequestErrorCheck(!user?.provider, 'Provider not found.');
+
+    const { havePets } = checkHavePetDTo;
+
+    const provider = await this.prismaService.provider.update({
+      where: {
+        id: user?.provider?.id,
+      },
+      data: {
+        havePets,
+      },
+    });
+
+    return {
+      message: 'Provider have pets updated successfully.',
+      data: provider,
     };
   }
 }
