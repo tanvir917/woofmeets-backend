@@ -358,6 +358,24 @@ export class StripePaymentMethodService {
       const card = await this.prismaService.userStripeCard.update({
         where: { id: cardId },
         data: { expMonth: parseInt(expMonth), expYear: parseInt(expYear) },
+        select: {
+          id: true,
+          userId: true,
+          brand: true,
+          country: true,
+          expMonth: true,
+          expYear: true,
+          last4: true,
+          funding: true,
+          isDefault: true,
+          name: true,
+          addressLine1: true,
+          addressLine2: true,
+          city: true,
+          customerCountry: true,
+          state: true,
+          zipCode: true,
+        },
       });
 
       return {
@@ -390,8 +408,15 @@ export class StripePaymentMethodService {
       );
 
       const card = await this.prismaService.userStripeCard.findFirst({
-        where: { id: cardId, deletedAt: null },
+        where: { id: cardId, userId: userId, deletedAt: null },
       });
+
+      throwBadRequestErrorCheck(
+        !card,
+        'Card not added or doesnot belong to user.',
+      );
+
+      throwBadRequestErrorCheck(card?.isDefault, 'Card is already default.');
 
       const updateCustomer = await this.stripe.customers.update(
         user?.userStripeCustomerAccount?.stripeCustomerId,
