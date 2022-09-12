@@ -163,6 +163,7 @@ export class ProviderServicesService {
               appRequired: true,
             },
           },
+          AvailableDay: true,
         },
         orderBy: {
           createdAt: 'asc',
