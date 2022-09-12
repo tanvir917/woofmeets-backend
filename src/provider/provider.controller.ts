@@ -1,5 +1,5 @@
 import { Controller, Get, Param } from '@nestjs/common';
-import { ApiTags } from '@nestjs/swagger';
+import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { throwBadRequestErrorCheck } from 'src/global/exceptions/error-logic';
 import { ProviderService } from './provider.service';
 
@@ -8,6 +8,9 @@ import { ProviderService } from './provider.service';
 export class ProviderController {
   constructor(private readonly providerService: ProviderService) {}
 
+  @ApiOperation({
+    summary: 'Get all information of provider for landing page.',
+  })
   @Get('/details/:opk')
   async get(@Param('opk') opk: string) {
     throwBadRequestErrorCheck(

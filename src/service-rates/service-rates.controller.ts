@@ -1,22 +1,23 @@
 import {
-  Controller,
-  Get,
-  Post,
   Body,
-  Param,
+  Controller,
   Delete,
-  UseInterceptors,
-  UseGuards,
+  Get,
+  Param,
+  Post,
   Put,
+  UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
-import { ServiceRatesService } from './service-rates.service';
-import { CreateServiceRateDto } from './dto/create-service-rate.dto';
-import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
-import { TransformInterceptor } from 'src/transform.interceptor';
-import { ServiceTypeHasRatesService } from './service-type-has-rate.service';
-import { CreateServiceTypeRateDto } from './dto/create-type-rate.dto';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
+import { TransformInterceptor } from 'src/transform.interceptor';
+import { CreateMultipleServiceRateDto } from './dto/create-multiple-service-rate.dto';
+import { CreateServiceRateDto } from './dto/create-service-rate.dto';
+import { CreateServiceTypeRateDto } from './dto/create-type-rate.dto';
 import { UpdateServiceRateDto } from './dto/update-service-rate.dto';
+import { ServiceRatesService } from './service-rates.service';
+import { ServiceTypeHasRatesService } from './service-type-has-rate.service';
 
 @ApiTags('Service Rates')
 @UseInterceptors(TransformInterceptor)
@@ -71,6 +72,21 @@ export class ServiceRatesController {
 
   @ApiBearerAuth('access-token')
   @UseGuards(JwtAuthGuard)
+  @Post('/multiple/create')
+  @ApiOperation({
+    summary:
+      'Create multiple rate at a time for provider service. Pass an array of object of service rates like create method in body',
+  })
+  async multipleCreate(
+    @Body() createMultipleServiceRateDto: CreateMultipleServiceRateDto,
+  ) {
+    return this.serviceRatesService.multipleCreate(
+      createMultipleServiceRateDto,
+    );
+  }
+
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard)
   @Put('/:servicesRateId')
   @ApiOperation({
     summary: 'Update rate for provider service. Pass service rate id as param.',
@@ -83,6 +99,21 @@ export class ServiceRatesController {
     return this.serviceRatesService.update(
       servicesRateId,
       updateServiceRateDto,
+    );
+  }
+
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard)
+  @Put('/muptiple/update')
+  @ApiOperation({
+    summary:
+      'Update multiple rate at a time for provider service. Pass an array of object of service rates like create method in body.',
+  })
+  async multipleUpdate(
+    @Body() createMultipleServiceRateDto: CreateMultipleServiceRateDto,
+  ) {
+    return this.serviceRatesService.multipleUpdate(
+      createMultipleServiceRateDto,
     );
   }
 
