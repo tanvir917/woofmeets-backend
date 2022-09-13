@@ -50,20 +50,24 @@ export class ProviderHomeService {
         homeAttributeTypeId: { in: homeAttributes },
         deletedAt: null,
       },
-      select: { id: true },
+      select: { id: true, homeAttributeTypeId: true },
     });
 
-    const mappedPreviousHomeAttributesId = getHomeAttributes.map((item) => {
-      return Number(item.id);
-    });
+    const mappedPreviousHomeAttributesTypesId = getHomeAttributes.map(
+      (item) => {
+        return Number(item?.homeAttributeTypeId);
+      },
+    );
+
+    const newHomeAttributes = [];
 
     // add home attributes that are new
-    const newHomeAttributes = homeAttributes.map((item) => {
-      if (!mappedPreviousHomeAttributesId.includes(item)) {
-        return {
+    homeAttributes.forEach((item) => {
+      if (!mappedPreviousHomeAttributesTypesId.includes(item)) {
+        newHomeAttributes.push({
           providerId: user?.provider.id,
           homeAttributeTypeId: item,
-        };
+        });
       }
     });
 
