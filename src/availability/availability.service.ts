@@ -118,13 +118,25 @@ export class AvailabilityService {
       "Service doesn't belong to the specific user.",
     );
 
+    const { pottyBreak, fulltime, ...restBody } = body;
+
+    await this.prismaService.providerServices.update({
+      where: {
+        id: existingDays?.service?.id,
+      },
+      data: {
+        pottyBreak,
+        fulltime,
+      },
+    });
+
     const days = await this.prismaService.availableDay.update({
       where: {
         id,
       },
       data: {
         providerServiceId: existingDays.providerServiceId,
-        ...body,
+        ...restBody,
       },
       include: {
         service: {

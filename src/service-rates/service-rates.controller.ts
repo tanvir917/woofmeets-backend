@@ -104,7 +104,7 @@ export class ServiceRatesController {
 
   @ApiBearerAuth('access-token')
   @UseGuards(JwtAuthGuard)
-  @Put('/muptiple/update')
+  @Put('/multiple/update')
   @ApiOperation({
     summary:
       'Update multiple rate at a time for provider service. Pass an array of object of service rates like create method in body.',

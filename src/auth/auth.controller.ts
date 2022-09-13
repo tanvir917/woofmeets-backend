@@ -42,9 +42,7 @@ export class AuthController {
   async login(
     @Body() loginDto: LoginDto,
     @Response({ passthrough: true }) res: any,
-    @Request() req: any,
   ) {
-    console.log(req?.cookies);
     return await this.authService.validateUser(loginDto, res);
   }
 
