@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsBoolean, IsNotEmpty } from 'class-validator';
+import { IsBoolean, IsString } from 'class-validator';
 
 export class UpdateAvailabilityDto {
   @ApiProperty()
@@ -29,4 +29,12 @@ export class UpdateAvailabilityDto {
   @ApiProperty()
   @IsBoolean()
   fri: boolean;
+
+  @ApiProperty()
+  @IsString()
+  pottyBreak: string;
+
+  @ApiProperty()
+  @IsBoolean()
+  fulltime: boolean;
 }
