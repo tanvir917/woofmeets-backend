@@ -132,6 +132,7 @@ model User {
   userStripeCard            UserStripeCard[]
   userSubscriptions         UserSubscriptions[]
   userSubscriptionInvoices  UserSubscriptionInvoices[]
+  Unavailability            Unavailability[]
 }
 
 model UserContact {
@@ -247,6 +248,7 @@ model ProviderServices {
   fulltime               Boolean           @default(true)
   radius                 Int               @default(10)
   AvailableDay           AvailableDay[]
+  Unavailabilty          Unavailability[]
 }
 
 model BasicInfo {
@@ -586,6 +588,19 @@ model AvailableDay {
   createdAt         DateTime         @default(now()) @db.Timestamptz(3)
   updatedAt         DateTime?        @updatedAt @db.Timestamptz(3)
   deletedAt         DateTime?        @db.Timestamptz(3)
+}
+
+model Unavailability {
+  id                  BigInt            @id @default(autoincrement())
+  service             ProviderServices? @relation(fields: [serviceId], references: [id])
+  serviceId           BigInt?
+  date                DateTime          @db.Timestamptz(3)
+  user                User              @relation(fields: [userId], references: [id])
+  userId              BigInt
+  allServicesInactive Boolean           @default(false)
+  createdAt           DateTime          @default(now()) @db.Timestamptz(3)
+  updatedAt           DateTime?         @updatedAt @db.Timestamptz(3)
+  deletedAt           DateTime?         @db.Timestamptz(3)
 }
 
 model Quiz {

@@ -34,6 +34,7 @@ import { StripePaymentMethodModule } from './stripe-payment-method/stripe-paymen
 import { AvailabilityModule } from './availability/availability.module';
 import { QuizModule } from './quiz/quiz.module';
 import { ProviderModule } from './provider/provider.module';
+import { UnavailabilityModule } from './unavailability/unavailability.module';
 
 @Module({
   imports: [
@@ -67,6 +68,7 @@ import { ProviderModule } from './provider/provider.module';
     AvailabilityModule,
     QuizModule,
     ProviderModule,
+    UnavailabilityModule,
   ],
   controllers: [AppController],
   providers: [AppService, SecretService, PrismaService, SmsService],
