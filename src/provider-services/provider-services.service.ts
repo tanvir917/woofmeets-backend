@@ -27,9 +27,9 @@ export class ProviderServicesService {
       if (!providerService) {
         generatedSlug = false;
       } else {
-        const nanoid = customAlphabet('abcdefghijklmnopqrstuvwxyz', 4);
+        const nanoid = customAlphabet('abcdefghijklmnopqrstuvwxyz', 6);
 
-        tempSlug = this.commonService.getSlug(slug + ' ' + nanoid());
+        tempSlug = this.commonService.getSlug(slug + ' ' + nanoid(6));
       }
     }
     return tempSlug;
@@ -98,9 +98,9 @@ export class ProviderServicesService {
         if (!provider) {
           generatedSlug = false;
         } else {
-          const nanoid = customAlphabet('abcdefghijklmnopqrstuvwxyz', 4);
+          const nanoid = customAlphabet('abcdefghijklmnopqrstuvwxyz', 6);
           slug = this.commonService.getSlug(
-            user?.firstName + ' ' + user?.lastName + ' ' + nanoid,
+            user?.firstName + ' ' + user?.lastName + ' ' + nanoid(6),
           );
         }
       }
@@ -124,6 +124,9 @@ export class ProviderServicesService {
             providerId: provider?.id,
             serviceTypeId,
             slug: tempSlug,
+          },
+          include: {
+            serviceType: true,
           },
         },
       );
