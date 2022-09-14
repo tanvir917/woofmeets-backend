@@ -49,6 +49,8 @@ export class UserOnboardingProgressService {
       };
     };
 
+    const now = new Date();
+
     const [services, data] = await this.prismaService.$transaction([
       this.prismaService.serviceType.findMany({
         select: {
@@ -97,6 +99,21 @@ export class UserOnboardingProgressService {
               id: true,
             },
             where: {
+              deletedAt: null,
+            },
+          },
+          userSubscriptions: {
+            select: {
+              id: true,
+            },
+            where: {
+              currentPeriodStart: {
+                lte: now,
+              },
+              currentPeriodEnd: {
+                gt: now,
+              },
+              status: 'ACTIVE',
               deletedAt: null,
             },
           },
@@ -170,7 +187,6 @@ export class UserOnboardingProgressService {
                 },
               },
               quizPassed: true,
-              subscriptionType: true,
             },
           },
         },
@@ -323,8 +339,9 @@ export class UserOnboardingProgressService {
     );
 
     const subscriptionSublist = subscriptionCompletion(
-      true,
+      (data?.userSubscriptions?.length ?? 0) > 0,
       SUBSCRIPTION_SUBLIST.SUBSCRIBED,
+      'User has to have a vaild subscription',
     );
 
     const finder = (key: USER_ONBOARDING_STAGES): boolean => {
