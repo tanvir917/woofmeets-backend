@@ -1,0 +1,10 @@
+{
+  "restartable": "rs",
+  "verbose": true,
+  "ignore": ["test", "node_modules", "dist", ".git"],
+  "exec": "NODE_ENV=development TS_NODE_PROJECT=tsconfig.fast.json node -r tsconfig-paths/register -r ts-eager/register ./src/main.ts",
+  "env": {
+    "NODE_ENV": "development"
+  },
+  "ext": "ts,js,json"
+}

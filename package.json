@@ -8,6 +8,7 @@
   "scripts": {
     "prebuild": "rimraf dist",
     "build": "nest build",
+    "fast": "./node_modules/.bin/nodemon",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "NODE_ENV=production nest start",
     "dev": "NODE_ENV=development nest start --watch",
@@ -96,15 +97,18 @@
     "eslint-plugin-prettier": "^4.0.0",
     "husky": "^8.0.1",
     "jest": "28.1.2",
+    "nodemon": "^2.0.19",
     "pino-pretty": "^8.1.0",
     "prettier": "^2.3.2",
     "prisma": "^4.3.1",
     "source-map-support": "^0.5.20",
     "supertest": "^6.1.3",
+    "ts-eager": "^2.0.2",
     "ts-jest": "28.0.5",
     "ts-loader": "^9.2.3",
     "ts-node": "^10.0.0",
-    "tsconfig-paths": "4.0.0",
+    "tsc-watch": "^5.0.3",
+    "tsconfig-paths": "^4.1.0",
     "typescript": "^4.3.5"
   },
   "jest": {
