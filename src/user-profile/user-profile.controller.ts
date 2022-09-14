@@ -135,6 +135,11 @@ export class UserProfileController {
     return this.userProfileBasicInfoService.uploadProfilePicture(userId, file);
   }
 
+  @Get('profile-skill-types')
+  getProfileSkillTypes() {
+    return this.providerDetailsService.providerProfileSkillTypes();
+  }
+
   @ApiOperation({
     summary: 'Create details for proflie section of a user.',
   })

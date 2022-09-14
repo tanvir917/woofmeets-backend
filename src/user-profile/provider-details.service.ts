@@ -21,6 +21,8 @@ export class ProviderDetailsService {
       scheduleDescription,
       walkingExperience,
       yearsOfExperience,
+      about,
+      skills,
     } = createProviderDetailsDto;
 
     const user = await this.prismaService.user.findFirst({
@@ -55,14 +57,32 @@ export class ProviderDetailsService {
         scheduleDescription,
         walkingExperience,
         yearsOfExperience,
+        detailsSubmitted: true,
+        about,
       },
     });
 
     throwBadRequestErrorCheck(!providerDetails, 'Provider details not created');
 
+    throwBadRequestErrorCheck(!skills?.length, 'Skills not provided');
+
+    await this.prismaService.providerSkills.createMany({
+      data: skills.map((skill) => ({
+        providerId: user?.provider?.id,
+        skillTypeId: BigInt(skill),
+      })),
+    });
+
+    const providerSkills = await this.prismaService.providerSkills.findMany({
+      where: { providerId: user?.provider?.id, deletedAt: null },
+      include: {
+        skillType: true,
+      },
+    });
+
     return {
       message: 'Provider details created',
-      data: providerDetails,
+      data: { providerDetails, providerSkills },
     };
   }
 
@@ -74,6 +94,14 @@ export class ProviderDetailsService {
           select: {
             id: true,
             providerDetails: true,
+            providerSkills: {
+              where: {
+                deletedAt: null,
+              },
+              include: {
+                skillType: true,
+              },
+            },
           },
         },
       },
@@ -90,7 +118,10 @@ export class ProviderDetailsService {
 
     return {
       message: 'Provider details found',
-      data: user?.provider?.providerDetails,
+      data: {
+        providerDetails: user?.provider?.providerDetails,
+        providerSkills: user?.provider?.providerSkills,
+      },
     };
   }
 
@@ -107,6 +138,8 @@ export class ProviderDetailsService {
       scheduleDescription,
       walkingExperience,
       yearsOfExperience,
+      about,
+      skills,
     } = updateProviderDetailsDto;
 
     const user = await this.prismaService.user.findFirst({
@@ -116,6 +149,13 @@ export class ProviderDetailsService {
           select: {
             id: true,
             providerDetails: true,
+            providerSkills: {
+              where: {
+                skillTypeId: {
+                  in: skills,
+                },
+              },
+            },
           },
         },
       },
@@ -141,14 +181,72 @@ export class ProviderDetailsService {
         scheduleDescription,
         walkingExperience,
         yearsOfExperience,
+        detailsSubmitted: true,
+        about,
       },
     });
 
     throwBadRequestErrorCheck(!providerDetails, 'Provider details not updated');
 
+    await this.prismaService.providerSkills.updateMany({
+      where: {
+        skillTypeId: {
+          notIn: skills,
+        },
+      },
+      data: {
+        deletedAt: new Date(),
+      },
+    });
+
+    const newSkills = [];
+
+    const mappedPreviousProviderSkills = user?.provider?.providerSkills?.map(
+      (item) => {
+        return Number(item?.skillTypeId);
+      },
+    );
+
+    skills.forEach((skill) => {
+      if (!mappedPreviousProviderSkills?.includes(skill)) {
+        newSkills.push(skill);
+      }
+    });
+
+    console.log(newSkills);
+
+    if (newSkills?.length) {
+      await this.prismaService.providerSkills.createMany({
+        data: newSkills.map((skill) => ({
+          providerId: user?.provider?.id,
+          skillTypeId: BigInt(skill),
+        })),
+      });
+    }
+
+    const providerSkills = await this.prismaService.providerSkills.findMany({
+      where: { providerId: user?.provider?.id, deletedAt: null },
+      include: {
+        skillType: true,
+      },
+    });
+
     return {
       message: 'Provider details updated',
-      data: providerDetails,
+      data: { providerDetails, providerSkills },
+    };
+  }
+
+  async providerProfileSkillTypes() {
+    const skillTypes = await this.prismaService.profileSkillType.findMany({
+      where: { deletedAt: null, active: true },
+    });
+
+    throwBadRequestErrorCheck(!skillTypes, 'Skill types not found');
+
+    return {
+      message: 'Skill types found',
+      data: skillTypes,
     };
   }
 }
