@@ -24,4 +24,10 @@ export class CreateProviderDetailsDto {
 
   @ApiProperty()
   scheduleDescription: string;
+
+  @ApiProperty()
+  about: string;
+
+  @ApiProperty({ type: 'number', isArray: true })
+  skills: number[];
 }
