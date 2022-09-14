@@ -1,3 +1,4 @@
+import { UnavailabilityCreationService } from './unavailability-creation.service';
 import { JwtAuthGuard } from './../auth/jwt-auth.guard';
 import { CreateUnavailibityDto } from './dto/create-unavailability.dto';
 import { Body, Controller, Post, Request, UseGuards } from '@nestjs/common';
@@ -7,7 +8,9 @@ import { ApiBearerAuth, ApiBody, ApiTags } from '@nestjs/swagger';
 @ApiTags('Unavailability')
 @Controller('unavailability')
 export class UnavailabilityController {
-  constructor(private readonly unavailabilityService: UnavailabilityService) {}
+  constructor(
+    private readonly unavailabilityService: UnavailabilityCreationService,
+  ) {}
 
   @ApiBearerAuth('access-token')
   @UseGuards(JwtAuthGuard)
@@ -20,6 +23,9 @@ export class UnavailabilityController {
     @Request() req,
   ) {
     const userId = BigInt(req?.user?.id ?? -1);
-    return this.unavailabilityService.create(createUnavailability, userId);
+    return this.unavailabilityService.createSingle(
+      createUnavailability,
+      userId,
+    );
   }
 }

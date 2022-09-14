@@ -18,6 +18,7 @@ export class CreateUnavailibityDto {
   date: string;
 
   @ApiProperty({
+    deprecated: true,
     required: false,
   })
   @IsOptional()
