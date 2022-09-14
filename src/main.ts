@@ -2,10 +2,13 @@ import { VersioningType } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import * as cookieParser from 'cookie-parser';
+import { json } from 'express';
 import { Logger, LoggerErrorInterceptor } from 'nestjs-pino';
 import { AppModule } from './app.module';
 import { globalValidationPipe } from './global/error';
 import { SecretService } from './secret/secret.service';
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const cloneBuffer = require('clone-buffer');
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
@@ -18,6 +21,18 @@ async function bootstrap() {
   const logger = app.get(Logger);
   app.useLogger(logger);
   app.flushLogs();
+
+  app.use(
+    json({
+      verify: (req: any, res, buf, encoding) => {
+        // important to store rawBody for Stripe signature verification
+        if (req.headers['stripe-signature'] && Buffer.isBuffer(buf)) {
+          req.rawBody = cloneBuffer(buf);
+        }
+        return true;
+      },
+    }),
+  );
 
   app.use(cookieParser());
 

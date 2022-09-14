@@ -35,6 +35,8 @@ import { AvailabilityModule } from './availability/availability.module';
 import { QuizModule } from './quiz/quiz.module';
 import { ProviderModule } from './provider/provider.module';
 import { UnavailabilityModule } from './unavailability/unavailability.module';
+import { SubscriptionsModule } from './subscriptions/subscriptions.module';
+import { StripeModule } from './stripe/stripe.module';
 
 @Module({
   imports: [
@@ -69,6 +71,8 @@ import { UnavailabilityModule } from './unavailability/unavailability.module';
     QuizModule,
     ProviderModule,
     UnavailabilityModule,
+    SubscriptionsModule,
+    StripeModule,
   ],
   controllers: [AppController],
   providers: [AppService, SecretService, PrismaService, SmsService],

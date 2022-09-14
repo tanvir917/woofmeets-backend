@@ -142,9 +142,9 @@ export class EnvironmentVariable {
   @IsString()
   STRIPE_SECRET_KEY: string;
 
-  // @IsNotEmpty()
-  // @IsString()
-  // STRIPE_WEBHOOK_SECRET: string;
+  @IsNotEmpty()
+  @IsString()
+  STRIPE_WEBHOOK_SECRET: string;
 
   @IsNotEmpty()
   STRIPE_API_VERSION: any;

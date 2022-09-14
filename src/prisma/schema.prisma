@@ -102,6 +102,12 @@ enum userSubscriptionStatusEnum {
   CANCELLED
 }
 
+enum userSubscriptionPackageTypeEnum {
+  MONTHLY
+  YEARLY
+  HALF_YEARLY
+}
+
 model User {
   id                        BigInt                     @id @default(autoincrement())
   opk                       String                     @unique
@@ -617,7 +623,7 @@ model Quiz {
 model SubscriptionPlan {
   id                BigInt              @id @default(autoincrement())
   name              String
-  slug              String
+  slug              String              @unique
   displayName       String
   monthlyRate       Float
   annualRate        Float
@@ -635,37 +641,38 @@ model SubscriptionPlan {
 }
 
 model UserSubscriptions {
-  id                       BigInt                     @id @default(autoincrement())
+  id                       BigInt                          @id @default(autoincrement())
   userId                   BigInt
-  user                     User                       @relation(fields: [userId], references: [id])
+  user                     User                            @relation(fields: [userId], references: [id])
   subscriptionPlanId       BigInt
-  subscriptionPlan         SubscriptionPlan           @relation(fields: [subscriptionPlanId], references: [id])
+  subscriptionPlan         SubscriptionPlan                @relation(fields: [subscriptionPlanId], references: [id])
   cardId                   BigInt?
-  card                     UserStripeCard?            @relation(fields: [cardId], references: [id])
-  subTotal                 Float                      @default(0)
-  discount                 Float                      @default(0)
-  total                    Float                      @default(0)
+  card                     UserStripeCard?                 @relation(fields: [cardId], references: [id])
+  subTotal                 Float                           @default(0)
+  discount                 Float                           @default(0)
+  total                    Float                           @default(0)
   currency                 String?
-  currentPeriodStart       DateTime?                  @db.Timestamptz(3)
-  currentPeriodEnd         DateTime?                  @db.Timestamptz(3)
-  status                   userSubscriptionStatusEnum @default(INACTIVE)
+  currentPeriodStart       DateTime?                       @db.Timestamptz(3)
+  currentPeriodEnd         DateTime?                       @db.Timestamptz(3)
+  status                   userSubscriptionStatusEnum      @default(INACTIVE)
+  packageType              userSubscriptionPackageTypeEnum
   paymentStatus            String?
   src                      Json?
   meta                     Json?
-  createdAt                DateTime                   @default(now()) @db.Timestamptz(3)
-  updatedAt                DateTime?                  @updatedAt @db.Timestamptz(3)
-  deletedAt                DateTime?                  @db.Timestamptz(3)
-  userSubscriptionInvoices UserSubscriptionInvoices[]
+  createdAt                DateTime                        @default(now()) @db.Timestamptz(3)
+  updatedAt                DateTime?                       @updatedAt @db.Timestamptz(3)
+  deletedAt                DateTime?                       @db.Timestamptz(3)
+  userSubscriptionInvoices UserSubscriptionInvoices?
 }
 
 model UserSubscriptionInvoices {
   id                 BigInt            @id @default(autoincrement())
   userId             BigInt
   user               User              @relation(fields: [userId], references: [id])
-  userSubscriptionId BigInt
+  userSubscriptionId BigInt            @unique
   userSubscription   UserSubscriptions @relation(fields: [userSubscriptionId], references: [id])
-  piId               String
-  clientSecret       String
+  piId               String            @unique
+  chargeId           String?
   total              Float
   currency           String?
   paid               Boolean           @default(false)
