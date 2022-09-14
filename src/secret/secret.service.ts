@@ -66,6 +66,9 @@ export class SecretService {
 
       STRIPE_SECRET_KEY: this.configService.get<string>('STRIPE_SECRET_KEY'),
       STRIPE_API_VERSION: this.configService.get<string>('STRIPE_API_VERSION'),
+      STRIPE_WEBHOOK_SECRET: this.configService.get<string>(
+        'STRIPE_WEBHOOK_SECRET',
+      ),
     };
 
     this.#environment = plainToInstance(EnvironmentVariable, env);
@@ -163,6 +166,7 @@ export class SecretService {
     return {
       secretKey: this.#environment.STRIPE_SECRET_KEY,
       apiVersion: this.#environment.STRIPE_API_VERSION,
+      webhookSecret: this.#environment.STRIPE_WEBHOOK_SECRET,
     };
   }
 }
