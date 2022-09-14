@@ -37,3 +37,10 @@ export const getDatabaseTimezone = async (prisma: PrismaClient) => {
 
   return databaseSettings[0]?.current_setting;
 };
+
+export const isSameDate = (date1: Date, date2: Date, zone?: string) => {
+  return (
+    extractZoneSpecificDate(date1, zone ?? 'Etc/UTC') ===
+    extractZoneSpecificDate(date2, zone ?? 'Etc/UTC')
+  );
+};
