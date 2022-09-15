@@ -34,11 +34,23 @@ export class ProviderService {
         lastName: true,
         email: true,
         image: true,
-        basicInfo: true,
+        basicInfo: {
+          include: {
+            country: true,
+          },
+        },
         contact: true,
         provider: {
           include: {
             providerDetails: true,
+            providerSkills: {
+              where: {
+                deletedAt: null,
+              },
+              include: {
+                skillType: true,
+              },
+            },
             HomeAttributes: {
               where: { deletedAt: null },
               include: {
@@ -121,8 +133,8 @@ export class ProviderService {
             petHandled: null,
             reviewsCount: null,
           },
-          about: null,
-          skills: [],
+          about: providerUser?.provider?.providerDetails?.about,
+          skills: providerUser?.provider?.providerSkills,
           sittersHome: {
             homeType: providerUser?.provider?.homeType,
             yardType: providerUser?.provider?.yardType,
