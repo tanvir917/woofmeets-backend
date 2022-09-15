@@ -4,4 +4,8 @@ export {
   extractZoneSpecificDateWithFirstHourTime,
 } from './time/time-coverters';
 
+export { generateDatesFromAndTo } from './time/time-generators';
+
 export { mapToObject } from './utils/map.tools';
+
+export { union, intersection, difference } from './utils/set.tools';
