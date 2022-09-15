@@ -1,13 +1,18 @@
+import { generateDatesFromAndTo } from './../global/time/time-generators';
 import { throwBadRequestErrorCheck } from 'src/global/exceptions/error-logic';
 import {
   extractZoneSpecificDateWithFirstHourTime,
   isSameDate,
 } from './../global/time/time-coverters';
-import { CreateUnavailibityDto } from './dto/create-unavailability.dto';
+import {
+  CreateUnavailibityDto,
+  BulkCreateUnavailabilityDto,
+} from './dto/create-unavailability.dto';
 import { PinoLogger } from 'nestjs-pino';
 import { PrismaService } from './../prisma/prisma.service';
 import { Injectable } from '@nestjs/common';
-import { isBefore, addDays } from 'date-fns';
+import { isBefore, addDays, isAfter } from 'date-fns';
+import { difference, union } from 'src/global';
 
 @Injectable()
 export class UnavailabilityCreationService {
@@ -16,6 +21,142 @@ export class UnavailabilityCreationService {
     private readonly logger: PinoLogger,
   ) {
     this.logger.setContext(UnavailabilityCreationService.name);
+  }
+
+  async createBulk(
+    unavailabiltiesCreateQuery: BulkCreateUnavailabilityDto,
+    userId: bigint,
+  ) {
+    const { from, to, providerServiceIds } = unavailabiltiesCreateQuery;
+
+    const parsedFromDate = new Date(from);
+    const parsedToDate = new Date(to ?? from);
+    const now = new Date();
+    const isInPast =
+      isBefore(parsedFromDate, now) &&
+      !isSameDate(parsedFromDate, now, 'Etc/UTC');
+
+    const isInvalidRange = isAfter(parsedFromDate, parsedToDate);
+
+    throwBadRequestErrorCheck(isInPast, 'From date cannot be in the past');
+    throwBadRequestErrorCheck(
+      isInvalidRange,
+      'From date cannot be greater than to date',
+    );
+
+    const data = await this.prismaService.$transaction(async (prisma) => {
+      const { timezone, provider } = await prisma.user.findUnique({
+        where: {
+          id: userId,
+        },
+        select: {
+          timezone: true,
+          provider: {
+            select: {
+              providerServices: {
+                select: {
+                  id: true,
+                },
+                where: {
+                  deletedAt: null,
+                },
+              },
+            },
+          },
+        },
+      });
+
+      const requestedServicesSet: Set<bigint> = new Set(
+        providerServiceIds?.map((i) => BigInt(i)) ?? [],
+      );
+
+      const existingProviderServicesSet: Set<bigint> = new Set([
+        ...(provider?.providerServices?.map(({ id }) => id) ?? []),
+      ]);
+
+      const nonexistentServices = difference(
+        union(requestedServicesSet, existingProviderServicesSet),
+        existingProviderServicesSet,
+      );
+
+      throwBadRequestErrorCheck(
+        nonexistentServices.size > 0,
+        `Service ${[...nonexistentServices].join(
+          ', ',
+        )} does not belong to provider`,
+      );
+
+      const serviceIdsToMakeUnavailable = [
+        ...(requestedServicesSet.size > 0
+          ? requestedServicesSet
+          : existingProviderServicesSet),
+      ];
+
+      const dateMaker = (date: Date, add: number = 0) => {
+        return addDays(
+          new Date(
+            extractZoneSpecificDateWithFirstHourTime(
+              date,
+              timezone ?? 'America/New_York',
+            ),
+          ),
+          add,
+        );
+      };
+
+      const [minDate, maxDate] = [
+        dateMaker(parsedFromDate, 0),
+        dateMaker(parsedToDate, 1),
+      ];
+
+      await this.prismaService.unavailability.updateMany({
+        data: {
+          deletedAt: new Date(),
+        },
+        where: {
+          date: {
+            gte: minDate,
+            lt: maxDate,
+          },
+          serviceId: {
+            in: serviceIdsToMakeUnavailable,
+          },
+          deletedAt: null,
+        },
+      });
+
+      const dateRange = generateDatesFromAndTo(
+        parsedFromDate,
+        parsedToDate,
+        [],
+      );
+
+      const queryBuilder = (date: Date, serviceId: bigint) => {
+        return {
+          date: date,
+          userId: userId,
+          serviceId: serviceId,
+        };
+      };
+
+      const query = serviceIdsToMakeUnavailable
+        .map((item) => {
+          return dateRange.map((date) => queryBuilder(date, item));
+        })
+        .reduce((prev, curr) => {
+          return [...prev, ...curr];
+        }, []);
+
+      const operation = await prisma.unavailability.createMany({
+        data: query,
+      });
+
+      return query;
+    });
+
+    return {
+      data,
+    };
   }
 
   async createSingle(newUnavailability: CreateUnavailibityDto, userId: bigint) {

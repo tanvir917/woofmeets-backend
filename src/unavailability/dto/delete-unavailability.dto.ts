@@ -1,12 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import {
-  IsArray,
-  IsDateString,
-  IsInt,
-  IsNotEmpty,
-  IsNumber,
-  IsOptional,
-} from 'class-validator';
+import { IsDateString, IsInt, IsNotEmpty, IsOptional } from 'class-validator';
 import { addDays } from 'date-fns';
 
 export class DeleteUnavailabilityDto {
