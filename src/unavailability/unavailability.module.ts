@@ -1,3 +1,4 @@
+import { UnavailabilityDeletionService } from './unavailability-delete.service';
 import { UnavailabilityCreationService } from './unavailability-creation.service';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { Module } from '@nestjs/common';
@@ -9,6 +10,7 @@ import { UnavailabilityController } from './unavailability.controller';
     PrismaService,
     UnavailabilityService,
     UnavailabilityCreationService,
+    UnavailabilityDeletionService,
   ],
   controllers: [UnavailabilityController],
 })
