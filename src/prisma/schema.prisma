@@ -108,6 +108,11 @@ enum userSubscriptionPackageTypeEnum {
   HALF_YEARLY
 }
 
+enum miscellaneousPaymentsTypeEnum {
+  DEFAULT_VERIFICATION
+  OTHERS
+}
+
 model User {
   id                        BigInt                     @id @default(autoincrement())
   opk                       String                     @unique
@@ -139,6 +144,8 @@ model User {
   userSubscriptions         UserSubscriptions[]
   userSubscriptionInvoices  UserSubscriptionInvoices[]
   Unavailability            Unavailability[]
+  userBasicVerification     UserBasicVerification?
+  miscellaneousPayments     MiscellaneousPayments[]
 }
 
 model UserContact {
@@ -679,7 +686,7 @@ model UserSubscriptionInvoices {
   total              Float
   currency           String?
   paid               Boolean           @default(false)
-  billingDate        DateTime          @db.Timestamptz(3)
+  billingDate        DateTime?         @db.Timestamptz(3)
   status             String
   src                Json?
   meta               Json?
@@ -697,4 +704,38 @@ model ProviderSkills {
   createdAt   DateTime         @default(now()) @db.Timestamptz(3)
   updatedAt   DateTime?        @updatedAt @db.Timestamptz(3)
   deletedAt   DateTime?        @db.Timestamptz(3)
+}
+
+model UserBasicVerification {
+  id        BigInt    @id @default(autoincrement())
+  userId    BigInt    @unique
+  user      User      @relation(fields: [userId], references: [id])
+  dob       DateTime  @db.Date
+  state     String?
+  dlId      String?
+  stateId   String?
+  images    Json?
+  meta      Json?
+  createdAt DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime? @updatedAt @db.Timestamptz(3)
+  deletedAt DateTime? @db.Timestamptz(3)
+}
+
+model MiscellaneousPayments {
+  id          BigInt                        @id @default(autoincrement())
+  userId      BigInt
+  user        User                          @relation(fields: [userId], references: [id])
+  piId        String                        @unique
+  chargeId    String?
+  total       Float
+  currency    String?
+  paid        Boolean                       @default(false)
+  billingDate DateTime?                     @db.Timestamptz(3)
+  status      String
+  type        miscellaneousPaymentsTypeEnum
+  src         Json?
+  meta        Json?
+  createdAt   DateTime                      @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime?                     @updatedAt @db.Timestamptz(3)
+  deletedAt   DateTime?                     @db.Timestamptz(3)
 }
