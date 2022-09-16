@@ -4,7 +4,7 @@ export enum SubscriptionPackageTypeEnum {
   HALF_YEARLY = 'HALF_YEARLY',
 }
 
-export enum providerSubscriptionTypeEnum {
+export enum ProviderSubscriptionTypeEnum {
   BASIC = 'BASIC',
   GOLD = 'GOLD',
   PLATINUM = 'PLATINUM',

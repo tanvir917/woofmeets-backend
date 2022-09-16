@@ -1,11 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import Stripe from 'stripe';
+import { MulterFileUploadService } from '../file/multer-file-upload-service';
 import { throwBadRequestErrorCheck } from '../global/exceptions/error-logic';
 import { PrismaService } from '../prisma/prisma.service';
 import { SecretService } from '../secret/secret.service';
 import { CreateSubscriptionDto } from './dto/create-subscription.dto';
+import { CreateUserBasicVerificationDto } from './dto/create-user-basic-verification.dto';
 import {
-  providerSubscriptionTypeEnum,
+  ProviderSubscriptionTypeEnum,
   SubscriptionPackageTypeEnum,
 } from './entities/subscription.entity';
 
@@ -15,6 +17,7 @@ export class SubscriptionsService {
   constructor(
     private prismaService: PrismaService,
     private secretService: SecretService,
+    private multerFileUploadService: MulterFileUploadService,
   ) {
     this.stripe = new Stripe(this.secretService.getStripeCreds().secretKey, {
       apiVersion: this.secretService.getStripeCreds().apiVersion,
@@ -80,8 +83,8 @@ export class SubscriptionsService {
      * both basic subscription plans.
      */
     throwBadRequestErrorCheck(
-      user?.userSubscriptions[0]?.subscriptionPlan.slug == 'basic' &&
-        subscriptionPlan.slug == 'basic',
+      user?.userSubscriptions[0]?.subscriptionPlan?.slug == 'basic' &&
+        subscriptionPlan?.slug == 'basic',
       'User already have basic subscription. Please upgrade subscription plan to continue.',
     );
 
@@ -101,6 +104,24 @@ export class SubscriptionsService {
        * For basic subscription, setting the end date to 5 years from now.
        */
       endDate.setMonth(endDate.getMonth() + 60);
+
+      const checker = await this.checkUserSubsOrSignupPayment(user?.id);
+      console.log('testing Checker');
+
+      if (!checker) {
+        const verificationInfo =
+          await this.prismaService.userBasicVerification.findFirst({
+            where: {
+              userId: user?.id,
+            },
+          });
+
+        throwBadRequestErrorCheck(
+          !verificationInfo,
+          'User verification info is not uploaded.',
+        );
+      }
+
       const userSubscriptions =
         await this.prismaService.userSubscriptions.create({
           data: {
@@ -129,16 +150,69 @@ export class SubscriptionsService {
         !userSubscriptions,
         'Subscription not created.',
       );
-      return {
-        message: 'Subscription created successfully.',
-        data: {
-          paymentRedirect: false,
-          subscriptionInfo: {
-            ...userSubscriptions,
-            subscriptionPlan: subscriptionPlan,
+
+      if (checker) {
+        console.log('In if block', checker);
+        return {
+          message: 'Subscription created successfully.',
+          data: {
+            paymentRedirect: false,
+            subscriptionInfo: {
+              ...userSubscriptions,
+              subscriptionPlan: subscriptionPlan,
+            },
           },
-        },
-      };
+        };
+      } else {
+        let paymentIntent: Stripe.PaymentIntent;
+        try {
+          paymentIntent = await this.stripe.paymentIntents.create({
+            amount: 35 * 100,
+            currency: 'usd',
+            metadata: {
+              type: 'default_verification',
+              userId: user?.id.toString(),
+              userSubscriptionId: `${userSubscriptions?.id}`,
+            },
+          });
+        } catch (error) {
+          await this.prismaService.userSubscriptions.update({
+            where: { id: userSubscriptions?.id },
+            data: {
+              deletedAt: new Date(),
+              paymentStatus: 'failed',
+              meta: {
+                reason: 'Payment intent creation failed.',
+              },
+            },
+          });
+          throwBadRequestErrorCheck(true, 'Subscription creation failed.');
+        }
+
+        await this.prismaService.miscellaneousPayments.create({
+          data: {
+            userId: user?.id,
+            piId: paymentIntent?.id,
+            total: paymentIntent?.amount / 100,
+            currency: paymentIntent?.currency,
+            paid: false,
+            status: 'pending',
+            type: 'DEFAULT_VERIFICATION',
+            src: paymentIntent?.payment_method_types,
+          },
+        });
+        return {
+          message: 'Subscription created successfully.',
+          data: {
+            paymentRedirect: true,
+            clientSecret: paymentIntent?.client_secret,
+            subscriptionInfo: {
+              ...userSubscriptions,
+              subscriptionPlan: subscriptionPlan,
+            },
+          },
+        };
+      }
     } else {
       /**
        * Check if user has an active subscription and the subscription plan is basic
@@ -231,10 +305,8 @@ export class SubscriptionsService {
           total: paymentIntent.amount / 100,
           currency: paymentIntent.currency,
           paid: false,
-          billingDate: new Date(),
           status: 'pending',
           src: paymentIntent.payment_method_types,
-          meta: Object(paymentIntent),
         },
       });
 
@@ -242,7 +314,7 @@ export class SubscriptionsService {
         where: { userId: user?.id },
         data: {
           subscriptionType:
-            providerSubscriptionTypeEnum[providerSubscriptionType],
+            ProviderSubscriptionTypeEnum[providerSubscriptionType],
         },
       });
 
@@ -250,7 +322,7 @@ export class SubscriptionsService {
         message: 'Subscription created successfully.',
         data: {
           paymentRedirect: true,
-          clientSecret: paymentIntent.client_secret,
+          clientSecret: paymentIntent?.client_secret,
           subscriptionInfo: userSubscriptions,
         },
       };
@@ -303,6 +375,128 @@ export class SubscriptionsService {
     return {
       message: 'User subscription fetched successfully.',
       data: userSubscription,
+    };
+  }
+
+  async checkUserSubsOrSignupPayment(userId: bigint) {
+    const subsPlan = (
+      await this.prismaService.subscriptionPlan.findMany({
+        where: {
+          OR: [
+            {
+              slug: 'gold',
+            },
+            {
+              slug: 'platinum',
+            },
+          ],
+        },
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+        },
+      })
+    ).map((plan) => plan.id);
+
+    const subs = await this.prismaService.userSubscriptions.findMany({
+      where: {
+        userId,
+        paymentStatus: 'succeeded',
+        subscriptionPlanId: {
+          in: subsPlan,
+        },
+        userSubscriptionInvoices: {
+          paid: true,
+          status: 'succeeded',
+        },
+      },
+    });
+
+    if (subs?.length) {
+      return true;
+    } else {
+      const miscellaneous =
+        await this.prismaService.miscellaneousPayments.findFirst({
+          where: {
+            userId,
+            status: 'succeeded',
+            paid: true,
+            type: 'DEFAULT_VERIFICATION',
+          },
+        });
+      if (miscellaneous || miscellaneous != null) {
+        return true;
+      } else {
+        return false;
+      }
+    }
+  }
+
+  async createUserBasicVerificationInfo(
+    userId: bigint,
+    userBasicVerificationDto: CreateUserBasicVerificationDto,
+    files: Express.Multer.File[],
+  ) {
+    const { dob, state, stateId, dlId } = userBasicVerificationDto;
+    const user = await this.prismaService.user.findFirst({
+      where: { id: userId },
+    });
+
+    throwBadRequestErrorCheck(!user, 'User not found.');
+
+    const filesUploaded = await this.multerFileUploadService.uploadMultiple(
+      files,
+      'user-basic-verification',
+    );
+
+    const userBasicVerification =
+      await this.prismaService.userBasicVerification.upsert({
+        where: {
+          userId,
+        },
+        update: {
+          dob,
+          state,
+          stateId,
+          dlId,
+          images: Object(filesUploaded),
+        },
+        create: {
+          userId,
+          dob,
+          state,
+          stateId,
+          dlId,
+          images: Object(filesUploaded),
+        },
+      });
+
+    throwBadRequestErrorCheck(
+      !userBasicVerification,
+      'Verification data upload failed.',
+    );
+
+    return {
+      message: 'Verification data uploaded successfully.',
+      data: userBasicVerification,
+    };
+  }
+
+  async getUserBasicVerificationInfo(userId: bigint) {
+    const userBasicVerification =
+      await this.prismaService.userBasicVerification.findFirst({
+        where: { userId },
+      });
+
+    throwBadRequestErrorCheck(
+      !userBasicVerification,
+      'No verification data found.',
+    );
+
+    return {
+      message: 'Verification data fetched successfully.',
+      data: userBasicVerification,
     };
   }
 }

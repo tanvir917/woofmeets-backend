@@ -3,7 +3,7 @@ import Stripe from 'stripe';
 import { throwBadRequestErrorCheck } from '../global/exceptions/error-logic';
 import { PrismaService } from '../prisma/prisma.service';
 import { SecretService } from '../secret/secret.service';
-import { providerSubscriptionTypeEnum } from '../subscriptions/entities/subscription.entity';
+import { ProviderSubscriptionTypeEnum } from '../subscriptions/entities/subscription.entity';
 
 @Injectable()
 export class StripeWebhooksService {
@@ -67,76 +67,119 @@ export class StripeWebhooksService {
   }
 
   async chargeSucceeded(charge: object) {
-    const { id, payment_intent, paid, status, payment_method_details } =
-      Object(charge);
-    const userSubscriptionInvoices =
-      await this.prismaService.userSubscriptionInvoices.findFirst({
-        where: {
-          piId: payment_intent,
-        },
-        include: {
-          userSubscription: {
-            include: {
-              subscriptionPlan: true,
+    const {
+      id,
+      payment_intent,
+      paid,
+      status,
+      payment_method_details,
+      metadata,
+    } = Object(charge);
+
+    const { type, userId, userSubscriptionId } = metadata;
+
+    if (type === 'subscription') {
+      const userSubscriptionInvoices =
+        await this.prismaService.userSubscriptionInvoices.findFirst({
+          where: {
+            piId: payment_intent,
+          },
+          include: {
+            userSubscription: {
+              include: {
+                subscriptionPlan: true,
+              },
             },
           },
+        });
+
+      throwBadRequestErrorCheck(
+        !userSubscriptionInvoices,
+        'User subscription invoice not found',
+      );
+
+      await this.prismaService.userSubscriptionInvoices.update({
+        where: {
+          id: userSubscriptionInvoices?.id,
+        },
+        data: {
+          chargeId: id,
+          status: status,
+          paid: paid,
+          src: payment_method_details,
+          billingDate: new Date(),
         },
       });
 
-    throwBadRequestErrorCheck(
-      !userSubscriptionInvoices,
-      'User subscription invoice not found',
-    );
+      await this.prismaService.userSubscriptions.update({
+        where: {
+          id: userSubscriptionInvoices?.userSubscriptionId,
+        },
+        data: {
+          status: 'ACTIVE',
+          paymentStatus: status,
+        },
+      });
 
-    await this.prismaService.userSubscriptionInvoices.update({
-      where: {
-        id: userSubscriptionInvoices?.id,
-      },
-      data: {
-        chargeId: id,
-        status: status,
-        paid: paid,
-        src: payment_method_details,
-        billingDate: new Date(),
-      },
-    });
+      let providerSubscriptionType: ProviderSubscriptionTypeEnum;
 
-    await this.prismaService.userSubscriptions.update({
-      where: {
-        id: userSubscriptionInvoices?.userSubscriptionId,
-      },
-      data: {
-        status: 'ACTIVE',
-        paymentStatus: status,
-      },
-    });
+      if (
+        userSubscriptionInvoices?.userSubscription?.subscriptionPlan?.slug ==
+        'platinum'
+      ) {
+        providerSubscriptionType = ProviderSubscriptionTypeEnum['PLATINUM'];
+      } else if (
+        userSubscriptionInvoices?.userSubscription?.subscriptionPlan?.slug ==
+        'gold'
+      ) {
+        providerSubscriptionType = ProviderSubscriptionTypeEnum['GOLD'];
+      }
 
-    let providerSubscriptionType: providerSubscriptionTypeEnum;
+      await this.prismaService.provider.update({
+        where: {
+          userId: userSubscriptionInvoices?.userSubscription?.userId,
+        },
+        data: {
+          subscriptionType: providerSubscriptionType,
+        },
+      });
 
-    if (
-      userSubscriptionInvoices?.userSubscription?.subscriptionPlan?.slug ==
-      'platinum'
-    ) {
-      providerSubscriptionType = providerSubscriptionTypeEnum['PLATINUM'];
-    } else if (
-      userSubscriptionInvoices?.userSubscription?.subscriptionPlan?.slug ==
-      'gold'
-    ) {
-      providerSubscriptionType = providerSubscriptionTypeEnum['GOLD'];
+      return {
+        message: 'Charge Succeeded',
+      };
+    } else if (type == 'default_verification') {
+      const userMiscellenous =
+        await this.prismaService.miscellaneousPayments.findFirst({
+          where: {
+            userId: BigInt(userId),
+            type: 'DEFAULT_VERIFICATION',
+            piId: payment_intent,
+          },
+        });
+
+      const updateUserMiscellenous =
+        await this.prismaService.miscellaneousPayments.update({
+          where: {
+            id: userMiscellenous?.id,
+          },
+          data: {
+            chargeId: id,
+            status: status,
+            paid: paid,
+            src: payment_method_details,
+            billingDate: new Date(),
+          },
+        });
+
+      throwBadRequestErrorCheck(
+        !updateUserMiscellenous,
+        'Miscellenous payment can not be updated.',
+      );
+
+      return {
+        message: 'Charge Succeeded',
+      };
     }
-
-    await this.prismaService.provider.update({
-      where: {
-        userId: userSubscriptionInvoices?.userSubscription?.userId,
-      },
-      data: {
-        subscriptionType: providerSubscriptionType,
-      },
-    });
-
-    return {
-      message: 'Charge Succeeded',
-    };
   }
 
   async paymentIntentCanceled(paymentIntent: object) {
