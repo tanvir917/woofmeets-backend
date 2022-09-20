@@ -4,8 +4,8 @@ import {
   throwNotFoundErrorCheck,
 } from 'src/global/exceptions/error-logic';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { CreateAvailabilityDto } from './dto/create-availability.dto';
-import { UpdateAvailabilityDto } from './dto/update-availability.dto';
+import { CreateAvailabilityDto } from '../dto/create-availability.dto';
+import { UpdateAvailabilityDto } from '../dto/update-availability.dto';
 
 @Injectable()
 export class AvailabilityService {

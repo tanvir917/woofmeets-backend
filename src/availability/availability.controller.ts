@@ -10,14 +10,19 @@ import {
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
-import { AvailabilityService } from './availability.service';
+import { AvailabilityService } from './services/availability.service';
 import { CreateAvailabilityDto } from './dto/create-availability.dto';
 import { UpdateAvailabilityDto } from './dto/update-availability.dto';
+import { AvailableDateService } from './services/available.date.service';
+import { CreateAvailableDateDto } from './dto/create-date.dto';
 
 @ApiTags('availability')
 @Controller('availability')
 export class AvailabilityController {
-  constructor(private readonly availabilityService: AvailabilityService) {}
+  constructor(
+    private readonly availabilityService: AvailabilityService,
+    private readonly availableDateService: AvailableDateService,
+  ) {}
 
   @ApiBearerAuth('access-token')
   @UseGuards(JwtAuthGuard)
@@ -64,8 +69,14 @@ export class AvailabilityController {
     );
   }
 
-  // @Delete(':id')
-  // remove(@Param('id') id: string) {
-  //   return this.availabilityService.remove(+id);
-  // }
+  @ApiOperation({
+    summary: 'Add available date for a specific provider service.',
+  })
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard)
+  @Post('/add-dates')
+  addAvailableDate(@Request() req: any, @Body() body: CreateAvailableDateDto) {
+    const userId = BigInt(req.user?.id) ?? BigInt(-1);
+    return this.availableDateService.addAvailableDate(userId, body);
+  }
 }

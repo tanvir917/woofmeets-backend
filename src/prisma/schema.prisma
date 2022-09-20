@@ -144,6 +144,7 @@ model User {
   userSubscriptions         UserSubscriptions[]
   userSubscriptionInvoices  UserSubscriptionInvoices[]
   Unavailability            Unavailability[]
+  AvailableDate             AvailableDate[]
   userBasicVerification     UserBasicVerification?
   miscellaneousPayments     MiscellaneousPayments[]
 }
@@ -263,6 +264,7 @@ model ProviderServices {
   radius                 Int               @default(10)
   AvailableDay           AvailableDay[]
   Unavailabilty          Unavailability[]
+  AvailableDate          AvailableDate[]
 }
 
 model BasicInfo {
@@ -706,6 +708,17 @@ model ProviderSkills {
   deletedAt   DateTime?        @db.Timestamptz(3)
 }
 
+model AvailableDate {
+  id                  BigInt            @id @default(autoincrement())
+  service             ProviderServices? @relation(fields: [serviceId], references: [id])
+  serviceId           BigInt?
+  date                DateTime          @db.Timestamptz(3)
+  user                User              @relation(fields: [userId], references: [id])
+  userId              BigInt
+  createdAt           DateTime          @default(now()) @db.Timestamptz(3)
+  updatedAt           DateTime?         @updatedAt @db.Timestamptz(3)
+  deletedAt           DateTime?         @db.Timestamptz(3)
+}
 model UserBasicVerification {
   id        BigInt    @id @default(autoincrement())
   userId    BigInt    @unique
