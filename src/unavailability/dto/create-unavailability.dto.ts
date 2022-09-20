@@ -26,7 +26,7 @@ export class CreateUnavailibityDto {
   @IsOptional()
   @IsBoolean()
   @IsNotEmpty()
-  disableAllServices: boolean = false;
+  disableAllServices = false;
 
   @ApiProperty({
     required: false,
@@ -42,7 +42,7 @@ export class CreateUnavailibityDto {
   })
   @IsOptional()
   @IsString()
-  returnZone: string = 'Etc/UTC';
+  returnZone = 'Etc/UTC';
 }
 
 export class BulkCreateUnavailabilityDto {

@@ -25,6 +25,7 @@ export const extractZoneSpecificDateWithFirstHourTime = (
   });
 
   const countryDate = utcToZonedTime(parsedDate, zone);
+
   return format(countryDate, 'yyyy-MM-dd HH:mm:ssxxx', { timeZone: zone });
 };
 

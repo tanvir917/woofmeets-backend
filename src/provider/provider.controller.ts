@@ -1,7 +1,9 @@
-import { Controller, Get, Param, Request } from '@nestjs/common';
+import { Controller, Get, Param, Request, Query } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { AvailabilityGetServcie } from 'src/availability/services/availability.get.service';
 import { throwBadRequestErrorCheck } from 'src/global/exceptions/error-logic';
+import { GetAvailableCalenderDto } from './dto/get.available.dto';
 import { ProviderService } from './provider.service';
 
 @ApiTags('Provider')
@@ -10,6 +12,7 @@ export class ProviderController {
   constructor(
     private readonly providerService: ProviderService,
     private readonly jwtService: JwtService,
+    private readonly availableGetService: AvailabilityGetServcie,
   ) {}
 
   @ApiOperation({
@@ -31,5 +34,17 @@ export class ProviderController {
       'Invalid provider opk. Please, try again after sometime with valid provider opk.',
     );
     return this.providerService.getProviderDetails(viewer?.opk ?? '', opk);
+  }
+
+  @ApiOperation({
+    summary: 'Get provider calender for specific service.',
+  })
+  @Get('/:opk/calender/:serviceId')
+  async getAvailability(
+    @Param('opk') opk: string,
+    @Param('serviceId') serviceId: number,
+    @Query() query: GetAvailableCalenderDto,
+  ) {
+    return this.availableGetService.getAvailability(opk, serviceId, query);
   }
 }
