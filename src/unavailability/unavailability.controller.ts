@@ -10,20 +10,26 @@ import {
   Body,
   Controller,
   Delete,
+  Get,
+  Param,
   Post,
+  Query,
   Request,
   UseGuards,
   Version,
 } from '@nestjs/common';
 
-import { ApiBearerAuth, ApiBody, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiBody, ApiParam, ApiTags } from '@nestjs/swagger';
+import { GetUnavailabilityDto } from './dto/get-unavailability.dto';
+import { UnavailabilityService } from './unavailability.service';
 
 @ApiTags('Unavailability')
 @Controller('unavailability')
 export class UnavailabilityController {
   constructor(
-    private readonly unavailabilityService: UnavailabilityCreationService,
+    private readonly unavailabilityCreateService: UnavailabilityCreationService,
     private readonly unavailabilityDeletionService: UnavailabilityDeletionService,
+    private readonly unavailabilityService: UnavailabilityService,
   ) {}
 
   @ApiBearerAuth('access-token')
@@ -37,7 +43,7 @@ export class UnavailabilityController {
     @Request() req,
   ) {
     const userId = BigInt(req?.user?.id ?? -1);
-    return this.unavailabilityService.createSingle(
+    return this.unavailabilityCreateService.createSingle(
       createUnavailability,
       userId,
     );
@@ -56,7 +62,10 @@ export class UnavailabilityController {
   ) {
     const userId = BigInt(req?.user?.id ?? -1);
 
-    return this.unavailabilityService.createBulk(createUnavailability, userId);
+    return this.unavailabilityCreateService.createBulk(
+      createUnavailability,
+      userId,
+    );
   }
 
   @ApiBearerAuth('access-token')
@@ -74,5 +83,10 @@ export class UnavailabilityController {
       deleteUnavailabilities,
       userId,
     );
+  }
+
+  @Get()
+  async get(@Query() getUnavailability: GetUnavailabilityDto) {
+    return this.unavailabilityService.get(getUnavailability);
   }
 }
