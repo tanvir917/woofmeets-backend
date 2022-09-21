@@ -72,7 +72,7 @@ export class SubscriptionsController {
   @UseInterceptors(FilesInterceptor('file', 5))
   @Post('user-basic-verification-info')
   async uploadVerificationInfo(
-    @UploadedFiles() files: Express.Multer.File[],
+    @UploadedFiles() file: Express.Multer.File[],
     @Body() body: CreateUserBasicVerificationDto,
     @Request() req: any,
   ) {
@@ -80,7 +80,7 @@ export class SubscriptionsController {
     return await this.subscriptionsService.createUserBasicVerificationInfo(
       userId,
       body,
-      files,
+      file,
     );
   }
 

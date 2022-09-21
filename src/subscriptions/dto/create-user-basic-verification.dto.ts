@@ -1,22 +1,25 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsString } from 'class-validator';
+import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
 export class CreateUserBasicVerificationDto {
-  @ApiProperty()
+  @ApiProperty({ description: 'Example: 1992-09-21T00:00:00.000Z' })
   @IsNotEmpty()
   dob: Date;
 
   @IsString()
+  @IsOptional()
   @ApiProperty({ required: false })
-  state: string;
+  state?: string;
 
   @IsString()
+  @IsOptional()
   @ApiProperty({ required: false })
-  dlId: string;
+  dlId?: string;
 
   @IsString()
+  @IsOptional()
   @ApiProperty({ required: false })
-  stateId: string;
+  stateId?: string;
 
   @ApiProperty({ type: 'array', items: { type: 'string', format: 'binary' } })
   file: any[];
