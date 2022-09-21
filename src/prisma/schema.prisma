@@ -213,31 +213,32 @@ model ServiceType {
 }
 
 model Provider {
-  id                   BigInt                @id @default(autoincrement())
-  userId               BigInt                @unique
-  user                 User                  @relation(fields: [userId], references: [id])
-  slug                 String                @unique
-  isApproved           Boolean               @default(false)
-  havePets             havePetsEnum          @default(NOT_SELECTED)
-  subscriptionType     subscriptionTypeEnum  @default(BASIC)
-  quizPassed           Boolean               @default(false)
-  photoSubmitted       Boolean               @default(false)
-  backGroundCheck      backGroundCheckEnum   @default(NONE)
-  latitude             Float?
-  longitude            Float?
-  homeType             homeTypeEnum          @default(NOT_SELECTED)
-  yardType             yardTypeEnum          @default(NOT_SELECTED)
-  cancellationPolicyId Int?
-  cancellationPolicy   CancellationPolicy?   @relation(fields: [cancellationPolicyId], references: [id])
-  meta                 Json?
-  createdAt            DateTime              @default(now()) @db.Timestamptz(3)
-  updatedAt            DateTime?             @updatedAt @db.Timestamptz(3)
-  deletedAt            DateTime?             @db.Timestamptz(3)
-  providerServices     ProviderServices[]
-  providerDetails      ProviderDetails?
-  ServicePetPreference ServicePetPreference?
-  HomeAttributes       HomeAttributes[]
-  providerSkills       ProviderSkills[]
+  id                      BigInt                   @id @default(autoincrement())
+  userId                  BigInt                   @unique
+  user                    User                     @relation(fields: [userId], references: [id])
+  slug                    String                   @unique
+  isApproved              Boolean                  @default(false)
+  havePets                havePetsEnum             @default(NOT_SELECTED)
+  subscriptionType        subscriptionTypeEnum     @default(BASIC)
+  quizPassed              Boolean                  @default(false)
+  photoSubmitted          Boolean                  @default(false)
+  backGroundCheck         backGroundCheckEnum      @default(NONE)
+  latitude                Float?
+  longitude               Float?
+  homeType                homeTypeEnum             @default(NOT_SELECTED)
+  yardType                yardTypeEnum             @default(NOT_SELECTED)
+  cancellationPolicyId    Int?
+  cancellationPolicy      CancellationPolicy?      @relation(fields: [cancellationPolicyId], references: [id])
+  meta                    Json?
+  createdAt               DateTime                 @default(now()) @db.Timestamptz(3)
+  updatedAt               DateTime?                @updatedAt @db.Timestamptz(3)
+  deletedAt               DateTime?                @db.Timestamptz(3)
+  providerServices        ProviderServices[]
+  providerDetails         ProviderDetails?
+  ServicePetPreference    ServicePetPreference?
+  HomeAttributes          HomeAttributes[]
+  providerSkills          ProviderSkills[]
+  providerCheckrCandidate ProviderCheckrCandidate?
 }
 
 model ProviderServices {
@@ -709,16 +710,17 @@ model ProviderSkills {
 }
 
 model AvailableDate {
-  id                  BigInt            @id @default(autoincrement())
-  service             ProviderServices? @relation(fields: [serviceId], references: [id])
-  serviceId           BigInt?
-  date                DateTime          @db.Timestamptz(3)
-  user                User              @relation(fields: [userId], references: [id])
-  userId              BigInt
-  createdAt           DateTime          @default(now()) @db.Timestamptz(3)
-  updatedAt           DateTime?         @updatedAt @db.Timestamptz(3)
-  deletedAt           DateTime?         @db.Timestamptz(3)
+  id        BigInt            @id @default(autoincrement())
+  service   ProviderServices? @relation(fields: [serviceId], references: [id])
+  serviceId BigInt?
+  date      DateTime          @db.Timestamptz(3)
+  user      User              @relation(fields: [userId], references: [id])
+  userId    BigInt
+  createdAt DateTime          @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime?         @updatedAt @db.Timestamptz(3)
+  deletedAt DateTime?         @db.Timestamptz(3)
 }
+
 model UserBasicVerification {
   id        BigInt    @id @default(autoincrement())
   userId    BigInt    @unique
@@ -751,4 +753,59 @@ model MiscellaneousPayments {
   createdAt   DateTime                      @default(now()) @db.Timestamptz(3)
   updatedAt   DateTime?                     @updatedAt @db.Timestamptz(3)
   deletedAt   DateTime?                     @db.Timestamptz(3)
+}
+
+model ProviderCheckrCandidate {
+  id                       BigInt                     @id @default(autoincrement())
+  providerId               BigInt                     @unique
+  provider                 Provider                   @relation(fields: [providerId], references: [id])
+  candidateId              String                     @unique
+  email                    String                     @unique
+  firstName                String
+  lastName                 String
+  phone                    String?
+  reportIds                Json?
+  geoIds                   Json?
+  adjugation               String?
+  src                      Json?
+  meta                     Json?
+  createdAt                DateTime                   @default(now()) @db.Timestamptz(3)
+  updatedAt                DateTime?                  @updatedAt @db.Timestamptz(3)
+  deletedAt                DateTime?                  @db.Timestamptz(3)
+  ProviderCheckrInvitation ProviderCheckrInvitation[]
+  ProviderCheckrReport     ProviderCheckrReport[]
+}
+
+model ProviderCheckrInvitation {
+  id                        BigInt                  @id @default(autoincrement())
+  providerCheckrCandidateId BigInt
+  providerCheckrCandidate   ProviderCheckrCandidate @relation(fields: [providerCheckrCandidateId], references: [id])
+  invitationId              String                  @unique
+  uri                       String?
+  url                       String?
+  status                    String
+  package                   String
+  reportId                  String?
+  src                       Json?
+  meta                      Json?
+  createdAt                 DateTime                @default(now()) @db.Timestamptz(3)
+  updatedAt                 DateTime?               @updatedAt @db.Timestamptz(3)
+  deletedAt                 DateTime?               @db.Timestamptz(3)
+}
+
+model ProviderCheckrReport {
+  id                        BigInt                  @id @default(autoincrement())
+  providerCheckrCandidateId BigInt
+  providerCheckrCandidate   ProviderCheckrCandidate @relation(fields: [providerCheckrCandidateId], references: [id])
+  reportId                  String                  @unique
+  status                    String
+  result                    String?
+  assessment                String?
+  package                   String?
+  adjudication              String?
+  src                       Json?
+  meta                      Json?
+  createdAt                 DateTime                @default(now()) @db.Timestamptz(3)
+  updatedAt                 DateTime?               @updatedAt @db.Timestamptz(3)
+  deletedAt                 DateTime?               @db.Timestamptz(3)
 }
