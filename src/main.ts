@@ -6,8 +6,8 @@ import { Logger, LoggerErrorInterceptor } from 'nestjs-pino';
 import { AppModule } from './app.module';
 import { globalValidationPipe } from './global/error';
 import { SecretService } from './secret/secret.service';
-import cookieParserSecondary from 'cookie-parser';
-import * as cookieParser from 'cookie-parser';
+import cookieParser from 'cookie-parser';
+
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const cloneBuffer = require('clone-buffer');
 
@@ -23,11 +23,7 @@ async function bootstrap() {
   app.useLogger(logger);
   app.flushLogs();
 
-  if (process.env.NODE_TARGET == 'eager') {
-    app.use(cookieParserSecondary());
-  } else {
-    app.use(cookieParser());
-  }
+  app.use(cookieParser());
 
   app.use(
     json({
