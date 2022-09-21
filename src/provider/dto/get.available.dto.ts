@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsDateString, IsNotEmpty, IsNumber } from 'class-validator';
+import { IsDateString, IsNotEmpty, IsOptional } from 'class-validator';
 
 export class GetAvailableCalenderDto {
   @ApiProperty({ example: new Date().toISOString() })
@@ -7,8 +7,8 @@ export class GetAvailableCalenderDto {
   @IsDateString()
   startDate: string;
 
-  @ApiProperty({ example: 20 })
-  @IsNotEmpty()
-  @IsNumber()
-  range: number;
+  @ApiProperty({ example: new Date().toISOString() })
+  @IsOptional()
+  @IsDateString()
+  endDate: string;
 }
