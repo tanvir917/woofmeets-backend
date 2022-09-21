@@ -108,11 +108,7 @@ export class AvailabilityGetServcie {
       unavailable.map((un) => {
         const ud = formatInTimeZone(un.date, tz, 'yyyy-MM-dd');
         if (ud === availableTime) {
-          console.log('unavailable shit', ud);
-          if (
-            un.allServicesInactive === true ||
-            un.serviceId === BigInt(serviceId)
-          ) {
+          if (un.serviceId === BigInt(serviceId)) {
             unavailableDates.push(ud);
           }
         }
@@ -122,14 +118,10 @@ export class AvailabilityGetServcie {
     const final = timezoned.filter((t) => !unavailableDates.includes(t));
 
     return {
-      availableDates: filtered,
-      timezoned,
-      final,
-      // initDates,
-      unavailableDates,
-      unavailable,
-      days,
-      start,
+      data: {
+        timezone: tz,
+        dates: final,
+      },
     };
   }
 }
