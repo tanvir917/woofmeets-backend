@@ -1,4 +1,5 @@
 import { isAfter, addDays } from 'date-fns';
+import { extractZoneSpecificDateWithFirstHourTime } from './time-coverters';
 
 export const generateDatesFromAndTo = (
   from: Date,
@@ -12,3 +13,18 @@ export const generateDatesFromAndTo = (
   const nextDay = addDays(from, 1);
   return generateDatesFromAndTo(nextDay, to, [...dates, from]);
 };
+
+export const dateMaker = (
+  targetDate: Date,
+  increment: number,
+  tz?: string,
+): Date =>
+  addDays(
+    new Date(
+      extractZoneSpecificDateWithFirstHourTime(
+        targetDate,
+        tz ?? 'America/New_York',
+      ),
+    ),
+    increment,
+  );
