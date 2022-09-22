@@ -2,8 +2,13 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { utcToZonedTime, formatInTimeZone } from 'date-fns-tz';
 import { GetAvailableCalenderDto } from 'src/provider/dto/get.available.dto';
-import { throwBadRequestErrorCheck } from 'src/global/exceptions/error-logic';
+import {
+  throwBadRequestErrorCheck,
+  throwNotFoundErrorCheck,
+} from 'src/global/exceptions/error-logic';
 import { extractZoneSpecificDateWithFirstHourTime } from 'src/global/time/time-coverters';
+import { addDays } from 'date-fns';
+
 @Injectable()
 export class AvailabilityGetServcie {
   constructor(private readonly prismaService: PrismaService) {}
@@ -30,13 +35,9 @@ export class AvailabilityGetServcie {
 
     const start = new Date(startDate).getDate();
     const till = new Date(endDate ?? startDate);
+    const from = new Date(startDate);
+    const to = new Date(till);
 
-    const timediff = Math.floor(
-      (new Date(till).getTime() - new Date(startDate).getTime()) /
-        (24 * 3600 * 1000),
-    );
-    const range = new Date(startDate).getDate() + timediff;
-    const end = start + range;
     const initDates = [];
     const filtered = [];
     const timezoned = [];
@@ -65,6 +66,12 @@ export class AvailabilityGetServcie {
         },
       },
     });
+    console.log(days);
+    throwNotFoundErrorCheck(
+      !days,
+      'Availability not found with specific service id.',
+    );
+
     const tz = days.service?.provider?.user?.timezone ?? 'America/New_York';
 
     throwBadRequestErrorCheck(
@@ -72,14 +79,9 @@ export class AvailabilityGetServcie {
       'Service not found with specific identifier!',
     );
 
-    for (let i = start; i <= end ?? end; i++) {
+    for (let day = from; day <= to; day.setDate(day.getDate() + 1)) {
       initDates.push(
-        new Date(
-          extractZoneSpecificDateWithFirstHourTime(
-            new Date(new Date().setDate(i)),
-            tz,
-          ),
-        ),
+        new Date(extractZoneSpecificDateWithFirstHourTime(day, tz)),
       );
     }
 
@@ -90,11 +92,6 @@ export class AvailabilityGetServcie {
       }
     });
     const toDate = initDates[initDates.length - 1];
-
-    /**
-     * get available dates
-     * add them on filtered queue
-     */
 
     const availability = await this.prismaService.availableDate.findMany({
       where: {

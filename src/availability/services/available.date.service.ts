@@ -36,12 +36,6 @@ export class AvailableDateService {
         'Invalid date range!',
       );
     }
-    console.log({
-      isBefore: isBefore(new Date(to), new Date(from)),
-      sameDay:
-        Intl.DateTimeFormat('en-US').format(new Date(from)) ===
-        Intl.DateTimeFormat('en-US').format(new Date()),
-    });
 
     if (providerServiceIds.length > 0) {
       const services = await this.prismaService.providerServices.findMany({
@@ -87,17 +81,12 @@ export class AvailableDateService {
     );
 
     const till = new Date(to ?? from);
-    const timediff = Math.floor(
-      (new Date(till).getTime() - new Date(from).getTime()) /
-        (24 * 3600 * 1000),
-    );
-    const dateRange = new Date(from).getDate() + timediff;
+    const fromD = new Date(from);
+    const toD = new Date(till);
     const dates = [];
 
-    for (let i = new Date(from).getDate(); i <= dateRange; i++) {
-      const d = new Date(
-        new Date(new Date().setDate(i)).setHours(new Date().getHours()),
-      ).toISOString();
+    for (let day = fromD; day <= toD; day.setDate(day.getDate() + 1)) {
+      const d = new Date(day).toISOString();
       // make all possible combination of date and service id
       serviceList.map((s) => {
         dates.push({
