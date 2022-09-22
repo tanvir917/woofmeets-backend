@@ -69,6 +69,9 @@ export class SecretService {
       STRIPE_WEBHOOK_SECRET: this.configService.get<string>(
         'STRIPE_WEBHOOK_SECRET',
       ),
+
+      CKR_API_SECRET: this.configService.get<string>('CKR_API_SECRET'),
+      CKR_BASE_URL: this.configService.get<string>('CKR_BASE_URL'),
     };
 
     this.#environment = plainToInstance(EnvironmentVariable, env);
@@ -167,6 +170,13 @@ export class SecretService {
       secretKey: this.#environment.STRIPE_SECRET_KEY,
       apiVersion: this.#environment.STRIPE_API_VERSION,
       webhookSecret: this.#environment.STRIPE_WEBHOOK_SECRET,
+    };
+  }
+
+  getCheckrCreds() {
+    return {
+      apiSecret: this.#environment.CKR_API_SECRET,
+      baseUrl: this.#environment.CKR_BASE_URL,
     };
   }
 }
