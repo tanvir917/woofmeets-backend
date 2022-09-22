@@ -37,6 +37,7 @@ import { ProviderModule } from './provider/provider.module';
 import { UnavailabilityModule } from './unavailability/unavailability.module';
 import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 import { StripeModule } from './stripe/stripe.module';
+import { CheckrModule } from './checkr/checkr.module';
 
 @Module({
   imports: [
@@ -73,6 +74,7 @@ import { StripeModule } from './stripe/stripe.module';
     UnavailabilityModule,
     SubscriptionsModule,
     StripeModule,
+    CheckrModule,
   ],
   controllers: [AppController],
   providers: [AppService, SecretService, PrismaService, SmsService],

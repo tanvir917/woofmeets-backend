@@ -37,7 +37,8 @@ enum petTypeEnum {
 enum backGroundCheckEnum {
   NONE
   BASIC
-  ENHANCE
+  GOLD
+  PLATINUM
 }
 
 enum optionTypeEnum {

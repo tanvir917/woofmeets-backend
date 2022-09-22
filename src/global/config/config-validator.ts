@@ -10,7 +10,6 @@ import {
   IsString,
   validateSync,
 } from 'class-validator';
-import Stripe from 'stripe';
 
 export class EnvironmentVariable {
   @IsNotEmpty()
@@ -148,6 +147,14 @@ export class EnvironmentVariable {
 
   @IsNotEmpty()
   STRIPE_API_VERSION: any;
+
+  @IsNotEmpty()
+  @IsString()
+  CKR_API_SECRET: string;
+
+  @IsNotEmpty()
+  @IsString()
+  CKR_BASE_URL: string;
 }
 
 export function validateEnvironmentVariables(
