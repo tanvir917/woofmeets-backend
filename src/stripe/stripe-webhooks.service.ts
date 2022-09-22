@@ -1,6 +1,6 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
 import Stripe from 'stripe';
-import { CheckrService } from '../checkr/checkr.service';
+// import { CheckrService } from '../checkr/checkr.service';
 import { throwBadRequestErrorCheck } from '../global/exceptions/error-logic';
 import { PrismaService } from '../prisma/prisma.service';
 import { SecretService } from '../secret/secret.service';
@@ -12,8 +12,7 @@ export class StripeWebhooksService {
   private stripeWebhookSecret: string;
   constructor(
     private prismaService: PrismaService,
-    private secretService: SecretService,
-    private checkrService: CheckrService,
+    private secretService: SecretService, // private checkrService: CheckrService,
   ) {
     this.stripe = new Stripe(this.secretService.getStripeCreds().secretKey, {
       apiVersion: this.secretService.getStripeCreds().apiVersion,
@@ -80,19 +79,23 @@ export class StripeWebhooksService {
 
     const { type, userId, userSubscriptionId } = metadata;
 
-    const user = await this.prismaService.user.findFirst({
-      where: {
-        id: BigInt(userId),
-        deletedAt: null,
-      },
-      include: {
-        provider: {
-          include: {
-            providerCheckrCandidate: true,
-          },
-        },
-      },
-    });
+    /**
+     * Commented out because we are not using Checkr
+     */
+
+    // const user = await this.prismaService.user.findFirst({
+    //   where: {
+    //     id: BigInt(userId),
+    //     deletedAt: null,
+    //   },
+    //   include: {
+    //     provider: {
+    //       include: {
+    //         providerCheckrCandidate: true,
+    //       },
+    //     },
+    //   },
+    // });
 
     if (type === 'subscription') {
       const userSubscriptionInvoices =
@@ -160,16 +163,18 @@ export class StripeWebhooksService {
         },
       });
 
+      /**
+       * Commenting checkr code for now
+       */
       // Initate background check for 1st time subscription
-      if (
-        !user?.provider?.providerCheckrCandidate &&
-        user?.provider?.backGroundCheck == 'NONE'
-      ) {
-        this.checkrService.initiateBackgourndCheck(
-          user?.id,
-          providerSubscriptionType,
-        );
-      }
+      // if (!user?.provider?.providerCheckrCandidate &&
+      //   user?.provider?.backGroundCheck == 'NONE'
+      // ) {
+      //   this.checkrService.initiateBackgourndCheck(
+      //     user?.id,
+      //     providerSubscriptionType,
+      //   );
+      // }
 
       return {
         message: 'Charge Succeeded',
@@ -198,14 +203,18 @@ export class StripeWebhooksService {
           },
         });
 
-      await this.prismaService.provider.update({
-        where: {
-          userId: BigInt(userId),
-        },
-        data: {
-          backGroundCheck: 'BASIC',
-        },
-      });
+      /**
+       * Commenting checkr code for now
+       */
+
+      // await this.prismaService.provider.update({
+      //   where: {
+      //     userId: BigInt(userId),
+      //   },
+      //   data: {
+      //     backGroundCheck: 'BASIC',
+      //   },
+      // });
 
       throwBadRequestErrorCheck(
         !updateUserMiscellenous,
