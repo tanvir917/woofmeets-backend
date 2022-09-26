@@ -38,6 +38,7 @@ import { UnavailabilityModule } from './unavailability/unavailability.module';
 import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 import { StripeModule } from './stripe/stripe.module';
 import { CheckrModule } from './checkr/checkr.module';
+import { ZoomModule } from './zoom/zoom.module';
 import { AppointmentModule } from './appointment/appointment.module';
 
 @Module({
@@ -68,6 +69,7 @@ import { AppointmentModule } from './appointment/appointment.module';
     ProviderHomeModule,
     CancellationPolicyModule,
     ServiceRatesModule,
+    ZoomModule,
     StripePaymentMethodModule,
     AvailabilityModule,
     QuizModule,
@@ -76,6 +78,7 @@ import { AppointmentModule } from './appointment/appointment.module';
     SubscriptionsModule,
     StripeModule,
     CheckrModule,
+    ZoomModule,
     AppointmentModule,
   ],
   controllers: [AppController],

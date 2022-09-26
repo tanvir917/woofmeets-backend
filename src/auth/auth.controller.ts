@@ -100,11 +100,7 @@ export class AuthController {
 
   @Get('/logout')
   async logout(@Response({ passthrough: true }) res: any) {
-    res.cookie('token', '', {
-      expires: new Date(),
-      sameSite: 'strict',
-      httpOnly: true,
-    });
+    res.clearCookie('token');
 
     return {
       message: 'Log out successful.',
