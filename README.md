@@ -27,6 +27,9 @@
 1. [x] Sep 1 2021: [Sync env here](#env-how-to) (***Deperecated*** [.env](https://drive.google.com/drive/folders/1qj65FuDoKqRkBur2JjVA_qhXryiQSv24?usp=sharing) Env file can be found  over here)
 2. [x] [Confluence](https://algosolver-llc.atlassian.net/wiki/spaces/WBD/pages/319455497/Platform+Credentials) has important account links
 3. [x] [Dotenv-vault](https://www.dotenv.org/docs/getting-started/with-dotenv-vault) Used to manage and **sync** .dotenv during development **LOGIN WITH dev@algosolver.com**
+4. [x] [Appointment Proposal System System](./documentation/appointment/appointment-system.MD)
+5. REDISSTACK
+6. RabbitMQ
 
 ### VSCODE AND Database Tooling
 
@@ -59,6 +62,12 @@ yarn
 yarn migrate
 yarn dev
 // http://localhost:5000/docs #(Access Swagger)
+```
+
+Check **Compodoc Docs**
+
+```bash
+yarn compodoc #check http://localhost:8080 for documentation server
 ```
 
 ### Production Server
