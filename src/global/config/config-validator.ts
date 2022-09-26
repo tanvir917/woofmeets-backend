@@ -139,6 +139,34 @@ export class EnvironmentVariable {
 
   @IsNotEmpty()
   @IsString()
+  ZOOM_HOST_EMAIL: string;
+
+  @IsNotEmpty()
+  @IsString()
+  ZOOM_JWT_API_KEY: string;
+
+  @IsNotEmpty()
+  @IsString()
+  ZOOM_JWT_SECRET_KEY: string;
+
+  @IsNotEmpty()
+  @IsNumber()
+  ZOOM_JWT_EXPIRE: number;
+
+  @IsNotEmpty()
+  @IsString()
+  ZOOM_OAUTH_CLIENT_ID: string;
+
+  @IsNotEmpty()
+  @IsString()
+  ZOOM_OAUTH_CLIENT_SECRET: string;
+
+  @IsNotEmpty()
+  @IsString()
+  ZOOM_OAUTH_REDIRECT_URI: string;
+
+  @IsNotEmpty()
+  @IsString()
   STRIPE_SECRET_KEY: string;
 
   @IsNotEmpty()

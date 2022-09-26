@@ -1,18 +1,18 @@
 import { Injectable } from '@nestjs/common';
 import { PinoLogger } from 'nestjs-pino';
-import { PrismaService } from 'src/prisma/prisma.service';
-import { SmsService } from 'src/sms/sms.service';
-import {
-  CreateEmergencyContactDto,
-  CreateUserContactDto,
-} from './dto/create-user-contact.dto';
-import { v4 } from 'uuid';
 import {
   throwBadRequestErrorCheck,
   throwInternalServerErrorCheck,
 } from 'src/global/exceptions/error-logic';
-import { capitalizeFirstLetter, sixDigitOtpGenerator } from 'src/utils/tools';
+import { PrismaService } from 'src/prisma/prisma.service';
 import { SecretService } from 'src/secret/secret.service';
+import { SmsService } from 'src/sms/sms.service';
+import { capitalizeFirstLetter, sixDigitOtpGenerator } from 'src/utils/tools';
+import {
+  CreateEmergencyContactDto,
+  CreateUserContactDto,
+  GeneratePhoneOTPDto,
+} from './dto/create-user-contact.dto';
 @Injectable()
 export class UserProfileContactService {
   constructor(

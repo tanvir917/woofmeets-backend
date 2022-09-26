@@ -64,6 +64,26 @@ export class SecretService {
         720,
       ),
 
+      /**
+       * Zoom API Credentials
+       */
+
+      ZOOM_HOST_EMAIL: this.configService.get<string>('ZOOM_HOST_EMAIL'),
+      ZOOM_JWT_API_KEY: this.configService.get<string>('ZOOM_JWT_API_KEY'),
+      ZOOM_JWT_SECRET_KEY: this.configService.get<string>(
+        'ZOOM_JWT_SECRET_KEY',
+      ),
+      ZOOM_JWT_EXPIRE: this.configService.get<number>('ZOOM_JWT_EXPIRE'),
+      ZOOM_OAUTH_CLIENT_ID: this.configService.get<string>(
+        'ZOOM_OAUTH_CLIENT_ID',
+      ),
+      ZOOM_OAUTH_CLIENT_SECRET: this.configService.get<string>(
+        'ZOOM_OAUTH_CLIENT_SECRET',
+      ),
+      ZOOM_OAUTH_REDIRECT_URI: this.configService.get<string>(
+        'ZOOM_OAUTH_REDIRECT_URI',
+      ),
+
       STRIPE_SECRET_KEY: this.configService.get<string>('STRIPE_SECRET_KEY'),
       STRIPE_API_VERSION: this.configService.get<string>('STRIPE_API_VERSION'),
       STRIPE_WEBHOOK_SECRET: this.configService.get<string>(
@@ -167,6 +187,18 @@ export class SecretService {
 
   getOtpValidationWindow(): number {
     return this.#environment.OTP_VALIDATION_WINDOW;
+  }
+
+  getZoomJwtCreds() {
+    return {
+      hostEmail: this.#environment.ZOOM_HOST_EMAIL,
+      jwtApiKey: this.#environment.ZOOM_JWT_API_KEY,
+      jwtSecret: this.#environment.ZOOM_JWT_SECRET_KEY,
+      jwtExpire: this.#environment.ZOOM_JWT_EXPIRE,
+      oAuthId: this.#environment.ZOOM_OAUTH_CLIENT_ID,
+      oAuthSecret: this.#environment.ZOOM_OAUTH_CLIENT_SECRET,
+      oAuthRedirectUri: this.#environment.ZOOM_OAUTH_REDIRECT_URI,
+    };
   }
 
   getStripeCreds() {

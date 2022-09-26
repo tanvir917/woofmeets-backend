@@ -240,6 +240,7 @@ model Provider {
   HomeAttributes          HomeAttributes[]
   providerSkills          ProviderSkills[]
   providerCheckrCandidate ProviderCheckrCandidate?
+  zoomInfo                ZoomInfo?
 }
 
 model ProviderServices {
@@ -809,4 +810,14 @@ model ProviderCheckrReport {
   createdAt                 DateTime                @default(now()) @db.Timestamptz(3)
   updatedAt                 DateTime?               @updatedAt @db.Timestamptz(3)
   deletedAt                 DateTime?               @db.Timestamptz(3)
+}
+
+model ZoomInfo {
+  id           BigInt    @id @default(autoincrement())
+  providerId   BigInt    @unique
+  provider     Provider  @relation(fields: [providerId], references: [id])
+  refreshToken String
+  createdAt    DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt    DateTime? @updatedAt @db.Timestamptz(3)
+  deletedAt    DateTime? @db.Timestamptz(3)
 }
