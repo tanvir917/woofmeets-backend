@@ -13,107 +13,111 @@ export class CheckrService {
     private secretService: SecretService,
   ) {}
 
-  async initiateBackgourndCheck(
-    userId: bigint,
-    subscriptionType: ProviderSubscriptionTypeEnum,
-  ) {
-    const user = await this.prismaService.user.findFirst({
-      where: {
-        id: userId,
-        deletedAt: null,
-      },
-      include: {
-        provider: true,
-      },
-    });
+  /**
+   * Checkr code will be commented out until we get a further instructions
+   */
 
-    let packageId: string;
-    let backGroundCheckEnum: BackgroundCheckEnum;
+  // async initiateBackgourndCheck(
+  //   userId: bigint,
+  //   subscriptionType: ProviderSubscriptionTypeEnum,
+  // ) {
+  //   const user = await this.prismaService.user.findFirst({
+  //     where: {
+  //       id: userId,
+  //       deletedAt: null,
+  //     },
+  //     include: {
+  //       provider: true,
+  //     },
+  //   });
 
-    if (subscriptionType === ProviderSubscriptionTypeEnum.GOLD) {
-      packageId = 'basic_plus_criminal';
-      backGroundCheckEnum = BackgroundCheckEnum.GOLD;
-    } else if (subscriptionType === ProviderSubscriptionTypeEnum.PLATINUM) {
-      packageId = 'essential_criminal';
-      backGroundCheckEnum = BackgroundCheckEnum.PLATINUM;
-    }
+  //   let packageId: string;
+  //   let backGroundCheckEnum: BackgroundCheckEnum;
 
-    try {
-      const candidate = await axios.post(
-        `${this.secretService.getCheckrCreds().baseUrl}/candidates`,
-        {
-          first_name: user?.firstName,
-          last_name: user?.lastName,
-          email: user?.email,
-        },
-        {
-          auth: {
-            username: this.secretService.getCheckrCreds().apiSecret,
-            password: '',
-          },
-        },
-      );
+  //   if (subscriptionType === ProviderSubscriptionTypeEnum.GOLD) {
+  //     packageId = 'basic_plus_criminal';
+  //     backGroundCheckEnum = BackgroundCheckEnum.GOLD;
+  //   } else if (subscriptionType === ProviderSubscriptionTypeEnum.PLATINUM) {
+  //     packageId = 'essential_criminal';
+  //     backGroundCheckEnum = BackgroundCheckEnum.PLATINUM;
+  //   }
 
-      let dbCandidate: ProviderCheckrCandidate;
+  //   try {
+  //     const candidate = await axios.post(
+  //       `${this.secretService.getCheckrCreds().baseUrl}/candidates`,
+  //       {
+  //         first_name: user?.firstName,
+  //         last_name: user?.lastName,
+  //         email: user?.email,
+  //       },
+  //       {
+  //         auth: {
+  //           username: this.secretService.getCheckrCreds().apiSecret,
+  //           password: '',
+  //         },
+  //       },
+  //     );
 
-      if (candidate?.data) {
-        dbCandidate = await this.prismaService.providerCheckrCandidate.create({
-          data: {
-            candidateId: candidate?.data?.id,
-            providerId: user?.provider?.id,
-            firstName: candidate?.data?.first_name,
-            lastName: candidate?.data?.last_name,
-            email: candidate?.data?.email,
-            phone: candidate?.data?.phone,
-            reportIds: candidate?.data?.report_ids,
-            geoIds: candidate?.data?.geo_ids,
-            adjugation: candidate?.data?.adjudication,
-            src: Object(candidate?.data),
-          },
-        });
-      }
+  //     let dbCandidate: ProviderCheckrCandidate;
 
-      const invitation = await axios.post(
-        `${this.secretService.getCheckrCreds().baseUrl}/invitations`,
-        {
-          candidate_id: candidate?.data?.candidateId,
-          package: packageId,
-        },
-        {
-          auth: {
-            username: process.env.CKR_API_SECRET,
-            password: '',
-          },
-        },
-      );
+  //     if (candidate?.data) {
+  //       dbCandidate = await this.prismaService.providerCheckrCandidate.create({
+  //         data: {
+  //           candidateId: candidate?.data?.id,
+  //           providerId: user?.provider?.id,
+  //           firstName: candidate?.data?.first_name,
+  //           lastName: candidate?.data?.last_name,
+  //           email: candidate?.data?.email,
+  //           phone: candidate?.data?.phone,
+  //           reportIds: candidate?.data?.report_ids,
+  //           geoIds: candidate?.data?.geo_ids,
+  //           adjugation: candidate?.data?.adjudication,
+  //           src: Object(candidate?.data),
+  //         },
+  //       });
+  //     }
 
-      console.log('Invitaion: ', invitation?.data);
+  //     const invitation = await axios.post(
+  //       `${this.secretService.getCheckrCreds().baseUrl}/invitations`,
+  //       {
+  //         candidate_id: candidate?.data?.candidateId,
+  //         package: packageId,
+  //       },
+  //       {
+  //         auth: {
+  //           username: process.env.CKR_API_SECRET,
+  //           password: '',
+  //         },
+  //       },
+  //     );
 
-      if (invitation?.data) {
-        await this.prismaService.providerCheckrInvitation.create({
-          data: {
-            invitationId: invitation?.data?.id,
-            providerCheckrCandidateId: dbCandidate?.id,
-            package: invitation?.data?.package,
-            status: invitation?.data?.status,
-            reportId: invitation?.data?.report_id,
-            uri: invitation?.data?.uri ?? '',
-            url: invitation?.data?.invitation_url ?? '',
-            src: Object(invitation?.data),
-          },
-        });
-      }
+  //     console.log('Invitaion: ', invitation?.data);
 
-      await this.prismaService.provider.update({
-        where: {
-          id: user?.provider?.id,
-        },
-        data: {
-          backGroundCheck: backGroundCheckEnum,
-        },
-      });
-    } catch (e) {
-      console.log(e.response.data.error);
-    }
-  }
+  //     if (invitation?.data) {
+  //       await this.prismaService.providerCheckrInvitation.create({
+  //         data: {
+  //           invitationId: invitation?.data?.id,
+  //           providerCheckrCandidateId: dbCandidate?.id,
+  //           package: invitation?.data?.package,
+  //           status: invitation?.data?.status,
+  //           reportId: invitation?.data?.report_id,
+  //           uri: invitation?.data?.uri ?? '',
+  //           url: invitation?.data?.invitation_url ?? '',
+  //           src: Object(invitation?.data),
+  //         },
+  //       });
+  //     }
+
+  //     await this.prismaService.provider.update({
+  //       where: {
+  //         id: user?.provider?.id,
+  //       },
+  //       data: {
+  //         backGroundCheck: backGroundCheckEnum,
+  //       },
+  //     });
+  //   } catch (e) {
+  //     console.log(e.response.data.error);
+  //   }
+  // }
 }
