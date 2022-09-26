@@ -38,6 +38,7 @@ import { UnavailabilityModule } from './unavailability/unavailability.module';
 import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 import { StripeModule } from './stripe/stripe.module';
 import { CheckrModule } from './checkr/checkr.module';
+import { AppointmentModule } from './appointment/appointment.module';
 
 @Module({
   imports: [
@@ -75,6 +76,7 @@ import { CheckrModule } from './checkr/checkr.module';
     SubscriptionsModule,
     StripeModule,
     CheckrModule,
+    AppointmentModule,
   ],
   controllers: [AppController],
   providers: [AppService, SecretService, PrismaService, SmsService],
