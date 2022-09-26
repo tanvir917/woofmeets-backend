@@ -9,6 +9,7 @@
     "prebuild": "rimraf dist",
     "build": "nest build",
     "fast": "./node_modules/.bin/nodemon",
+    "compodoc": "npx compodoc -p tsconfig.json -d ./compodoc -s",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "NODE_ENV=production nest start",
     "dev": "NODE_ENV=development nest start --watch",
@@ -81,6 +82,7 @@
     "uuid": "^8.3.2"
   },
   "devDependencies": {
+    "@compodoc/compodoc": "^1.1.19",
     "@digitalroute/cz-conventional-changelog-for-jira": "^7.3.0",
     "@nestjs/cli": "^9.0.0",
     "@nestjs/schematics": "^9.0.0",
