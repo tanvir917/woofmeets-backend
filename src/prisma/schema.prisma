@@ -97,10 +97,13 @@ enum energyLevelTypeEnum {
 }
 
 enum userSubscriptionStatusEnum {
-  ACTIVE
-  INACTIVE
-  ENDED
-  CANCELLED
+  incomplete
+  incomplete_expired
+  trialing
+  active
+  past_due
+  canceled
+  unpaid
 }
 
 enum userSubscriptionPackageTypeEnum {
@@ -644,6 +647,8 @@ model SubscriptionPlan {
   annualRate        Float
   monthlyCropRate   Float?
   annualCropRate    Float?
+  monthlyPriceId    String?
+  annualPriceId     String?
   details           String?
   features          Json?
   active            Boolean             @default(true)
@@ -663,13 +668,14 @@ model UserSubscriptions {
   subscriptionPlan         SubscriptionPlan                @relation(fields: [subscriptionPlanId], references: [id])
   cardId                   BigInt?
   card                     UserStripeCard?                 @relation(fields: [cardId], references: [id])
+  stripeSubscriptionId     String?                         @unique
   subTotal                 Float                           @default(0)
   discount                 Float                           @default(0)
   total                    Float                           @default(0)
   currency                 String?
   currentPeriodStart       DateTime?                       @db.Timestamptz(3)
   currentPeriodEnd         DateTime?                       @db.Timestamptz(3)
-  status                   userSubscriptionStatusEnum      @default(INACTIVE)
+  status                   userSubscriptionStatusEnum
   packageType              userSubscriptionPackageTypeEnum
   paymentStatus            String?
   src                      Json?

@@ -113,7 +113,7 @@ export class UserOnboardingProgressService {
               currentPeriodEnd: {
                 gt: now,
               },
-              status: 'ACTIVE',
+              status: 'active',
               deletedAt: null,
             },
           },

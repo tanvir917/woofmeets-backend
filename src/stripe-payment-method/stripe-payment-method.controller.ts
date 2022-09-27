@@ -106,4 +106,12 @@ export class StripePaymentMethodController {
       BigInt(cardId),
     );
   }
+
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard)
+  @Get('/setup-intent/get-client-secret')
+  getClientSecret(@Request() req: any) {
+    const userId = BigInt(req.user.id) ?? BigInt(-1);
+    return this.stripePaymentMethodService.getClientSecret(userId);
+  }
 }
