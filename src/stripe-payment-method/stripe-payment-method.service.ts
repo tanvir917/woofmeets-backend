@@ -564,4 +564,38 @@ export class StripePaymentMethodService {
       throw error as Error;
     }
   }
+
+  async getClientSecret(userId: bigint) {
+    const user = await this.prismaService.user.findFirst({
+      where: {
+        id: userId,
+        deletedAt: null,
+      },
+      include: {
+        userStripeCustomerAccount: true,
+      },
+    });
+
+    throwBadRequestErrorCheck(!user, 'User not found.');
+
+    throwBadRequestErrorCheck(
+      !user.userStripeCustomerAccount,
+      'User is not a customer.',
+    );
+
+    try {
+      const intent: Stripe.SetupIntent = await this.stripe.setupIntents.create({
+        payment_method_types: ['card'],
+      });
+
+      return {
+        message: 'Client secret generated successfully!',
+        data: {
+          clientSecret: intent.client_secret,
+        },
+      };
+    } catch (error) {
+      throw error as Error;
+    }
+  }
 }

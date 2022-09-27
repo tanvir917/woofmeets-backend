@@ -135,7 +135,7 @@ export class StripeWebhooksService {
           id: userSubscriptionInvoices?.userSubscriptionId,
         },
         data: {
-          status: 'ACTIVE',
+          status: 'active',
           paymentStatus: status,
         },
       });

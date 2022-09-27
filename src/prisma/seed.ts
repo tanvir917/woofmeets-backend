@@ -248,37 +248,6 @@ const addQuizQuestions = async () => {
   });
 };
 
-const addSubscriptionPlan = async () => {
-  subscriptionPlanSeeder.forEach(async (obj) => {
-    await prisma.subscriptionPlan.upsert({
-      where: {
-        slug: obj.slug,
-      },
-      update: {
-        name: obj?.name,
-        displayName: obj?.displayName,
-        monthlyRate: obj?.monthlyRate,
-        annualRate: obj?.annualRate,
-        details: obj?.details,
-        active: obj?.active,
-        features: obj?.features,
-        sequence: obj?.sequence,
-      },
-      create: {
-        name: obj?.name,
-        slug: obj?.slug,
-        displayName: obj?.displayName,
-        monthlyRate: obj?.monthlyRate,
-        annualRate: obj?.annualRate,
-        details: obj?.details,
-        active: obj?.active,
-        features: obj?.features,
-        sequence: obj?.sequence,
-      },
-    });
-  });
-};
-
 async function main() {
   console.log('.... Seeding Data ....');
 
@@ -290,7 +259,6 @@ async function main() {
   addPolicies();
   addServiceRateTypes();
   addQuizQuestions();
-  addSubscriptionPlan();
 
   console.log('✨  Seed Completed ✨');
 }

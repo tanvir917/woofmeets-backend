@@ -48,7 +48,7 @@ export class SubscriptionsService {
         userSubscriptions: {
           where: {
             deletedAt: null,
-            status: 'ACTIVE',
+            status: 'active',
             currentPeriodStart: {
               lte: new Date(),
             },
@@ -133,7 +133,7 @@ export class SubscriptionsService {
             currency: 'usd',
             currentPeriodStart: new Date(),
             currentPeriodEnd: endDate,
-            status: 'ACTIVE',
+            status: 'active',
             paymentStatus: 'none',
             packageType: SubscriptionPackageTypeEnum['YEARLY'],
           },
@@ -228,7 +228,7 @@ export class SubscriptionsService {
         await this.prismaService.userSubscriptions.update({
           where: { id: user?.userSubscriptions[0]?.id },
           data: {
-            status: 'INACTIVE',
+            status: 'canceled',
             currentPeriodEnd: new Date(),
             deletedAt: new Date(),
           },
@@ -262,7 +262,7 @@ export class SubscriptionsService {
             currency: 'usd',
             currentPeriodStart: new Date(),
             currentPeriodEnd: endDate,
-            status: 'INACTIVE',
+            status: 'incomplete',
             paymentStatus: 'pending',
             packageType: SubscriptionPackageTypeEnum[packageType],
           },
@@ -354,7 +354,7 @@ export class SubscriptionsService {
         where: {
           userId,
           deletedAt: null,
-          status: 'ACTIVE',
+          status: 'active',
           currentPeriodStart: {
             lte: new Date(),
           },
