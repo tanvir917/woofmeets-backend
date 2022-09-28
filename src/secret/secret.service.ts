@@ -96,6 +96,10 @@ export class SecretService {
 
       // CKR_API_SECRET: this.configService.get<string>('CKR_API_SECRET'),
       // CKR_BASE_URL: this.configService.get<string>('CKR_BASE_URL'),
+      RABBIT_MQ_URL: this.configService.get<string>('RABBIT_MQ_URL'),
+      MESSAGE_MICROSERVICE_CHANNEL: this.configService.get<string>(
+        'MESSAGE_MICROSERVICE_CHANNEL',
+      ),
     };
 
     this.#environment = plainToInstance(EnvironmentVariable, env);

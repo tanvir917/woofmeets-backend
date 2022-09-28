@@ -183,6 +183,14 @@ export class EnvironmentVariable {
   // @IsNotEmpty()
   // @IsString()
   // CKR_BASE_URL: string;
+
+  @IsNotEmpty()
+  @IsString()
+  RABBIT_MQ_URL: string;
+
+  @IsNotEmpty()
+  @IsString()
+  MESSAGE_MICROSERVICE_CHANNEL: string;
 }
 
 export function validateEnvironmentVariables(
