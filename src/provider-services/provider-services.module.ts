@@ -8,5 +8,6 @@ import { CommonModule } from 'src/common/common.module';
   imports: [PrismaModule, CommonModule],
   controllers: [ProviderServicesController],
   providers: [ProviderServicesService],
+  exports: [ProviderServicesService],
 })
 export class ProviderServicesModule {}
