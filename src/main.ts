@@ -2,7 +2,7 @@ import { VersioningType } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { json } from 'express';
-import { Logger, LoggerErrorInterceptor } from 'nestjs-pino';
+import { Logger, LoggerErrorInterceptor, PinoLogger } from 'nestjs-pino';
 import { AppModule } from './app.module';
 import { globalValidationPipe } from './global/error';
 import { SecretService } from './secret/secret.service';
@@ -84,8 +84,18 @@ async function bootstrap() {
 
   const port = secretService.getPort();
 
-  await app.listen(port);
+  // app.connectMicroservice({
+  //   transport: Transport.RMQ,
+  //   options: {
+  //     urls: [`${process.env.RABBIT_MQ_URL}`],
+  //     queue: `${process.env.MESSAGE_MICROSERVICE_CHANNEL}`,
+  //     queueOptions: { durable: true },
+  //     prefetchCount: 1,
+  //   },
+  // });
 
+  // await app.startAllMicroservices().catch((e) => console.log(e));
+  await app.listen(port);
   logger.debug(`Server running on port http://localhost:${port}`);
 }
 

@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { SwaggerModule } from '@nestjs/swagger';
-import { LoggerModule } from 'nestjs-pino';
+import { LoggerModule, PinoLogger } from 'nestjs-pino';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
@@ -40,6 +40,7 @@ import { StripeModule } from './stripe/stripe.module';
 import { CheckrModule } from './checkr/checkr.module';
 import { ZoomModule } from './zoom/zoom.module';
 import { AppointmentModule } from './appointment/appointment.module';
+import { MessagingModule } from './messaging/messaging.module';
 
 @Module({
   imports: [
@@ -80,6 +81,7 @@ import { AppointmentModule } from './appointment/appointment.module';
     CheckrModule,
     ZoomModule,
     AppointmentModule,
+    MessagingModule,
   ],
   controllers: [AppController],
   providers: [AppService, SecretService, PrismaService, SmsService],
