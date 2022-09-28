@@ -14,7 +14,7 @@
     "start": "NODE_ENV=production nest start",
     "dev": "NODE_ENV=development nest start --watch",
     "start:debug": "nest start --debug --watch",
-    "start:prod": "NODE_ENV=production node dist/src/main",
+    "start:prod": "NODE_ENV=production node dist/main",
     "generate": "prisma generate --schema src/prisma/schema.prisma",
     "migrate": "prisma migrate dev --schema src/prisma/schema.prisma",
     "dbdeploy": "prisma migrate deploy --schema src/prisma/schema.prisma",
