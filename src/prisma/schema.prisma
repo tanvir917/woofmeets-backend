@@ -117,6 +117,26 @@ enum miscellaneousPaymentsTypeEnum {
   OTHERS
 }
 
+enum appointmentStatusEnum {
+  PENDING
+  ACCEPTED
+  PROPOSAL
+  REJECTED
+  CANCELLED
+}
+
+enum appointmentLengthTypeEnum {
+  WALK
+  VISIT
+  NONE
+}
+
+enum appointmentProposalEnum {
+  PROVIDER
+  USER
+  NONE
+}
+
 model User {
   id                        BigInt                     @id @default(autoincrement())
   opk                       String                     @unique
@@ -151,6 +171,7 @@ model User {
   AvailableDate             AvailableDate[]
   userBasicVerification     UserBasicVerification?
   miscellaneousPayments     MiscellaneousPayments[]
+  appointment               Appointment[]
 }
 
 model UserContact {
@@ -244,6 +265,7 @@ model Provider {
   providerSkills          ProviderSkills[]
   providerCheckrCandidate ProviderCheckrCandidate?
   zoomInfo                ZoomInfo?
+  appointment             Appointment[]
 }
 
 model ProviderServices {
@@ -271,6 +293,7 @@ model ProviderServices {
   AvailableDay           AvailableDay[]
   Unavailabilty          Unavailability[]
   AvailableDate          AvailableDate[]
+  appointment            Appointment[]
 }
 
 model BasicInfo {
@@ -475,6 +498,7 @@ model Pet {
   deletedAt                      DateTime?            @db.Timestamptz(3)
   petBreed                       PetBreed[]
   petGallery                     PetGallery[]
+  appointmentPet                 AppointmentPet[]
 }
 
 model PetBreed {
@@ -826,4 +850,70 @@ model ZoomInfo {
   createdAt    DateTime  @default(now()) @db.Timestamptz(3)
   updatedAt    DateTime? @updatedAt @db.Timestamptz(3)
   deletedAt    DateTime? @db.Timestamptz(3)
+}
+
+model Appointment {
+  id                  BigInt                @id @default(autoincrement())
+  opk                 String                @unique
+  userId              BigInt
+  user                User                  @relation(fields: [userId], references: [id])
+  providerId          BigInt
+  provider            Provider              @relation(fields: [providerId], references: [id])
+  providerServiceId   BigInt
+  providerService     ProviderServices      @relation(fields: [providerServiceId], references: [id])
+  status              appointmentStatusEnum
+  providerTimeZone    String?
+  endOfLife           String?
+  createdAt           DateTime              @default(now()) @db.Timestamptz(3)
+  updatedAt           DateTime?             @updatedAt @db.Timestamptz(3)
+  deletedAt           DateTime?             @db.Timestamptz(3)
+  appointmentProposal AppointmentProposal[]
+  appointmentPet      AppointmentPet[]
+}
+
+model AppointmentProposal {
+  id                     BigInt                    @id @default(autoincrement())
+  appointmentId          BigInt
+  appointment            Appointment               @relation(fields: [appointmentId], references: [id])
+  proposedBy             appointmentProposalEnum
+  original               Boolean                   @default(false)
+  countered              Boolean                   @default(false)
+  appointmentserviceType appointmentLengthTypeEnum
+  length                 Float?
+  additionalLengthPrice  Float?
+  petQuantity            Float?
+  regularPrice           Float?
+  additionalCharge       Json?
+  providerExtraFee       Float?
+  totalPrice             Float?
+  firstMessage           String?
+  isRecivedPhotos        Boolean?
+  dropOffStartTime       String?
+  dropOffEndTime         String?
+  pickUpStartTime        String?
+  pickUpEndTime          String?
+  proposalStartDate      String?
+  proposalEndDate        String?
+  proposalOtherDate      Json[]
+  isRecurring            Boolean?
+  recurringStartDate     String?
+  recurringSelectedDay   Json[]
+  meta                   Json?
+  createdAt              DateTime                  @default(now()) @db.Timestamptz(3)
+  updatedAt              DateTime?                 @updatedAt @db.Timestamptz(3)
+  deletedAt              DateTime?                 @db.Timestamptz(3)
+  appointmentPet         AppointmentPet[]
+}
+
+model AppointmentPet {
+  id                  BigInt              @id @default(autoincrement())
+  petId               BigInt
+  pet                 Pet                 @relation(fields: [petId], references: [id])
+  appointmentId       BigInt
+  appointment         Appointment         @relation(fields: [appointmentId], references: [id])
+  proposalId          BigInt
+  appointmentProposal AppointmentProposal @relation(fields: [proposalId], references: [id])
+  createdAt           DateTime            @default(now()) @db.Timestamptz(3)
+  updatedAt           DateTime?           @updatedAt @db.Timestamptz(3)
+  deletedAt           DateTime?           @db.Timestamptz(3)
 }
