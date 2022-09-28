@@ -43,6 +43,42 @@ export class AppointmentProposalService {
     return providerService;
   }
 
+  async getProviderServiceAdditionalRates(opk: string) {
+    const appointment = await this.prismaService.appointment.findFirst({
+      where: {
+        opk,
+        deletedAt: null,
+      },
+    });
+
+    throwBadRequestErrorCheck(!appointment, 'Appointment not found.');
+
+    const providerServiceDetails =
+      await this.prismaService.providerServices.findFirst({
+        where: {
+          id: appointment?.providerServiceId,
+          deletedAt: null,
+        },
+        include: {
+          ServiceHasRates: {
+            include: {
+              serviceTypeRate: {
+                include: {
+                  serviceRateType: true,
+                },
+              },
+            },
+          },
+          serviceType: true,
+        },
+      });
+
+    return {
+      result: 'Provider service details found successfully',
+      data: providerServiceDetails,
+    };
+  }
+
   async getLatestAppointmentProposal(userId: bigint, opk: string) {
     const user = await this.prismaService.user.findFirst({
       where: { id: userId, deletedAt: null },
