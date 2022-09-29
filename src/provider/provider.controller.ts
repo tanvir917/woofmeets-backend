@@ -1,9 +1,20 @@
-import { Controller, Get, Param, Request, Query } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Param,
+  Request,
+  Query,
+  Body,
+  Post,
+  Response,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { AvailabilityGetServcie } from 'src/availability/services/availability.get.service';
 import { throwBadRequestErrorCheck } from 'src/global/exceptions/error-logic';
+import { ProviderCreationDto } from './dto/creation.dto';
 import { GetAvailableCalenderDto } from './dto/get.available.dto';
+import { ProviderCreationService } from './provider-creation.service';
 import { ProviderService } from './provider.service';
 
 @ApiTags('Provider')
@@ -13,6 +24,7 @@ export class ProviderController {
     private readonly providerService: ProviderService,
     private readonly jwtService: JwtService,
     private readonly availableGetService: AvailabilityGetServcie,
+    private readonly providerCreationService: ProviderCreationService,
   ) {}
 
   @ApiOperation({
@@ -46,5 +58,10 @@ export class ProviderController {
     @Query() query: GetAvailableCalenderDto,
   ) {
     return this.availableGetService.getAvailability(opk, serviceId, query);
+  }
+
+  @Post('complete-onboarding-progress')
+  async completeUserOnboarding(@Body() body: ProviderCreationDto) {
+    return this.providerCreationService.seed(body);
   }
 }
