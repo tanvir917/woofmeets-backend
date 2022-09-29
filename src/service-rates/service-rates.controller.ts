@@ -136,4 +136,12 @@ export class ServiceRatesController {
   remove(@Param('id') id: string) {
     return this.serviceRatesService.remove(+id);
   }
+
+  @Get('/types/get-all')
+  @ApiOperation({
+    summary: 'Get all service rate types.',
+  })
+  allServiceRateType() {
+    return this.serviceRatesService.getServiceRateTypes();
+  }
 }
