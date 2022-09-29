@@ -24,310 +24,311 @@ export class SubscriptionsService {
     });
   }
 
-  async createSubscription(
-    userId: bigint,
-    subscriptionPlanId: bigint,
-    createSubscriptionDto: CreateSubscriptionDto,
-  ) {
-    const { packageType } = createSubscriptionDto;
+  /**
+   * Commenting out the below code as we are not using this subscription for now.
+   */
 
-    const subscriptionPlan =
-      await this.prismaService.subscriptionPlan.findFirst({
-        where: { id: subscriptionPlanId, active: true, deletedAt: null },
-      });
+  // async createSubscription(
+  //   userId: bigint,
+  //   subscriptionPlanId: bigint,
+  //   createSubscriptionDto: CreateSubscriptionDto,
+  // ) {
+  //   const { packageType } = createSubscriptionDto;
 
-    throwBadRequestErrorCheck(
-      !subscriptionPlan,
-      'Subscription plan not found.',
-    );
+  //   const subscriptionPlan =
+  //     await this.prismaService.subscriptionPlan.findFirst({
+  //       where: { id: subscriptionPlanId, active: true, deletedAt: null },
+  //     });
 
-    const user = await this.prismaService.user.findFirst({
-      where: { id: userId, deletedAt: null },
-      include: {
-        provider: true,
-        userSubscriptions: {
-          where: {
-            deletedAt: null,
-            status: 'active',
-            currentPeriodStart: {
-              lte: new Date(),
-            },
-            currentPeriodEnd: {
-              gt: new Date(),
-            },
-          },
-          include: {
-            subscriptionPlan: true,
-          },
-        },
-      },
-    });
+  //   throwBadRequestErrorCheck(
+  //     !subscriptionPlan,
+  //     'Subscription plan not found.',
+  //   );
 
-    throwBadRequestErrorCheck(!user, 'User not found');
+  //   const user = await this.prismaService.user.findFirst({
+  //     where: { id: userId, deletedAt: null },
+  //     include: {
+  //       provider: true,
+  //       userSubscriptions: {
+  //         where: {
+  //           deletedAt: null,
+  //           status: 'active',
+  //           currentPeriodStart: {
+  //             lte: new Date(),
+  //           },
+  //           currentPeriodEnd: {
+  //             gt: new Date(),
+  //           },
+  //         },
+  //       },
+  //     },
+  //   });
 
-    throwBadRequestErrorCheck(!user.provider, 'User is not a provider.');
+  //   throwBadRequestErrorCheck(!user, 'User not found');
 
-    /**
-     * Check if user has an active subscription
-     * If yes, check if the subscription plan is not basic
-     */
-    throwBadRequestErrorCheck(
-      user?.userSubscriptions?.length &&
-        user?.userSubscriptions[0]?.subscriptionPlan?.slug != 'basic',
-      'User already have a subscription. Please cancel the existing subscription to continue.',
-    );
+  //   throwBadRequestErrorCheck(!user.provider, 'User is not a provider.');
 
-    /**
-     * Check if user has an active subscription
-     * If yes, check if inputted subscription plan and active subscription plan are
-     * both basic subscription plans.
-     */
-    throwBadRequestErrorCheck(
-      user?.userSubscriptions[0]?.subscriptionPlan?.slug == 'basic' &&
-        subscriptionPlan?.slug == 'basic',
-      'User already have basic subscription. Please upgrade subscription plan to continue.',
-    );
+  //   /**
+  //    * Check if user has an active subscription
+  //    * If yes, check if the subscription plan is not basic
+  //    */
+  //   throwBadRequestErrorCheck(
+  //     user?.userSubscriptions?.length &&
+  //       user?.userSubscriptions[0]?.subscriptionPlan?.slug != 'basic',
+  //     'User already have a subscription. Please cancel the existing subscription to continue.',
+  //   );
 
-    /**
-     * check if the package is basic. If basic then dont initiate payment
-     * Update user subscription type in user table
-     */
+  //   /**
+  //    * Check if user has an active subscription
+  //    * If yes, check if inputted subscription plan and active subscription plan are
+  //    * both basic subscription plans.
+  //    */
+  //   throwBadRequestErrorCheck(
+  //     user?.userSubscriptions[0]?.subscriptionPlan?.slug == 'basic' &&
+  //       subscriptionPlan?.slug == 'basic',
+  //     'User already have basic subscription. Please upgrade subscription plan to continue.',
+  //   );
 
-    let cropRate = 0;
-    let subTotal = 0;
-    let endDate: Date | null = null;
+  //   /**
+  //    * check if the package is basic. If basic then dont initiate payment
+  //    * Update user subscription type in user table
+  //    */
 
-    if (subscriptionPlan?.slug == 'basic') {
-      endDate = new Date();
-      /**
-       * As the subscription end date is required.
-       * For basic subscription, setting the end date to 5 years from now.
-       */
-      endDate.setMonth(endDate.getMonth() + 60);
+  //   let cropRate = 0;
+  //   let subTotal = 0;
+  //   let endDate: Date | null = null;
 
-      const checker = await this.checkUserSubsOrSignupPayment(user?.id);
-      console.log('testing Checker');
+  //   if (subscriptionPlan?.slug == 'basic') {
+  //     endDate = new Date();
+  //     /**
+  //      * As the subscription end date is required.
+  //      * For basic subscription, setting the end date to 5 years from now.
+  //      */
+  //     endDate.setMonth(endDate.getMonth() + 60);
 
-      if (!checker) {
-        const verificationInfo =
-          await this.prismaService.userBasicVerification.findFirst({
-            where: {
-              userId: user?.id,
-            },
-          });
+  //     const checker = await this.checkUserSubsOrSignupPayment(user?.id);
+  //     console.log('testing Checker');
 
-        throwBadRequestErrorCheck(
-          !verificationInfo,
-          'User verification info is not uploaded.',
-        );
-      }
+  //     if (!checker) {
+  //       const verificationInfo =
+  //         await this.prismaService.userBasicVerification.findFirst({
+  //           where: {
+  //             userId: user?.id,
+  //           },
+  //         });
 
-      const userSubscriptions =
-        await this.prismaService.userSubscriptions.create({
-          data: {
-            subscriptionPlanId: subscriptionPlan?.id,
-            userId: user?.id,
-            subTotal: subscriptionPlan?.monthlyRate,
-            discount: 0,
-            total: subscriptionPlan?.monthlyRate,
-            currency: 'usd',
-            currentPeriodStart: new Date(),
-            currentPeriodEnd: endDate,
-            status: 'active',
-            paymentStatus: 'none',
-            packageType: SubscriptionPackageTypeEnum['YEARLY'],
-          },
-        });
+  //       throwBadRequestErrorCheck(
+  //         !verificationInfo,
+  //         'User verification info is not uploaded.',
+  //       );
+  //     }
 
-      await this.prismaService.provider.update({
-        where: { userId: user?.id },
-        data: {
-          subscriptionType: 'BASIC',
-        },
-      });
+  //     const userSubscriptions =
+  //       await this.prismaService.userSubscriptions.create({
+  //         data: {
+  //           subscriptionPlanId: subscriptionPlan?.id,
+  //           userId: user?.id,
+  //           subTotal: subscriptionPlan?.monthlyRate,
+  //           discount: 0,
+  //           total: subscriptionPlan?.monthlyRate,
+  //           currency: 'usd',
+  //           currentPeriodStart: new Date(),
+  //           currentPeriodEnd: endDate,
+  //           status: 'active',
+  //           paymentStatus: 'none',
+  //           packageType: SubscriptionPackageTypeEnum['YEARLY'],
+  //         },
+  //       });
 
-      throwBadRequestErrorCheck(
-        !userSubscriptions,
-        'Subscription not created.',
-      );
+  //     await this.prismaService.provider.update({
+  //       where: { userId: user?.id },
+  //       data: {
+  //         subscriptionType: 'BASIC',
+  //       },
+  //     });
 
-      if (checker) {
-        console.log('In if block', checker);
-        return {
-          message: 'Subscription created successfully.',
-          data: {
-            paymentRedirect: false,
-            subscriptionInfo: {
-              ...userSubscriptions,
-              subscriptionPlan: subscriptionPlan,
-            },
-          },
-        };
-      } else {
-        let paymentIntent: Stripe.PaymentIntent;
-        try {
-          paymentIntent = await this.stripe.paymentIntents.create({
-            amount: 35 * 100,
-            currency: 'usd',
-            metadata: {
-              type: 'default_verification',
-              userId: user?.id.toString(),
-              userSubscriptionId: `${userSubscriptions?.id}`,
-            },
-          });
-        } catch (error) {
-          await this.prismaService.userSubscriptions.update({
-            where: { id: userSubscriptions?.id },
-            data: {
-              deletedAt: new Date(),
-              paymentStatus: 'failed',
-              meta: {
-                reason: 'Payment intent creation failed.',
-              },
-            },
-          });
-          throwBadRequestErrorCheck(true, 'Subscription creation failed.');
-        }
+  //     throwBadRequestErrorCheck(
+  //       !userSubscriptions,
+  //       'Subscription not created.',
+  //     );
 
-        await this.prismaService.miscellaneousPayments.create({
-          data: {
-            userId: user?.id,
-            piId: paymentIntent?.id,
-            total: paymentIntent?.amount / 100,
-            currency: paymentIntent?.currency,
-            paid: false,
-            status: 'pending',
-            type: 'DEFAULT_VERIFICATION',
-            src: paymentIntent?.payment_method_types,
-          },
-        });
-        return {
-          message: 'Subscription created successfully.',
-          data: {
-            paymentRedirect: true,
-            clientSecret: paymentIntent?.client_secret,
-            subscriptionInfo: {
-              ...userSubscriptions,
-              subscriptionPlan: subscriptionPlan,
-            },
-          },
-        };
-      }
-    } else {
-      /**
-       * Check if user has an active subscription and the subscription plan is basic
-       * If yes, then cancel the basic subscription to upgrade to a paid subscription
-       */
+  //     if (checker) {
+  //       console.log('In if block', checker);
+  //       return {
+  //         message: 'Subscription created successfully.',
+  //         data: {
+  //           paymentRedirect: false,
+  //           subscriptionInfo: {
+  //             ...userSubscriptions,
+  //             subscriptionPlan: subscriptionPlan,
+  //           },
+  //         },
+  //       };
+  //     } else {
+  //       let paymentIntent: Stripe.PaymentIntent;
+  //       try {
+  //         paymentIntent = await this.stripe.paymentIntents.create({
+  //           amount: 35 * 100,
+  //           currency: 'usd',
+  //           metadata: {
+  //             type: 'default_verification',
+  //             userId: user?.id.toString(),
+  //             userSubscriptionId: `${userSubscriptions?.id}`,
+  //           },
+  //         });
+  //       } catch (error) {
+  //         await this.prismaService.userSubscriptions.update({
+  //           where: { id: userSubscriptions?.id },
+  //           data: {
+  //             deletedAt: new Date(),
+  //             paymentStatus: 'failed',
+  //             meta: {
+  //               reason: 'Payment intent creation failed.',
+  //             },
+  //           },
+  //         });
+  //         throwBadRequestErrorCheck(true, 'Subscription creation failed.');
+  //       }
 
-      const providerSubscriptionType =
-        subscriptionPlan?.slug == 'gold' ? 'GOLD' : 'PLATINUM';
-      if (
-        user?.userSubscriptions?.length &&
-        user?.userSubscriptions[0]?.subscriptionPlan?.slug == 'basic'
-      ) {
-        await this.prismaService.userSubscriptions.update({
-          where: { id: user?.userSubscriptions[0]?.id },
-          data: {
-            status: 'canceled',
-            currentPeriodEnd: new Date(),
-            deletedAt: new Date(),
-          },
-        });
-      }
+  //       await this.prismaService.miscellaneousPayments.create({
+  //         data: {
+  //           userId: user?.id,
+  //           piId: paymentIntent?.id,
+  //           total: paymentIntent?.amount / 100,
+  //           currency: paymentIntent?.currency,
+  //           paid: false,
+  //           status: 'pending',
+  //           type: 'DEFAULT_VERIFICATION',
+  //           src: paymentIntent?.payment_method_types,
+  //         },
+  //       });
+  //       return {
+  //         message: 'Subscription created successfully.',
+  //         data: {
+  //           paymentRedirect: true,
+  //           clientSecret: paymentIntent?.client_secret,
+  //           subscriptionInfo: {
+  //             ...userSubscriptions,
+  //             subscriptionPlan: subscriptionPlan,
+  //           },
+  //         },
+  //       };
+  //     }
+  //   } else {
+  //     /**
+  //      * Check if user has an active subscription and the subscription plan is basic
+  //      * If yes, then cancel the basic subscription to upgrade to a paid subscription
+  //      */
 
-      if (packageType == SubscriptionPackageTypeEnum['MONTHLY']) {
-        subTotal = subscriptionPlan?.monthlyRate;
-        cropRate =
-          subscriptionPlan?.monthlyCropRate ?? subscriptionPlan?.monthlyRate;
-        endDate = new Date();
-        endDate.setDate(endDate.getDate() + 30);
-      }
+  //     const providerSubscriptionType =
+  //       subscriptionPlan?.slug == 'gold' ? 'GOLD' : 'PLATINUM';
+  //     if (
+  //       user?.userSubscriptions?.length &&
+  //       user?.userSubscriptions[0]?.subscriptionPlan?.slug == 'basic'
+  //     ) {
+  //       await this.prismaService.userSubscriptions.update({
+  //         where: { id: user?.userSubscriptions[0]?.id },
+  //         data: {
+  //           status: 'canceled',
+  //           currentPeriodEnd: new Date(),
+  //           deletedAt: new Date(),
+  //         },
+  //       });
+  //     }
 
-      if (packageType == SubscriptionPackageTypeEnum['YEARLY']) {
-        subTotal = subscriptionPlan?.annualRate;
-        cropRate =
-          subscriptionPlan?.annualCropRate ?? subscriptionPlan?.annualRate;
-        endDate = new Date();
-        endDate.setDate(endDate.getDate() + 365);
-      }
+  //     if (packageType == SubscriptionPackageTypeEnum['MONTHLY']) {
+  //       subTotal = subscriptionPlan?.monthlyRate;
+  //       cropRate =
+  //         subscriptionPlan?.monthlyCropRate ?? subscriptionPlan?.monthlyRate;
+  //       endDate = new Date();
+  //       endDate.setDate(endDate.getDate() + 30);
+  //     }
 
-      const userSubscriptions =
-        await this.prismaService.userSubscriptions.create({
-          data: {
-            subscriptionPlanId: subscriptionPlan?.id,
-            userId: user?.id,
-            subTotal,
-            discount: subTotal - cropRate,
-            total: cropRate,
-            currency: 'usd',
-            currentPeriodStart: new Date(),
-            currentPeriodEnd: endDate,
-            status: 'incomplete',
-            paymentStatus: 'pending',
-            packageType: SubscriptionPackageTypeEnum[packageType],
-          },
-        });
+  //     if (packageType == SubscriptionPackageTypeEnum['YEARLY']) {
+  //       subTotal = subscriptionPlan?.annualRate;
+  //       cropRate =
+  //         subscriptionPlan?.annualCropRate ?? subscriptionPlan?.annualRate;
+  //       endDate = new Date();
+  //       endDate.setDate(endDate.getDate() + 365);
+  //     }
 
-      throwBadRequestErrorCheck(
-        !userSubscriptions,
-        'Subscription not created.',
-      );
+  //     const userSubscriptions =
+  //       await this.prismaService.userSubscriptions.create({
+  //         data: {
+  //           subscriptionPlanId: subscriptionPlan?.id,
+  //           userId: user?.id,
+  //           subTotal,
+  //           discount: subTotal - cropRate,
+  //           total: cropRate,
+  //           currency: 'usd',
+  //           currentPeriodStart: new Date(),
+  //           currentPeriodEnd: endDate,
+  //           status: 'incomplete',
+  //           paymentStatus: 'pending',
+  //           packageType: SubscriptionPackageTypeEnum[packageType],
+  //         },
+  //       });
 
-      let paymentIntent: Stripe.PaymentIntent;
-      try {
-        paymentIntent = await this.stripe.paymentIntents.create({
-          amount: userSubscriptions?.total * 100,
-          currency: 'usd',
-          metadata: {
-            type: 'subscription',
-            userSubscriptionId: `${userSubscriptions?.id}`,
-          },
-        });
-      } catch (error) {
-        await this.prismaService.userSubscriptions.update({
-          where: { id: userSubscriptions?.id },
-          data: {
-            deletedAt: new Date(),
-            paymentStatus: 'failed',
-            meta: {
-              reason: 'Payment intent creation failed.',
-            },
-          },
-        });
-        throwBadRequestErrorCheck(true, 'Subscription creation failed.');
-      }
+  //     throwBadRequestErrorCheck(
+  //       !userSubscriptions,
+  //       'Subscription not created.',
+  //     );
 
-      await this.prismaService.userSubscriptionInvoices.create({
-        data: {
-          userSubscriptionId: userSubscriptions?.id,
-          userId: user?.id,
-          piId: paymentIntent.id,
-          total: paymentIntent.amount / 100,
-          currency: paymentIntent.currency,
-          paid: false,
-          status: 'pending',
-          src: paymentIntent.payment_method_types,
-        },
-      });
+  //     let paymentIntent: Stripe.PaymentIntent;
+  //     try {
+  //       paymentIntent = await this.stripe.paymentIntents.create({
+  //         amount: userSubscriptions?.total * 100,
+  //         currency: 'usd',
+  //         metadata: {
+  //           type: 'subscription',
+  //           userSubscriptionId: `${userSubscriptions?.id}`,
+  //         },
+  //       });
+  //     } catch (error) {
+  //       await this.prismaService.userSubscriptions.update({
+  //         where: { id: userSubscriptions?.id },
+  //         data: {
+  //           deletedAt: new Date(),
+  //           paymentStatus: 'failed',
+  //           meta: {
+  //             reason: 'Payment intent creation failed.',
+  //           },
+  //         },
+  //       });
+  //       throwBadRequestErrorCheck(true, 'Subscription creation failed.');
+  //     }
 
-      await this.prismaService.provider.update({
-        where: { userId: user?.id },
-        data: {
-          subscriptionType:
-            ProviderSubscriptionTypeEnum[providerSubscriptionType],
-        },
-      });
+  //     await this.prismaService.userSubscriptionInvoices.create({
+  //       data: {
+  //         userSubscriptionId: userSubscriptions?.id,
+  //         userId: user?.id,
+  //         piId: paymentIntent.id,
+  //         total: paymentIntent.amount / 100,
+  //         currency: paymentIntent.currency,
+  //         paid: false,
+  //         status: 'pending',
+  //         src: paymentIntent.payment_method_types,
+  //       },
+  //     });
 
-      return {
-        message: 'Subscription created successfully.',
-        data: {
-          paymentRedirect: true,
-          clientSecret: paymentIntent?.client_secret,
-          subscriptionInfo: userSubscriptions,
-        },
-      };
-    }
-  }
+  //     await this.prismaService.provider.update({
+  //       where: { userId: user?.id },
+  //       data: {
+  //         subscriptionType:
+  //           ProviderSubscriptionTypeEnum[providerSubscriptionType],
+  //       },
+  //     });
+
+  //     return {
+  //       message: 'Subscription created successfully.',
+  //       data: {
+  //         paymentRedirect: true,
+  //         clientSecret: paymentIntent?.client_secret,
+  //         subscriptionInfo: userSubscriptions,
+  //       },
+  //     };
+  //   }
+  // }
 
   async getSubscriptionPlans() {
     const subscriptionplans =
@@ -362,9 +363,9 @@ export class SubscriptionsService {
             gt: new Date(),
           },
         },
-        include: {
-          subscriptionPlan: true,
-        },
+        // include: {
+        //   subscriptionPlan: true,
+        // },
       });
 
     throwBadRequestErrorCheck(
@@ -403,9 +404,9 @@ export class SubscriptionsService {
       where: {
         userId,
         paymentStatus: 'succeeded',
-        subscriptionPlanId: {
-          in: subsPlan,
-        },
+        // subscriptionPlanId: {
+        //   in: subsPlan,
+        // },
         userSubscriptionInvoices: {
           paid: true,
           status: 'succeeded',
