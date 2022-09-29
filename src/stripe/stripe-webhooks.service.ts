@@ -67,165 +67,165 @@ export class StripeWebhooksService {
     }
   }
 
-  async chargeSucceeded(charge: object) {
-    const {
-      id,
-      payment_intent,
-      paid,
-      status,
-      payment_method_details,
-      metadata,
-    } = Object(charge);
+  // async chargeSucceeded(charge: object) {
+  //   const {
+  //     id,
+  //     payment_intent,
+  //     paid,
+  //     status,
+  //     payment_method_details,
+  //     metadata,
+  //   } = Object(charge);
 
-    const { type, userId, userSubscriptionId } = metadata;
+  //   const { type, userId, userSubscriptionId } = metadata;
 
-    /**
-     * Commented out because we are not using Checkr
-     */
+  //   /**
+  //    * Commented out because we are not using Checkr
+  //    */
 
-    // const user = await this.prismaService.user.findFirst({
-    //   where: {
-    //     id: BigInt(userId),
-    //     deletedAt: null,
-    //   },
-    //   include: {
-    //     provider: {
-    //       include: {
-    //         providerCheckrCandidate: true,
-    //       },
-    //     },
-    //   },
-    // });
+  //   // const user = await this.prismaService.user.findFirst({
+  //   //   where: {
+  //   //     id: BigInt(userId),
+  //   //     deletedAt: null,
+  //   //   },
+  //   //   include: {
+  //   //     provider: {
+  //   //       include: {
+  //   //         providerCheckrCandidate: true,
+  //   //       },
+  //   //     },
+  //   //   },
+  //   // });
 
-    if (type === 'subscription') {
-      const userSubscriptionInvoices =
-        await this.prismaService.userSubscriptionInvoices.findFirst({
-          where: {
-            piId: payment_intent,
-          },
-          include: {
-            userSubscription: {
-              include: {
-                subscriptionPlan: true,
-              },
-            },
-          },
-        });
+  //   if (type === 'subscription') {
+  //     const userSubscriptionInvoices =
+  //       await this.prismaService.userSubscriptionInvoices.findFirst({
+  //         where: {
+  //           piId: payment_intent,
+  //         },
+  //         include: {
+  //           userSubscription: {
+  //             include: {
+  //               subscriptionPlan: true,
+  //             },
+  //           },
+  //         },
+  //       });
 
-      throwBadRequestErrorCheck(
-        !userSubscriptionInvoices,
-        'User subscription invoice not found',
-      );
+  //     throwBadRequestErrorCheck(
+  //       !userSubscriptionInvoices,
+  //       'User subscription invoice not found',
+  //     );
 
-      await this.prismaService.userSubscriptionInvoices.update({
-        where: {
-          id: userSubscriptionInvoices?.id,
-        },
-        data: {
-          chargeId: id,
-          status: status,
-          paid: paid,
-          src: payment_method_details,
-          billingDate: new Date(),
-        },
-      });
+  //     await this.prismaService.userSubscriptionInvoices.update({
+  //       where: {
+  //         id: userSubscriptionInvoices?.id,
+  //       },
+  //       data: {
+  //         chargeId: id,
+  //         status: status,
+  //         paid: paid,
+  //         src: payment_method_details,
+  //         billingDate: new Date(),
+  //       },
+  //     });
 
-      await this.prismaService.userSubscriptions.update({
-        where: {
-          id: userSubscriptionInvoices?.userSubscriptionId,
-        },
-        data: {
-          status: 'active',
-          paymentStatus: status,
-        },
-      });
+  //     await this.prismaService.userSubscriptions.update({
+  //       where: {
+  //         id: userSubscriptionInvoices?.userSubscriptionId,
+  //       },
+  //       data: {
+  //         status: 'active',
+  //         paymentStatus: status,
+  //       },
+  //     });
 
-      let providerSubscriptionType: ProviderSubscriptionTypeEnum;
+  //     let providerSubscriptionType: ProviderSubscriptionTypeEnum;
 
-      if (
-        userSubscriptionInvoices?.userSubscription?.subscriptionPlan?.slug ==
-        'platinum'
-      ) {
-        providerSubscriptionType = ProviderSubscriptionTypeEnum['PLATINUM'];
-      } else if (
-        userSubscriptionInvoices?.userSubscription?.subscriptionPlan?.slug ==
-        'gold'
-      ) {
-        providerSubscriptionType = ProviderSubscriptionTypeEnum['GOLD'];
-      }
+  //     if (
+  //       userSubscriptionInvoices?.userSubscription?.subscriptionPlan?.slug ==
+  //       'platinum'
+  //     ) {
+  //       providerSubscriptionType = ProviderSubscriptionTypeEnum['PLATINUM'];
+  //     } else if (
+  //       userSubscriptionInvoices?.userSubscription?.subscriptionPlan?.slug ==
+  //       'gold'
+  //     ) {
+  //       providerSubscriptionType = ProviderSubscriptionTypeEnum['GOLD'];
+  //     }
 
-      await this.prismaService.provider.update({
-        where: {
-          userId: userSubscriptionInvoices?.userSubscription?.userId,
-        },
-        data: {
-          subscriptionType: providerSubscriptionType,
-        },
-      });
+  //     await this.prismaService.provider.update({
+  //       where: {
+  //         userId: userSubscriptionInvoices?.userSubscription?.userId,
+  //       },
+  //       data: {
+  //         subscriptionType: providerSubscriptionType,
+  //       },
+  //     });
 
-      /**
-       * Commenting checkr code for now
-       */
-      // Initate background check for 1st time subscription
-      // if (!user?.provider?.providerCheckrCandidate &&
-      //   user?.provider?.backGroundCheck == 'NONE'
-      // ) {
-      //   this.checkrService.initiateBackgourndCheck(
-      //     user?.id,
-      //     providerSubscriptionType,
-      //   );
-      // }
+  //     /**
+  //      * Commenting checkr code for now
+  //      */
+  //     // Initate background check for 1st time subscription
+  //     // if (!user?.provider?.providerCheckrCandidate &&
+  //     //   user?.provider?.backGroundCheck == 'NONE'
+  //     // ) {
+  //     //   this.checkrService.initiateBackgourndCheck(
+  //     //     user?.id,
+  //     //     providerSubscriptionType,
+  //     //   );
+  //     // }
 
-      return {
-        message: 'Charge Succeeded',
-      };
-    } else if (type == 'default_verification') {
-      const userMiscellenous =
-        await this.prismaService.miscellaneousPayments.findFirst({
-          where: {
-            userId: BigInt(userId),
-            type: 'DEFAULT_VERIFICATION',
-            piId: payment_intent,
-          },
-        });
+  //     return {
+  //       message: 'Charge Succeeded',
+  //     };
+  //   } else if (type == 'default_verification') {
+  //     const userMiscellenous =
+  //       await this.prismaService.miscellaneousPayments.findFirst({
+  //         where: {
+  //           userId: BigInt(userId),
+  //           type: 'DEFAULT_VERIFICATION',
+  //           piId: payment_intent,
+  //         },
+  //       });
 
-      const updateUserMiscellenous =
-        await this.prismaService.miscellaneousPayments.update({
-          where: {
-            id: userMiscellenous?.id,
-          },
-          data: {
-            chargeId: id,
-            status: status,
-            paid: paid,
-            src: payment_method_details,
-            billingDate: new Date(),
-          },
-        });
+  //     const updateUserMiscellenous =
+  //       await this.prismaService.miscellaneousPayments.update({
+  //         where: {
+  //           id: userMiscellenous?.id,
+  //         },
+  //         data: {
+  //           chargeId: id,
+  //           status: status,
+  //           paid: paid,
+  //           src: payment_method_details,
+  //           billingDate: new Date(),
+  //         },
+  //       });
 
-      /**
-       * Commenting checkr code for now
-       */
+  //     /**
+  //      * Commenting checkr code for now
+  //      */
 
-      // await this.prismaService.provider.update({
-      //   where: {
-      //     userId: BigInt(userId),
-      //   },
-      //   data: {
-      //     backGroundCheck: 'BASIC',
-      //   },
-      // });
+  //     // await this.prismaService.provider.update({
+  //     //   where: {
+  //     //     userId: BigInt(userId),
+  //     //   },
+  //     //   data: {
+  //     //     backGroundCheck: 'BASIC',
+  //     //   },
+  //     // });
 
-      throwBadRequestErrorCheck(
-        !updateUserMiscellenous,
-        'Miscellenous payment can not be updated.',
-      );
+  //     throwBadRequestErrorCheck(
+  //       !updateUserMiscellenous,
+  //       'Miscellenous payment can not be updated.',
+  //     );
 
-      return {
-        message: 'Charge Succeeded',
-      };
-    }
-  }
+  //     return {
+  //       message: 'Charge Succeeded',
+  //     };
+  //   }
+  // }
 
   async paymentIntentCanceled(paymentIntent: object) {
     const { id, status, metadata } = Object(paymentIntent);
@@ -286,7 +286,7 @@ export class StripeWebhooksService {
     switch (event.type) {
       case 'charge.succeeded':
         console.log('Charge Succeeded');
-        return await this.chargeSucceeded(event.data.object);
+      // return await this.chargeSucceeded(event.data.object);
       case 'payment_intent.canceled':
         console.log('Payment Intent Canceled');
         return this.paymentIntentCanceled(event.data.object);
