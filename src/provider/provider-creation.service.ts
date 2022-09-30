@@ -43,6 +43,7 @@ export class ProviderCreationService {
      * /quiz/complete/:userId
      */
 
+    // return { body };
     const { user, opk } = await this.createUser(body);
     const { service, shortCode } = await this.createService(user);
     const { rate } = await this.createRate(service);
@@ -54,6 +55,7 @@ export class ProviderCreationService {
     const { providerDetails } = await this.createProviderDetail(provider);
     const { contact } = await this.addContact(user);
     const { emergency } = await this.addEmergencyContact(user);
+    const { updatedProvider } = await this.rest(provider);
 
     const data = {
       user,
@@ -66,6 +68,7 @@ export class ProviderCreationService {
       providerDetails,
       contact,
       emergency,
+      updatedProvider,
     };
 
     return { message: 'complete', data };
@@ -110,8 +113,8 @@ export class ProviderCreationService {
         opk,
         firstName,
         lastName,
-        password: hashedPassword,
         email,
+        password: hashedPassword,
         zipcode,
         loginProvider: LoginProviderEnum.LOCAL,
       },
@@ -332,7 +335,7 @@ export class ProviderCreationService {
     const contact = await this.prismaService.userContact.create({
       data: {
         userId: user.id,
-        phone: '+8801712345679',
+        phone: `+8801${customAlphabet('0123456789', 9)()}`,
         verifiedAt: new Date(Date.now()),
       },
     });
@@ -344,15 +347,15 @@ export class ProviderCreationService {
       data: {
         userId: user.id,
         email: 'emergency@contact.com',
-        name: 'Test man 0',
-        phone: '+8801700000000',
+        name: `Mr. ${customAlphabet('abcdefghijklmnopqrstuvwxyz', 6)()}`,
+        phone: `+8801${customAlphabet('0123456789', 9)()}`,
       },
     });
     return { emergency };
   }
 
   async rest(provider) {
-    const up = await this.prismaService.provider.update({
+    const updatedProvider = await this.prismaService.provider.update({
       where: {
         id: provider?.id,
       },
@@ -363,5 +366,6 @@ export class ProviderCreationService {
         photoSubmitted: true,
       },
     });
+    return { updatedProvider };
   }
 }
