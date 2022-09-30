@@ -408,8 +408,10 @@ export class SubscriptionsService {
         //   in: subsPlan,
         // },
         userSubscriptionInvoices: {
-          paid: true,
-          status: 'succeeded',
+          some: {
+            paid: true,
+            status: 'paid',
+          },
         },
       },
     });

@@ -1,10 +1,9 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
 import Stripe from 'stripe';
-// import { CheckrService } from '../checkr/checkr.service';
 import { throwBadRequestErrorCheck } from '../global/exceptions/error-logic';
 import { PrismaService } from '../prisma/prisma.service';
 import { SecretService } from '../secret/secret.service';
-import { ProviderSubscriptionTypeEnum } from '../subscriptions/entities/subscription.entity';
+import { ProviderBackgourndCheckEnum } from '../subscriptions/entities/subscription.entity';
 
 @Injectable()
 export class StripeWebhooksService {
@@ -12,7 +11,7 @@ export class StripeWebhooksService {
   private stripeWebhookSecret: string;
   constructor(
     private prismaService: PrismaService,
-    private secretService: SecretService, // private checkrService: CheckrService,
+    private secretService: SecretService,
   ) {
     this.stripe = new Stripe(this.secretService.getStripeCreds().secretKey, {
       apiVersion: this.secretService.getStripeCreds().apiVersion,
@@ -22,248 +21,256 @@ export class StripeWebhooksService {
       this.secretService.getStripeCreds().webhookSecret;
   }
 
-  async paymentIntentCreated(paymentIntent: object) {
-    const { id, amount, currency, payment_method_types, status, metadata } =
-      Object(paymentIntent);
-
-    const { type, userSubscriptionId } = metadata;
-
-    //payment intent created for subscription
-    if (type === 'subscription') {
-      const userSubscriptions =
-        await this.prismaService.userSubscriptions.findFirst({
-          where: {
-            id: BigInt(userSubscriptionId),
-            deletedAt: null,
-          },
-          include: {
-            userSubscriptionInvoices: true,
-          },
-        });
-
-      throwBadRequestErrorCheck(
-        !userSubscriptions,
-        'User subscription not found',
-      );
-      throwBadRequestErrorCheck(
-        userSubscriptions?.userSubscriptionInvoices?.piId != id,
-        'PI ID does not exists',
-      );
-
-      await this.prismaService.userSubscriptionInvoices.update({
-        where: {
-          id: userSubscriptions?.userSubscriptionInvoices?.id,
-        },
-        data: {
-          status: status,
-          total: amount / 100,
-          currency: currency,
-          src: payment_method_types,
+  async stripeInvoiceCreated(invoiceData: Stripe.Invoice) {
+    try {
+      const user = await this.prismaService.user.findFirst({
+        where: { email: invoiceData.customer_email, deletedAt: null },
+        include: {
+          userStripeCustomerAccount: true,
         },
       });
+
+      throwBadRequestErrorCheck(!user, 'User not found');
+
+      throwBadRequestErrorCheck(
+        user?.userStripeCustomerAccount?.stripeCustomerId !=
+          invoiceData.customer,
+        'Customer not found',
+      );
+
+      let tempSubId: string;
+
+      if (typeof invoiceData.subscription == 'string') {
+        tempSubId = invoiceData.subscription;
+      } else if (typeof invoiceData.subscription == 'object') {
+        tempSubId = invoiceData.subscription.id;
+      }
+
+      const subscription = await this.prismaService.userSubscriptions.findFirst(
+        {
+          where: {
+            stripeSubscriptionId: tempSubId,
+            deletedAt: null,
+          },
+        },
+      );
+
+      throwBadRequestErrorCheck(!subscription, 'Subscription not found');
+
+      const invoice = await this.prismaService.userSubscriptionInvoices.create({
+        data: {
+          userId: user?.id,
+          userSubscriptionId: subscription?.id,
+          stripeInvoiceId: invoiceData?.id,
+          customerStripeId: user?.userStripeCustomerAccount?.stripeCustomerId,
+          customerEmail: invoiceData?.customer_email,
+          customerName: invoiceData?.customer_name,
+          total: invoiceData?.total,
+          subTotal: invoiceData?.subtotal,
+          amountDue: invoiceData?.amount_due,
+          amountPaid: invoiceData?.amount_paid,
+          amountRemaining: invoiceData?.amount_remaining,
+          billingReason: invoiceData?.billing_reason,
+          currency: invoiceData?.currency,
+          paid: invoiceData?.paid,
+          status: invoiceData?.status,
+          src: Object(invoiceData),
+        },
+      });
+      throwBadRequestErrorCheck(!invoice, 'Invoice not created');
       return {
-        message: 'Payment Intent Created',
+        statusCode: HttpStatus.OK,
+        message: 'Successful!',
       };
+    } catch (e) {
+      throw e as Error;
     }
   }
 
-  // async chargeSucceeded(charge: object) {
-  //   const {
-  //     id,
-  //     payment_intent,
-  //     paid,
-  //     status,
-  //     payment_method_details,
-  //     metadata,
-  //   } = Object(charge);
+  async stripeInvoiceAlteration(invoiceData: Stripe.Invoice) {
+    try {
+      const user = await this.prismaService.user.findFirst({
+        where: { email: invoiceData.customer_email, deletedAt: null },
+        include: {
+          userStripeCustomerAccount: true,
+        },
+      });
 
-  //   const { type, userId, userSubscriptionId } = metadata;
+      throwBadRequestErrorCheck(!user, 'User not found');
 
-  //   /**
-  //    * Commented out because we are not using Checkr
-  //    */
+      throwBadRequestErrorCheck(
+        user?.userStripeCustomerAccount?.stripeCustomerId !=
+          invoiceData.customer,
+        'Customer not found',
+      );
 
-  //   // const user = await this.prismaService.user.findFirst({
-  //   //   where: {
-  //   //     id: BigInt(userId),
-  //   //     deletedAt: null,
-  //   //   },
-  //   //   include: {
-  //   //     provider: {
-  //   //       include: {
-  //   //         providerCheckrCandidate: true,
-  //   //       },
-  //   //     },
-  //   //   },
-  //   // });
+      let tempSubId: string;
 
-  //   if (type === 'subscription') {
-  //     const userSubscriptionInvoices =
-  //       await this.prismaService.userSubscriptionInvoices.findFirst({
-  //         where: {
-  //           piId: payment_intent,
-  //         },
-  //         include: {
-  //           userSubscription: {
-  //             include: {
-  //               subscriptionPlan: true,
-  //             },
-  //           },
-  //         },
-  //       });
+      if (typeof invoiceData.subscription == 'string') {
+        tempSubId = invoiceData.subscription;
+      } else if (typeof invoiceData.subscription == 'object') {
+        tempSubId = invoiceData.subscription.id;
+      }
 
-  //     throwBadRequestErrorCheck(
-  //       !userSubscriptionInvoices,
-  //       'User subscription invoice not found',
-  //     );
+      const subscription =
+        await this.prismaService.userSubscriptions.findUnique({
+          where: { stripeSubscriptionId: tempSubId },
+        });
+      throwBadRequestErrorCheck(!subscription, 'Subscription not found');
 
-  //     await this.prismaService.userSubscriptionInvoices.update({
-  //       where: {
-  //         id: userSubscriptionInvoices?.id,
-  //       },
-  //       data: {
-  //         chargeId: id,
-  //         status: status,
-  //         paid: paid,
-  //         src: payment_method_details,
-  //         billingDate: new Date(),
-  //       },
-  //     });
+      const invoice = await this.prismaService.userSubscriptionInvoices.update({
+        where: { stripeInvoiceId: invoiceData?.id },
+        data: {
+          customerStripeId: user?.userStripeCustomerAccount?.stripeCustomerId,
+          customerEmail: invoiceData?.customer_email,
+          customerName: invoiceData?.customer_name,
+          total: invoiceData?.total,
+          subTotal: invoiceData?.subtotal,
+          amountDue: invoiceData?.amount_due,
+          amountPaid: invoiceData?.amount_paid,
+          amountRemaining: invoiceData?.amount_remaining,
+          billingReason: invoiceData?.billing_reason,
+          currency: invoiceData?.currency,
+          paid: invoiceData?.paid,
+          status: invoiceData?.status,
+          billingDate: invoiceData?.paid ? new Date() : null,
+          invoicePdf: invoiceData?.invoice_pdf ?? null,
+          src: Object(invoiceData),
+        },
+      });
+      throwBadRequestErrorCheck(!invoice, 'Invoice not updated');
+      return {
+        statusCode: HttpStatus.OK,
+        message: 'Successful!',
+      };
+    } catch (e) {
+      throw e as Error;
+    }
+  }
 
-  //     await this.prismaService.userSubscriptions.update({
-  //       where: {
-  //         id: userSubscriptionInvoices?.userSubscriptionId,
-  //       },
-  //       data: {
-  //         status: 'active',
-  //         paymentStatus: status,
-  //       },
-  //     });
+  async customerSubscriptionUpdated(subData: Stripe.Subscription) {
+    try {
+      const {
+        id,
+        current_period_start,
+        current_period_end,
+        customer,
+        status,
+        latest_invoice,
+      } = subData;
 
-  //     let providerSubscriptionType: ProviderSubscriptionTypeEnum;
+      const customerSubs =
+        await this.prismaService.userSubscriptions.findUnique({
+          where: { stripeSubscriptionId: id },
+        });
+      throwBadRequestErrorCheck(!customerSubs, 'Subscription not found');
 
-  //     if (
-  //       userSubscriptionInvoices?.userSubscription?.subscriptionPlan?.slug ==
-  //       'platinum'
-  //     ) {
-  //       providerSubscriptionType = ProviderSubscriptionTypeEnum['PLATINUM'];
-  //     } else if (
-  //       userSubscriptionInvoices?.userSubscription?.subscriptionPlan?.slug ==
-  //       'gold'
-  //     ) {
-  //       providerSubscriptionType = ProviderSubscriptionTypeEnum['GOLD'];
-  //     }
+      let tempCustomerId: string;
 
-  //     await this.prismaService.provider.update({
-  //       where: {
-  //         userId: userSubscriptionInvoices?.userSubscription?.userId,
-  //       },
-  //       data: {
-  //         subscriptionType: providerSubscriptionType,
-  //       },
-  //     });
+      if (typeof customer == 'string') {
+        tempCustomerId = customer;
+      } else if (typeof customer == 'object') {
+        tempCustomerId = customer.id;
+      }
 
-  //     /**
-  //      * Commenting checkr code for now
-  //      */
-  //     // Initate background check for 1st time subscription
-  //     // if (!user?.provider?.providerCheckrCandidate &&
-  //     //   user?.provider?.backGroundCheck == 'NONE'
-  //     // ) {
-  //     //   this.checkrService.initiateBackgourndCheck(
-  //     //     user?.id,
-  //     //     providerSubscriptionType,
-  //     //   );
-  //     // }
-
-  //     return {
-  //       message: 'Charge Succeeded',
-  //     };
-  //   } else if (type == 'default_verification') {
-  //     const userMiscellenous =
-  //       await this.prismaService.miscellaneousPayments.findFirst({
-  //         where: {
-  //           userId: BigInt(userId),
-  //           type: 'DEFAULT_VERIFICATION',
-  //           piId: payment_intent,
-  //         },
-  //       });
-
-  //     const updateUserMiscellenous =
-  //       await this.prismaService.miscellaneousPayments.update({
-  //         where: {
-  //           id: userMiscellenous?.id,
-  //         },
-  //         data: {
-  //           chargeId: id,
-  //           status: status,
-  //           paid: paid,
-  //           src: payment_method_details,
-  //           billingDate: new Date(),
-  //         },
-  //       });
-
-  //     /**
-  //      * Commenting checkr code for now
-  //      */
-
-  //     // await this.prismaService.provider.update({
-  //     //   where: {
-  //     //     userId: BigInt(userId),
-  //     //   },
-  //     //   data: {
-  //     //     backGroundCheck: 'BASIC',
-  //     //   },
-  //     // });
-
-  //     throwBadRequestErrorCheck(
-  //       !updateUserMiscellenous,
-  //       'Miscellenous payment can not be updated.',
-  //     );
-
-  //     return {
-  //       message: 'Charge Succeeded',
-  //     };
-  //   }
-  // }
-
-  async paymentIntentCanceled(paymentIntent: object) {
-    const { id, status, metadata } = Object(paymentIntent);
-
-    const { type, userSubscriptionId } = metadata;
-
-    if (type === 'subscription') {
-      const userSubscriptions =
-        await this.prismaService.userSubscriptions.findFirst({
+      const userStripe =
+        await this.prismaService.userStripeCustomerAccount.findFirst({
           where: {
-            id: BigInt(userSubscriptionId),
-            deletedAt: null,
+            userId: customerSubs?.userId,
+            stripeCustomerId: tempCustomerId,
           },
-          include: {
-            userSubscriptionInvoices: true,
+        });
+      throwBadRequestErrorCheck(!userStripe, 'Customer not found');
+
+      let tempLatestInvoiceStatus: string;
+      if (typeof latest_invoice == 'string') {
+        const invoice = await this.stripe.invoices.retrieve(latest_invoice);
+        tempLatestInvoiceStatus = invoice.status;
+      } else {
+        tempLatestInvoiceStatus = latest_invoice.status;
+      }
+
+      await this.prismaService.userSubscriptions.update({
+        where: { stripeSubscriptionId: id },
+        data: {
+          currentPeriodStart: new Date(current_period_start * 1000),
+          currentPeriodEnd: new Date(current_period_end * 1000),
+          status: status,
+          paymentStatus: tempLatestInvoiceStatus,
+          src: Object(subData),
+        },
+      });
+      return {
+        statusCode: HttpStatus.OK,
+        data: 'Successful',
+      };
+    } catch (e) {
+      throw e as Error;
+    }
+  }
+
+  async chargeSucceeded(charge: Stripe.Charge) {
+    const {
+      id,
+      payment_intent,
+      paid,
+      status,
+      payment_method_details,
+      metadata,
+    } = Object(charge);
+
+    const { type, userId, userSubscriptionId } = metadata;
+
+    const provider = await this.prismaService.provider.findFirst({
+      where: {
+        userId: BigInt(userId),
+        deletedAt: null,
+      },
+    });
+
+    if (type == 'default_verification') {
+      const userMiscellenous =
+        await this.prismaService.miscellaneousPayments.findFirst({
+          where: {
+            userId: BigInt(userId),
+            type: 'DEFAULT_VERIFICATION',
+            piId: payment_intent,
+          },
+        });
+
+      const updateUserMiscellenous =
+        await this.prismaService.miscellaneousPayments.update({
+          where: {
+            id: userMiscellenous?.id,
+          },
+          data: {
+            chargeId: id,
+            status: status,
+            paid: paid,
+            src: payment_method_details,
+            billingDate: new Date(),
+            meta: {
+              userSubscriptionId: userSubscriptionId,
+            },
           },
         });
 
       throwBadRequestErrorCheck(
-        !userSubscriptions,
-        'User subscription not found',
-      );
-      throwBadRequestErrorCheck(
-        userSubscriptions?.userSubscriptionInvoices?.piId != id,
-        'PI ID does not exists',
+        !updateUserMiscellenous,
+        'Miscellenous payment can not be updated.',
       );
 
-      await this.prismaService.userSubscriptionInvoices.update({
+      await this.prismaService.provider.update({
         where: {
-          id: userSubscriptions?.userSubscriptionInvoices?.id,
+          id: provider?.id,
         },
         data: {
-          status: status,
-          billingDate: null,
+          backGroundCheck: ProviderBackgourndCheckEnum.BASIC,
         },
       });
+
       return {
-        message: 'Payment Intent cancelled',
+        message: 'Charge Succeeded',
       };
     }
   }
@@ -286,13 +293,7 @@ export class StripeWebhooksService {
     switch (event.type) {
       case 'charge.succeeded':
         console.log('Charge Succeeded');
-      // return await this.chargeSucceeded(event.data.object);
-      case 'payment_intent.canceled':
-        console.log('Payment Intent Canceled');
-        return this.paymentIntentCanceled(event.data.object);
-      case 'payment_intent.created':
-        console.log('Payment Intent Created');
-        return this.paymentIntentCreated(event.data.object);
+        return await this.chargeSucceeded(event.data.object);
       default:
         return {
           statusCode: HttpStatus.BAD_REQUEST,
