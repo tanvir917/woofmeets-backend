@@ -191,6 +191,10 @@ export class EnvironmentVariable {
   @IsNotEmpty()
   @IsString()
   MESSAGE_MICROSERVICE_CHANNEL: string;
+
+  @IsNotEmpty()
+  @IsNumber()
+  APPOINTMENT_DISTANCE_LIMIT: number;
 }
 
 export function validateEnvironmentVariables(

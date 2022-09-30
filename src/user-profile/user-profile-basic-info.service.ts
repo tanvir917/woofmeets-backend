@@ -36,6 +36,7 @@ export class UserProfileBasicInfoService {
       where: { id: userId, deletedAt: null },
       include: {
         basicInfo: true,
+        provider: true,
       },
     });
 
@@ -52,38 +53,49 @@ export class UserProfileBasicInfoService {
 
     throwBadRequestErrorCheck(!country, 'Country not found');
 
-    const basicInfo = await this.prismaService.basicInfo.upsert({
-      where: { userId: userId },
-      update: {
-        dob,
-        addressLine1,
-        addressLine2,
-        street,
-        city,
-        state,
-        countryId: country?.id,
-        zipCode,
-        latitude,
-        longitude,
-        detailsSubmitted: true,
-        meta: Object(meta),
-      },
-      create: {
-        userId: userId,
-        dob,
-        addressLine1,
-        addressLine2,
-        street,
-        city,
-        state,
-        countryId: country?.id,
-        zipCode,
-        latitude,
-        longitude,
-        detailsSubmitted: true,
-        meta: Object(meta),
-      },
-    });
+    const [basicInfo] = await this.prismaService.$transaction([
+      this.prismaService.basicInfo.upsert({
+        where: { userId: userId },
+        update: {
+          dob,
+          addressLine1,
+          addressLine2,
+          street,
+          city,
+          state,
+          countryId: country?.id,
+          zipCode,
+          latitude,
+          longitude,
+          detailsSubmitted: true,
+          meta: Object(meta),
+        },
+        create: {
+          userId: userId,
+          dob,
+          addressLine1,
+          addressLine2,
+          street,
+          city,
+          state,
+          countryId: country?.id,
+          zipCode,
+          latitude,
+          longitude,
+          detailsSubmitted: true,
+          meta: Object(meta),
+        },
+      }),
+      this.prismaService.provider.update({
+        where: {
+          id: user?.provider?.id,
+        },
+        data: {
+          latitude,
+          longitude,
+        },
+      }),
+    ]);
 
     throwBadRequestErrorCheck(!basicInfo, 'Basic info can not be created');
 
@@ -150,6 +162,7 @@ export class UserProfileBasicInfoService {
       select: {
         id: true,
         basicInfo: true,
+        provider: true,
       },
     });
 
@@ -157,23 +170,34 @@ export class UserProfileBasicInfoService {
 
     throwBadRequestErrorCheck(!user?.basicInfo, 'User has no basic info');
 
-    const basicInfo = await this.prismaService.basicInfo.update({
-      where: { id: user?.basicInfo?.id },
-      data: {
-        dob,
-        addressLine1,
-        addressLine2,
-        street,
-        city,
-        state,
-        countryId,
-        zipCode,
-        latitude,
-        longitude,
-        meta: Object(meta),
-        detailsSubmitted: true,
-      },
-    });
+    const [basicInfo] = await this.prismaService.$transaction([
+      this.prismaService.basicInfo.update({
+        where: { id: user?.basicInfo?.id },
+        data: {
+          dob,
+          addressLine1,
+          addressLine2,
+          street,
+          city,
+          state,
+          countryId,
+          zipCode,
+          latitude,
+          longitude,
+          meta: Object(meta),
+          detailsSubmitted: true,
+        },
+      }),
+      this.prismaService.provider.update({
+        where: {
+          id: user?.provider?.id,
+        },
+        data: {
+          latitude,
+          longitude,
+        },
+      }),
+    ]);
 
     throwBadRequestErrorCheck(!basicInfo, 'Basic info can not be updated');
 

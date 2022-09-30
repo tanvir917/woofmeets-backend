@@ -8,7 +8,10 @@ import {
 } from 'src/global/exceptions/error-logic';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { ProviderServicesService } from 'src/provider-services/provider-services.service';
+import { SecretService } from 'src/secret/secret.service';
+import { latlongDistanceCalculator } from 'src/utils/tools';
 import { CreateAppointmentProposalDto } from '../dto/create-appointment-proposal.dto';
+import { PetsCheckDto } from '../dto/pet-check.dto';
 import { UpdateAppointmentProposalDto } from '../dto/update-appointment-proposal.dto';
 import { AppointmentStatusEnum } from '../helpers/appointment-enum';
 
@@ -18,6 +21,7 @@ export class AppointmentProposalService {
     private readonly prismaService: PrismaService,
     private readonly commonService: CommonService,
     private readonly providerServicesService: ProviderServicesService,
+    private readonly secretService: SecretService,
     private readonly logger: PinoLogger,
   ) {
     this.logger.setContext(AppointmentProposalService.name);
@@ -34,7 +38,7 @@ export class AppointmentProposalService {
       where: { opk, deletedAt: null },
     });
 
-    throwBadRequestErrorCheck(!user, 'Provider not found.');
+    throwNotFoundErrorCheck(!user, 'Provider not found.');
 
     const providerService = await this.providerServicesService.findAll(
       user?.id,
@@ -51,7 +55,7 @@ export class AppointmentProposalService {
       },
     });
 
-    throwBadRequestErrorCheck(!appointment, 'Appointment not found.');
+    throwNotFoundErrorCheck(!appointment, 'Appointment not found.');
 
     const providerServiceDetails =
       await this.prismaService.providerServices.findFirst({
@@ -79,12 +83,167 @@ export class AppointmentProposalService {
     };
   }
 
+  async appointmentDistanceCheck(userId: bigint, providerId: bigint) {
+    const [user, provider] = await this.prismaService.$transaction([
+      this.prismaService.user.findFirst({
+        where: { id: userId, deletedAt: null },
+        select: {
+          basicInfo: {
+            select: {
+              latitude: true,
+              longitude: true,
+            },
+          },
+        },
+      }),
+      this.prismaService.provider.findFirst({
+        where: {
+          id: providerId,
+          deletedAt: null,
+        },
+        select: {
+          user: {
+            select: {
+              basicInfo: {
+                select: {
+                  latitude: true,
+                  longitude: true,
+                },
+              },
+            },
+          },
+        },
+      }),
+    ]);
+
+    throwNotFoundErrorCheck(!user, 'User not found.');
+    throwNotFoundErrorCheck(!provider, 'Provider not found');
+
+    const distance =
+      user?.basicInfo?.latitude &&
+      user?.basicInfo?.longitude &&
+      provider?.user?.basicInfo?.latitude &&
+      provider?.user?.basicInfo?.longitude
+        ? latlongDistanceCalculator(
+            provider?.user?.basicInfo?.latitude,
+            provider?.user?.basicInfo?.longitude,
+            user?.basicInfo?.latitude,
+            user?.basicInfo?.longitude,
+          )
+        : null;
+
+    return {
+      message: 'Appointment distance calculated successfully.',
+      data: {
+        distance,
+        crossLimit:
+          distance >= this.secretService.getAppointmentCreds().distanceLimit
+            ? true
+            : false,
+      },
+    };
+  }
+
+  async appointmentsPetsCheck(petsCheckDto: PetsCheckDto) {
+    const { providerId, petsId } = petsCheckDto;
+    const [provider, pets] = await this.prismaService.$transaction([
+      this.prismaService.provider.findFirst({
+        where: {
+          id: providerId,
+          deletedAt: null,
+        },
+        select: {
+          ServicePetPreference: true,
+        },
+      }),
+      this.prismaService.pet.findMany({
+        where: {
+          id: {
+            in: petsId,
+          },
+          deletedAt: null,
+        },
+        select: {
+          type: true,
+          weight: true,
+        },
+      }),
+    ]);
+
+    throwNotFoundErrorCheck(!pets, 'Pets not found.');
+
+    let catCheck = true;
+    let dogCheck = true;
+
+    for (let i = 0; i < pets?.length; i++) {
+      if (pets[i].type == 'CAT') {
+        catCheck = provider?.ServicePetPreference?.cat;
+      } else if (dogCheck == true) {
+        if (pets[i]?.weight >= 0 && pets[i].weight <= 15) {
+          dogCheck = provider?.ServicePetPreference?.smallDog;
+        } else if (pets[i]?.weight >= 16 && pets[i].weight <= 40) {
+          dogCheck = provider?.ServicePetPreference?.mediumDog;
+        } else if (pets[i]?.weight >= 41 && pets[i].weight <= 100) {
+          dogCheck = provider?.ServicePetPreference?.largeDog;
+        } else if (pets[i]?.weight > 100) {
+          dogCheck = provider?.ServicePetPreference?.giantDog;
+        }
+      }
+    }
+
+    return {
+      message: 'Appointment pets checked successfully.',
+      data: {
+        catCheck,
+        dogCheck,
+      },
+    };
+  }
+
+  async getAllAppointments(userId: bigint) {
+    const user = await this.prismaService.user.findFirst({
+      where: { id: userId, deletedAt: null },
+      include: {
+        provider: true,
+      },
+    });
+
+    throwNotFoundErrorCheck(!user, 'User not found.');
+
+    const appointments = await this.prismaService.appointment.findMany({
+      where: {
+        OR: [{ userId }, { providerId: user?.provider?.id }],
+        deletedAt: null,
+      },
+      include: {
+        appointmentProposal: {
+          where: {
+            deletedAt: null,
+          },
+          orderBy: {
+            createdAt: 'desc',
+          },
+        },
+      },
+    });
+
+    throwNotFoundErrorCheck(
+      appointments?.length <= 0,
+      'Appointments not found.',
+    );
+
+    return {
+      message: 'Appointments found successfully',
+      data: appointments,
+    };
+  }
+
   async getLatestAppointmentProposal(userId: bigint, opk: string) {
     const user = await this.prismaService.user.findFirst({
       where: { id: userId, deletedAt: null },
     });
 
-    throwBadRequestErrorCheck(!user, 'User not found.');
+    throwNotFoundErrorCheck(!user, 'User not found.');
 
     const appointment = await this.prismaService.appointment.findFirst({
       where: {

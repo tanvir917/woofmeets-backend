@@ -9,6 +9,7 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { SecretService } from 'src/secret/secret.service';
 import { TransformInterceptor } from 'src/transform.interceptor';
 import { AuthService } from './auth.service';
 import { CheckOtpForgetPasswordDto } from './dto/forget.otp.dto';
@@ -27,6 +28,7 @@ import { PasswordService } from './password.service';
 export class AuthController {
   constructor(
     private readonly authService: AuthService,
+    private readonly secretService: SecretService,
     private readonly passwordService: PasswordService,
   ) {}
 
@@ -100,7 +102,12 @@ export class AuthController {
 
   @Get('/logout')
   async logout(@Response({ passthrough: true }) res: any) {
-    res.clearCookie('token');
+    res.cookie('token', '', {
+      maxAge: 0,
+      httpOnly: true,
+      domain: this.secretService.getCookieCreds().cookieDomain,
+      secure: true,
+    });
 
     return {
       message: 'Log out successful.',
