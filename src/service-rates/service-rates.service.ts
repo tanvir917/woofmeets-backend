@@ -171,4 +171,21 @@ export class ServiceRatesService {
       message: 'Service rate deleted successfully.',
     };
   }
+
+  async getServiceRateTypes() {
+    const data = await this.prismaService.serviceRateType.findMany({
+      where: {
+        active: true,
+        deletedAt: null,
+      },
+      orderBy: {
+        id: 'asc',
+      },
+    });
+
+    return {
+      message: 'Service rate type found successfully.',
+      data,
+    };
+  }
 }
