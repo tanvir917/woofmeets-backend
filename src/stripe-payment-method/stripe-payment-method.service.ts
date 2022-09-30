@@ -492,7 +492,7 @@ export class StripePaymentMethodService {
           },
         });
 
-        if (otherCard || otherCard?.length) {
+        if (otherCard?.length) {
           await this.stripe.customers.update(otherCard[0]?.stripeCustomerId, {
             default_source: otherCard[0]?.stripeCardId,
           });
