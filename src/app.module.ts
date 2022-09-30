@@ -81,7 +81,7 @@ import { MessagingModule } from './messaging/messaging.module';
     CheckrModule,
     ZoomModule,
     AppointmentModule,
-    MessagingModule,
+    // MessagingModule,
   ],
   controllers: [AppController],
   providers: [AppService, SecretService, PrismaService, SmsService],
