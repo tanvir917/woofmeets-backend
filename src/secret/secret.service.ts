@@ -100,6 +100,14 @@ export class SecretService {
       MESSAGE_MICROSERVICE_CHANNEL: this.configService.get<string>(
         'MESSAGE_MICROSERVICE_CHANNEL',
       ),
+
+      /**
+       * APPOINTMENT CHECK
+       */
+
+      APPOINTMENT_DISTANCE_LIMIT: this.configService.get<number>(
+        'APPOINTMENT_DISTANCE_LIMIT',
+      ),
     };
 
     this.#environment = plainToInstance(EnvironmentVariable, env);
@@ -210,6 +218,12 @@ export class SecretService {
       secretKey: this.#environment.STRIPE_SECRET_KEY,
       apiVersion: this.#environment.STRIPE_API_VERSION,
       webhookSecret: this.#environment.STRIPE_WEBHOOK_SECRET,
+    };
+  }
+
+  getAppointmentCreds() {
+    return {
+      distanceLimit: this.#environment.APPOINTMENT_DISTANCE_LIMIT,
     };
   }
 

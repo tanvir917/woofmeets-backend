@@ -12,6 +12,7 @@ import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 import { throwBadRequestErrorCheck } from 'src/global/exceptions/error-logic';
 import { CreateAppointmentProposalDto } from './dto/create-appointment-proposal.dto';
+import { PetsCheckDto } from './dto/pet-check.dto';
 import { UpdateAppointmentProposalDto } from './dto/update-appointment-proposal.dto';
 import { AppointmentProposalService } from './services/appointment-proposal.service';
 
@@ -38,6 +39,44 @@ export class AppointmentController {
     return await this.appointmentProposalService.getProviderServiceAdditionalRates(
       appointmentOpk,
     );
+  }
+
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard)
+  @Get('/distance-check/:userId/:providerId')
+  async appointmentDistanceCheck(
+    @Param('userId') userId: string,
+    @Param('providerId') providerId: string,
+  ) {
+    throwBadRequestErrorCheck(
+      !userId || userId == undefined,
+      'Invalid user id. Please, try again after sometime with valid user id.',
+    );
+    throwBadRequestErrorCheck(
+      !providerId || providerId == undefined,
+      'Invalid provider id. Please, try again after sometime with valid provider id.',
+    );
+    return await this.appointmentProposalService.appointmentDistanceCheck(
+      BigInt(userId),
+      BigInt(providerId),
+    );
+  }
+
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard)
+  @Post('/pet-check')
+  async appointmentPetCheck(@Body() petsCheckDto: PetsCheckDto) {
+    return await this.appointmentProposalService.appointmentsPetsCheck(
+      petsCheckDto,
+    );
+  }
+
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard)
+  @Get('/inbox')
+  async getAllAppointments(@Request() req: any) {
+    const userId = BigInt(req.user?.id) ?? BigInt(-1);
+    return await this.appointmentProposalService.getAllAppointments(userId);
   }
 
   @ApiBearerAuth('access-token')
