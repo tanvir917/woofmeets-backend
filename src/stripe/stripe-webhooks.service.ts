@@ -65,11 +65,11 @@ export class StripeWebhooksService {
           customerStripeId: user?.userStripeCustomerAccount?.stripeCustomerId,
           customerEmail: invoiceData?.customer_email,
           customerName: invoiceData?.customer_name,
-          total: invoiceData?.total,
-          subTotal: invoiceData?.subtotal,
-          amountDue: invoiceData?.amount_due,
-          amountPaid: invoiceData?.amount_paid,
-          amountRemaining: invoiceData?.amount_remaining,
+          total: invoiceData?.total / 100,
+          subTotal: invoiceData?.subtotal / 100,
+          amountDue: invoiceData?.amount_due / 100,
+          amountPaid: invoiceData?.amount_paid / 100,
+          amountRemaining: invoiceData?.amount_remaining / 100,
           billingReason: invoiceData?.billing_reason,
           currency: invoiceData?.currency,
           paid: invoiceData?.paid,
@@ -106,6 +106,10 @@ export class StripeWebhooksService {
 
       let tempSubId: string;
 
+      /**
+       * TODO: Check if invoice finalize doesn't have subscription id
+       */
+
       if (typeof invoiceData.subscription == 'string') {
         tempSubId = invoiceData.subscription;
       } else if (typeof invoiceData.subscription == 'object') {
@@ -124,11 +128,11 @@ export class StripeWebhooksService {
           customerStripeId: user?.userStripeCustomerAccount?.stripeCustomerId,
           customerEmail: invoiceData?.customer_email,
           customerName: invoiceData?.customer_name,
-          total: invoiceData?.total,
-          subTotal: invoiceData?.subtotal,
-          amountDue: invoiceData?.amount_due,
-          amountPaid: invoiceData?.amount_paid,
-          amountRemaining: invoiceData?.amount_remaining,
+          total: invoiceData?.total / 100,
+          subTotal: invoiceData?.subtotal / 100,
+          amountDue: invoiceData?.amount_due / 100,
+          amountPaid: invoiceData?.amount_paid / 100,
+          amountRemaining: invoiceData?.amount_remaining / 100,
           billingReason: invoiceData?.billing_reason,
           currency: invoiceData?.currency,
           paid: invoiceData?.paid,
@@ -219,16 +223,15 @@ export class StripeWebhooksService {
       metadata,
     } = Object(charge);
 
-    const { type, userId, userSubscriptionId } = metadata;
-
-    const provider = await this.prismaService.provider.findFirst({
-      where: {
-        userId: BigInt(userId),
-        deletedAt: null,
-      },
-    });
+    const { type, userId } = metadata;
 
     if (type == 'default_verification') {
+      const provider = await this.prismaService.provider.findFirst({
+        where: {
+          userId: BigInt(userId),
+          deletedAt: null,
+        },
+      });
       const userMiscellenous =
         await this.prismaService.miscellaneousPayments.findFirst({
           where: {
@@ -249,9 +252,6 @@ export class StripeWebhooksService {
             paid: paid,
             src: payment_method_details,
             billingDate: new Date(),
-            meta: {
-              userSubscriptionId: userSubscriptionId,
-            },
           },
         });
 
@@ -271,6 +271,10 @@ export class StripeWebhooksService {
 
       return {
         message: 'Charge Succeeded',
+      };
+    } else {
+      return {
+        message: 'Charge Succeeded for other methods',
       };
     }
   }
@@ -294,6 +298,18 @@ export class StripeWebhooksService {
       case 'charge.succeeded':
         console.log('Charge Succeeded');
         return await this.chargeSucceeded(event.data.object);
+      case 'customer.subscription.updated':
+        console.log('Customer Subscription Updated');
+        return await this.customerSubscriptionUpdated(event.data.object);
+      case 'invoice.payment_succeeded':
+        console.log('Invoice Payment Succeeded');
+        return await this.stripeInvoiceAlteration(event.data.object);
+      case 'invoice.finalized':
+        console.log('Invoice Finalized');
+        return await this.stripeInvoiceAlteration(event.data.object);
+      case 'invoice.created':
+        console.log('Invoice Created');
+        return await this.stripeInvoiceCreated(event.data.object);
       default:
         return {
           statusCode: HttpStatus.BAD_REQUEST,
