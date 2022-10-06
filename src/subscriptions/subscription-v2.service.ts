@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { HttpStatus, Injectable } from '@nestjs/common';
 import Stripe from 'stripe';
 import { throwBadRequestErrorCheck } from '../global/exceptions/error-logic';
 import { PrismaService } from '../prisma/prisma.service';
@@ -75,6 +75,52 @@ export class SubscriptionV2Service {
     }
   }
 
+  async checkIfNeedToPayBasicPayment(userId: bigint) {
+    const user = await this.prismaService.user.findFirst({
+      where: {
+        id: userId,
+        deletedAt: null,
+      },
+      include: {
+        provider: true,
+        userStripeCustomerAccount: true,
+        userStripeCard: {
+          where: {
+            deletedAt: null,
+            isDefault: true,
+          },
+        },
+      },
+    });
+
+    throwBadRequestErrorCheck(!user, 'User not found');
+
+    throwBadRequestErrorCheck(!user.provider, 'User is not a provider');
+
+    throwBadRequestErrorCheck(
+      !user?.userStripeCard?.length,
+      'No card found. Please add a card.',
+    );
+
+    const paymentChecker = await this.checkUserSubsOrSignupPayment(user?.id);
+
+    if (paymentChecker) {
+      return {
+        message: 'User does not need to pay',
+        data: {
+          needPayment: false,
+        },
+      };
+    } else {
+      return {
+        message: 'User needs to pay the one time fee.',
+        data: {
+          needPayment: true,
+        },
+      };
+    }
+  }
+
   async payBasicPayment(userId: bigint) {
     const user = await this.prismaService.user.findFirst({
       where: {
@@ -83,6 +129,13 @@ export class SubscriptionV2Service {
       },
       include: {
         provider: true,
+        userStripeCustomerAccount: true,
+        userStripeCard: {
+          where: {
+            deletedAt: null,
+            isDefault: true,
+          },
+        },
       },
     });
 
@@ -90,15 +143,17 @@ export class SubscriptionV2Service {
 
     throwBadRequestErrorCheck(!user.provider, 'User is not a provider');
 
+    throwBadRequestErrorCheck(
+      !user?.userStripeCard?.length,
+      'No card found. Please add a card.',
+    );
+
     const paymentChecker = await this.checkUserSubsOrSignupPayment(user?.id);
 
-    console.log('payment checker', paymentChecker);
     if (paymentChecker) {
       return {
+        statusCode: HttpStatus.BAD_REQUEST,
         message: 'User does not need to pay',
-        data: {
-          PaymentRedirect: false,
-        },
       };
     } else {
       await this.prismaService.miscellaneousPayments.updateMany({
@@ -116,32 +171,31 @@ export class SubscriptionV2Service {
         paymentIntent = await this.stripe.paymentIntents.create({
           amount: 35 * 100,
           currency: 'usd',
+          payment_method: user?.userStripeCard[0].stripeCardId,
+          customer: user?.userStripeCustomerAccount?.stripeCustomerId,
+          off_session: true,
+          confirm: true,
           metadata: {
             type: 'default_verification',
             userId: user?.id.toString(),
           },
         });
 
-        console.log(paymentIntent);
         await this.prismaService.miscellaneousPayments.create({
           data: {
             userId: user?.id,
             piId: paymentIntent?.id,
             total: paymentIntent?.amount / 100,
             currency: paymentIntent?.currency,
-            paid: false,
-            status: 'pending',
+            paid: paymentIntent?.status === 'succeeded' ? true : false,
+            status: paymentIntent?.status,
             type: 'DEFAULT_VERIFICATION',
             src: paymentIntent?.payment_method_types,
           },
         });
 
         return {
-          message: 'User needs to pay the one time fee.',
-          data: {
-            paymentRedirect: true,
-            clientSecret: paymentIntent?.client_secret,
-          },
+          message: 'Payment successful',
         };
       } catch (error) {
         throw error as Error;

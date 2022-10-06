@@ -292,7 +292,7 @@ export class StripeWebhooksService {
       throw e as Error;
     }
 
-    console.log('Stripe Event', event);
+    // console.log('Stripe Event', event);
 
     switch (event.type) {
       case 'charge.succeeded':
