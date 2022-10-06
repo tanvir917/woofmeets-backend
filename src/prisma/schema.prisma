@@ -887,6 +887,7 @@ model ZoomInfo {
 model Appointment {
   id                  BigInt                @id @default(autoincrement())
   opk                 String                @unique
+  invoiceNumber       String?
   userId              BigInt
   user                User                  @relation(fields: [userId], references: [id])
   providerId          BigInt

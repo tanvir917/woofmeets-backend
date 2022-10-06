@@ -41,6 +41,15 @@ export class CommonService {
     return nanoid();
   }
 
+  getInvoiceNumber() {
+    const nanoid = customAlphabet(
+      this.secretService.getRndTokenString(),
+      this.secretService.getAppointmentCreds().invoiceNumberLength,
+    );
+
+    return nanoid();
+  }
+
   getOtp() {
     const code = customAlphabet('1234567890', 6);
     return code();

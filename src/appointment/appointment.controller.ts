@@ -5,6 +5,7 @@ import {
   Param,
   Post,
   Put,
+  Query,
   Request,
   UseGuards,
 } from '@nestjs/common';
@@ -74,9 +75,15 @@ export class AppointmentController {
   @ApiBearerAuth('access-token')
   @UseGuards(JwtAuthGuard)
   @Get('/inbox')
-  async getAllAppointments(@Request() req: any) {
+  async getAllAppointments(
+    @Query('status') status: string,
+    @Request() req: any,
+  ) {
     const userId = BigInt(req.user?.id) ?? BigInt(-1);
-    return await this.appointmentProposalService.getAllAppointments(userId);
+    return await this.appointmentProposalService.getAllAppointments(
+      userId,
+      status,
+    );
   }
 
   @ApiBearerAuth('access-token')

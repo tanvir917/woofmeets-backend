@@ -108,6 +108,9 @@ export class SecretService {
       APPOINTMENT_DISTANCE_LIMIT: this.configService.get<number>(
         'APPOINTMENT_DISTANCE_LIMIT',
       ),
+      APPOINTMENT_INVOICE_NUMBER_LENGTH: this.configService.get<number>(
+        'APPOINTMENT_INVOICE_NUMBER_LENGTH',
+      ),
     };
 
     this.#environment = plainToInstance(EnvironmentVariable, env);
@@ -224,6 +227,7 @@ export class SecretService {
   getAppointmentCreds() {
     return {
       distanceLimit: this.#environment.APPOINTMENT_DISTANCE_LIMIT,
+      invoiceNumberLength: this.#environment.APPOINTMENT_INVOICE_NUMBER_LENGTH,
     };
   }
 
