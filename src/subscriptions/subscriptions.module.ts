@@ -7,6 +7,7 @@ import { FileModule } from '../file/file.module';
 import { MembershipPlanService } from './membership-plan.service';
 import { CommonModule } from '../common/common.module';
 import { MembershipPlanPricesService } from './membership-plan-prices-service';
+import { SubscriptionV2Service } from './subscription-v2.service';
 
 @Module({
   imports: [PrismaModule, SecretModule, FileModule, CommonModule],
@@ -15,6 +16,7 @@ import { MembershipPlanPricesService } from './membership-plan-prices-service';
     SubscriptionsService,
     MembershipPlanService,
     MembershipPlanPricesService,
+    SubscriptionV2Service,
   ],
 })
 export class SubscriptionsModule {}

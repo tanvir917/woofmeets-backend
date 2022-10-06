@@ -10,6 +10,7 @@ import {
   UploadedFiles,
   Patch,
   Delete,
+  Query,
 } from '@nestjs/common';
 import { SubscriptionsService } from './subscriptions.service';
 import {
@@ -27,6 +28,7 @@ import { MembershipPlanService } from './membership-plan.service';
 import { UpdateMembershipPlanDto } from './dto/update-membership-plan-dto';
 import { MembershipPlanPricesService } from './membership-plan-prices-service';
 import { CreateMembershipPlanPricesDto } from './dto/create-membership-plan-prices.dto';
+import { SubscriptionV2Service } from './subscription-v2.service';
 
 @ApiTags('Subscriptions')
 @UseInterceptors(TransformInterceptor)
@@ -36,6 +38,7 @@ export class SubscriptionsController {
     private readonly subscriptionsService: SubscriptionsService,
     private membershipPlanService: MembershipPlanService,
     private membershipPlanPricesService: MembershipPlanPricesService,
+    private subscriptionV2Service: SubscriptionV2Service,
   ) {}
 
   @Get('membership-plans')
@@ -95,9 +98,44 @@ export class SubscriptionsController {
   }
 
   /**
-   * Basic verification info for the provider
+   * Subscription
    */
 
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard)
+  @Get('check-basic-verification-payment')
+  async checkBasicVerificationPayment(@Request() req: any) {
+    const userId = BigInt(req.user?.id) ?? BigInt(-1);
+    return this.subscriptionV2Service.payBasicPayment(userId);
+  }
+
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard)
+  @Post('subscribe')
+  subscribeToPlan(
+    @Request() req: any,
+    @Query('priceId') priceId: string,
+    @Query('cardId') cardId: string,
+  ) {
+    const userId = BigInt(req.user?.id) ?? BigInt(-1);
+    return this.subscriptionV2Service.createSubscriptionV2(
+      userId,
+      BigInt(priceId),
+      BigInt(cardId),
+    );
+  }
+
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard)
+  @Get('my-current-subscription')
+  getUserCurrentSubscription(@Request() req: any) {
+    const userId = BigInt(req.user?.id) ?? BigInt(-1);
+    return this.subscriptionV2Service.getUserCurrentSubscription(userId);
+  }
+
+  /**
+   * Basic verification info for the provider
+   */
   @ApiOperation({
     summary: 'Upload user basic verification informaiton. Max 5 images.',
   })
