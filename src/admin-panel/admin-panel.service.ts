@@ -17,21 +17,9 @@ export class AdminPanelService {
       appointmentCount,
       presentMonthAppointmentCount,
     ] = await this.prismaService.$transaction([
-      this.prismaService.user.count({
-        where: {
-          deletedAt: null,
-        },
-      }),
-      this.prismaService.provider.count({
-        where: {
-          deletedAt: null,
-        },
-      }),
-      this.prismaService.appointment.count({
-        where: {
-          deletedAt: null,
-        },
-      }),
+      this.prismaService.user.count(),
+      this.prismaService.provider.count(),
+      this.prismaService.appointment.count(),
       this.prismaService.appointment.count({
         where: {
           AND: [
@@ -46,7 +34,6 @@ export class AdminPanelService {
               },
             },
           ],
-          deletedAt: null,
         },
       }),
     ]);
@@ -66,7 +53,6 @@ export class AdminPanelService {
     const users = await this.prismaService.user.findMany({
       where: {
         email,
-        deletedAt: null,
       },
       select: {
         id: true,
@@ -100,7 +86,6 @@ export class AdminPanelService {
     const user = await this.prismaService.user.findFirst({
       where: {
         email: email ?? '',
-        deletedAt: null,
       },
       select: {
         id: true,
@@ -146,7 +131,6 @@ export class AdminPanelService {
       where: {
         user: {
           email,
-          deletedAt: null,
         },
       },
       include: {
@@ -186,7 +170,6 @@ export class AdminPanelService {
       where: {
         user: {
           email: email ?? '',
-          deletedAt: null,
         },
       },
       include: {
