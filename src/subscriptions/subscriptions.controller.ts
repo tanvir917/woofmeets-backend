@@ -101,10 +101,20 @@ export class SubscriptionsController {
    * Subscription
    */
 
+  @ApiOperation({ summary: 'Check if user needs to pay basic verification' })
   @ApiBearerAuth('access-token')
   @UseGuards(JwtAuthGuard)
   @Get('check-basic-verification-payment')
   async checkBasicVerificationPayment(@Request() req: any) {
+    const userId = BigInt(req.user?.id) ?? BigInt(-1);
+    return this.subscriptionV2Service.checkIfNeedToPayBasicPayment(userId);
+  }
+
+  @ApiOperation({ summary: 'Pay the basic verification payment' })
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard)
+  @Post('pay-basic-verification-payment')
+  async payBasicVerificationPayment(@Request() req: any) {
     const userId = BigInt(req.user?.id) ?? BigInt(-1);
     return this.subscriptionV2Service.payBasicPayment(userId);
   }
