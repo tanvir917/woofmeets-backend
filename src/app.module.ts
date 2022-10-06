@@ -41,6 +41,7 @@ import { CheckrModule } from './checkr/checkr.module';
 import { ZoomModule } from './zoom/zoom.module';
 import { AppointmentModule } from './appointment/appointment.module';
 import { MessagingModule } from './messaging/messaging.module';
+import { AdminPanelModule } from './admin-panel/admin-panel.module';
 
 @Module({
   imports: [
@@ -81,7 +82,8 @@ import { MessagingModule } from './messaging/messaging.module';
     CheckrModule,
     ZoomModule,
     AppointmentModule,
-    // MessagingModule,
+    MessagingModule,
+    AdminPanelModule,
   ],
   controllers: [AppController],
   providers: [AppService, SecretService, PrismaService, SmsService],

@@ -200,7 +200,7 @@ export class AppointmentProposalService {
     };
   }
 
-  async getAllAppointments(userId: bigint) {
+  async getAllAppointments(userId: bigint, status: string) {
     const user = await this.prismaService.user.findFirst({
       where: { id: userId, deletedAt: null },
       include: {
@@ -210,18 +210,69 @@ export class AppointmentProposalService {
 
     throwNotFoundErrorCheck(!user, 'User not found.');
 
+    throwBadRequestErrorCheck(
+      status ? !(status in AppointmentStatusEnum) : true,
+      'Enter a valid status enum value.',
+    );
+
     const appointments = await this.prismaService.appointment.findMany({
       where: {
         OR: [{ userId }, { providerId: user?.provider?.id }],
+        status: status as AppointmentStatusEnum,
         deletedAt: null,
       },
       include: {
+        user: {
+          select: {
+            id: true,
+            opk: true,
+            email: true,
+            firstName: true,
+            lastName: true,
+            image: true,
+          },
+        },
+        provider: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                opk: true,
+                email: true,
+                firstName: true,
+                lastName: true,
+                image: true,
+              },
+            },
+          },
+        },
         appointmentProposal: {
           where: {
             deletedAt: null,
           },
           orderBy: {
             createdAt: 'desc',
+          },
+          include: {
+            appointmentPet: {
+              include: {
+                pet: {
+                  select: {
+                    id: true,
+                    opk: true,
+                    name: true,
+                    type: true,
+                    weight: true,
+                    weightUnit: true,
+                    ageYear: true,
+                    ageMonth: true,
+                    dob: true,
+                    gender: true,
+                    profile_image: true,
+                  },
+                },
+              },
+            },
           },
         },
       },
@@ -250,6 +301,32 @@ export class AppointmentProposalService {
         opk,
         deletedAt: null,
       },
+      include: {
+        user: {
+          select: {
+            id: true,
+            opk: true,
+            email: true,
+            firstName: true,
+            lastName: true,
+            image: true,
+          },
+        },
+        provider: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                opk: true,
+                email: true,
+                firstName: true,
+                lastName: true,
+                image: true,
+              },
+            },
+          },
+        },
+      },
     });
 
     throwNotFoundErrorCheck(!appointment, 'Appointment not found.');
@@ -264,6 +341,21 @@ export class AppointmentProposalService {
           select: {
             id: true,
             petId: true,
+            pet: {
+              select: {
+                id: true,
+                opk: true,
+                name: true,
+                type: true,
+                weight: true,
+                weightUnit: true,
+                ageYear: true,
+                ageMonth: true,
+                dob: true,
+                gender: true,
+                profile_image: true,
+              },
+            },
           },
         },
       },
@@ -354,8 +446,6 @@ export class AppointmentProposalService {
       }),
     ]);
 
-    console.log(provider);
-
     throwNotFoundErrorCheck(!user, 'User not found');
 
     throwNotFoundErrorCheck(!provider, 'Provider not found.');
@@ -403,12 +493,35 @@ export class AppointmentProposalService {
     }
 
     /**
+     * Invoice Number generation
+     */
+
+    const invoiceNumber = this.commonService.getToken();
+    let invoiceNumberGenerated = false;
+    while (!invoiceNumberGenerated) {
+      const checkInvoiceNumber = await this.prismaService.appointment.findFirst(
+        {
+          where: {
+            invoiceNumber,
+            deletedAt: null,
+          },
+        },
+      );
+      if (checkInvoiceNumber) {
+        opk = this.commonService.getOpk();
+      } else {
+        invoiceNumberGenerated = true;
+      }
+    }
+
+    /**
      * Appointment Creation
      */
 
     const appointment = await this.prismaService.appointment.create({
       data: {
         opk,
+        invoiceNumber,
         userId,
         providerId,
         providerServiceId,

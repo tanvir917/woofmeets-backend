@@ -195,6 +195,10 @@ export class EnvironmentVariable {
   @IsNotEmpty()
   @IsNumber()
   APPOINTMENT_DISTANCE_LIMIT: number;
+
+  @IsNotEmpty()
+  @IsNumber()
+  APPOINTMENT_INVOICE_NUMBER_LENGTH: number;
 }
 
 export function validateEnvironmentVariables(
