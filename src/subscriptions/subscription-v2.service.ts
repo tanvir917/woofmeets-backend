@@ -41,7 +41,6 @@ export class SubscriptionV2Service {
     const subs = await this.prismaService.userSubscriptions.findMany({
       where: {
         userId,
-        paymentStatus: 'succeeded',
         membershipPlanPrice: {
           membershipPlanId: {
             in: subsPlan,
@@ -76,6 +75,80 @@ export class SubscriptionV2Service {
     }
   }
 
+  async payBasicPayment(userId: bigint) {
+    const user = await this.prismaService.user.findFirst({
+      where: {
+        id: userId,
+        deletedAt: null,
+      },
+      include: {
+        provider: true,
+      },
+    });
+
+    throwBadRequestErrorCheck(!user, 'User not found');
+
+    throwBadRequestErrorCheck(!user.provider, 'User is not a provider');
+
+    const paymentChecker = await this.checkUserSubsOrSignupPayment(user?.id);
+
+    console.log('payment checker', paymentChecker);
+    if (paymentChecker) {
+      return {
+        message: 'User does not need to pay',
+        data: {
+          PaymentRedirect: false,
+        },
+      };
+    } else {
+      await this.prismaService.miscellaneousPayments.updateMany({
+        where: {
+          userId,
+          status: 'pending',
+        },
+        data: {
+          deletedAt: new Date(),
+        },
+      });
+
+      let paymentIntent: Stripe.PaymentIntent;
+      try {
+        paymentIntent = await this.stripe.paymentIntents.create({
+          amount: 35 * 100,
+          currency: 'usd',
+          metadata: {
+            type: 'default_verification',
+            userId: user?.id.toString(),
+          },
+        });
+
+        console.log(paymentIntent);
+        await this.prismaService.miscellaneousPayments.create({
+          data: {
+            userId: user?.id,
+            piId: paymentIntent?.id,
+            total: paymentIntent?.amount / 100,
+            currency: paymentIntent?.currency,
+            paid: false,
+            status: 'pending',
+            type: 'DEFAULT_VERIFICATION',
+            src: paymentIntent?.payment_method_types,
+          },
+        });
+
+        return {
+          message: 'User needs to pay the one time fee.',
+          data: {
+            paymentRedirect: true,
+            clientSecret: paymentIntent?.client_secret,
+          },
+        };
+      } catch (error) {
+        throw error as Error;
+      }
+    }
+  }
+
   async createSubscriptionV2(userId: bigint, priceId: bigint, cardId: bigint) {
     const user = await this.prismaService.user.findFirst({
       where: {
@@ -103,6 +176,10 @@ export class SubscriptionV2Service {
     throwBadRequestErrorCheck(!user, 'User not found');
 
     throwBadRequestErrorCheck(!user.provider, 'User is not a provider');
+
+    throwBadRequestErrorCheck(!priceId, 'Price id is required');
+
+    throwBadRequestErrorCheck(!cardId, 'Card id is required');
 
     const priceObject = await this.prismaService.membershipPlanPrices.findFirst(
       {
@@ -162,6 +239,11 @@ export class SubscriptionV2Service {
      * If the user selected a basic subscription plan, check if the user is eligible for payment
      */
 
+    if (priceObject?.membershipPlan?.slug == SubscriptionPlanSlugs.BASIC) {
+      const paymentChecker = await this.checkUserSubsOrSignupPayment(user?.id);
+      throwBadRequestErrorCheck(!paymentChecker, 'User needs to pay the fee.');
+    }
+
     let subscription: Stripe.Subscription;
     try {
       subscription = await this.stripe.subscriptions.create({
@@ -183,9 +265,9 @@ export class SubscriptionV2Service {
       throwBadRequestErrorCheck(true, error.message);
     }
 
-    const stats = subscription['latest_invoice']['payment_intent']['status'];
-    const clientSecret =
-      subscription['latest_invoice']['payment_intent']['client_secret'];
+    // const stats = subscription['latest_invoice']['payment_intent']['status'];
+    // const clientSecret =
+    //   subscription['latest_invoice']['payment_intent']['client_secret'];
     const latestInvoice = Object(subscription['latest_invoice']);
 
     const userSubscription = await this.prismaService.userSubscriptions.create({
@@ -203,72 +285,65 @@ export class SubscriptionV2Service {
       },
     });
 
+    return {
+      message: 'Subscription created successfully.',
+      data: {
+        paymentRedirect: false,
+        subscriptionInfo: {
+          ...userSubscription,
+          subscriptionPlan: priceObject,
+        },
+      },
+    };
+
     // TODO: Check if the subscription required for ANY 3d secure verification.
     // If yes, return the client secret to the frontend. If no, return the subscription object.
     // As in USA and Canada, 3d secure verification is not required. So left for global implementation.
+  }
 
-    if (priceObject?.membershipPlan?.slug == SubscriptionPlanSlugs.BASIC) {
-      const paymentChecker = await this.checkUserSubsOrSignupPayment(user?.id);
-      if (!paymentChecker) {
-        let paymentIntent: Stripe.PaymentIntent;
-        try {
-          paymentIntent = await this.stripe.paymentIntents.create({
-            amount: 35 * 100,
-            currency: 'usd',
-            metadata: {
-              type: 'default_verification',
-              userId: user?.id.toString(),
-              userSubscriptionId: `${userSubscription?.id}`,
-            },
-          });
-        } catch (error) {
-          await this.prismaService.userSubscriptions.update({
-            where: { id: userSubscription?.id },
-            data: {
-              deletedAt: new Date(),
-              paymentStatus: 'failed',
-              meta: {
-                reason: 'Payment intent creation failed.',
+  async getUserCurrentSubscription(userId: bigint) {
+    const user = await this.prismaService.user.findFirst({
+      where: {
+        id: userId,
+        deletedAt: null,
+      },
+      include: {
+        userSubscriptions: {
+          where: {
+            status: 'active',
+          },
+          select: {
+            id: true,
+            userId: true,
+            cardId: true,
+            currency: true,
+            currentPeriodStart: true,
+            currentPeriodEnd: true,
+            status: true,
+            paymentStatus: true,
+            meta: true,
+            membershipPlanPrice: {
+              include: {
+                membershipPlan: true,
               },
             },
-          });
-          throwBadRequestErrorCheck(true, 'Subscription creation failed.');
-          await this.prismaService.miscellaneousPayments.create({
-            data: {
-              userId: user?.id,
-              piId: paymentIntent?.id,
-              total: paymentIntent?.amount / 100,
-              currency: paymentIntent?.currency,
-              paid: false,
-              status: 'pending',
-              type: 'DEFAULT_VERIFICATION',
-              src: paymentIntent?.payment_method_types,
-            },
-          });
-          return {
-            message: 'Subscription created successfully.',
-            data: {
-              paymentRedirect: true,
-              clientSecret: paymentIntent?.client_secret,
-              subscriptionInfo: {
-                ...userSubscription,
-                subscriptionPlan: priceObject,
-              },
-            },
-          };
-        }
-      }
-    } else {
-      return {
-        message: 'Subscription created successfully.',
-        data: {
-          paymentRedirect: false,
-          subscriptionInfo: {
-            ...userSubscription,
-            subscriptionPlan: priceObject,
           },
         },
-      };
-    }
+      },
+    });
+
+    throwBadRequestErrorCheck(!user, 'User not found');
+
+    throwBadRequestErrorCheck(
+      !user?.userSubscriptions?.length,
+      'No subscription found',
+    );
+
+    return {
+      message: 'User current subscription.',
+      data: {
+        subscriptionInfo: user?.userSubscriptions[0],
+      },
+    };
   }
 }
