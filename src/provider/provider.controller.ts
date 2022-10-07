@@ -68,7 +68,11 @@ export class ProviderController {
     @Param('serviceId') serviceId: number,
     @Query() query: GetAvailableCalenderDto,
   ) {
-    return this.availableGetService.getAvailability(opk, BigInt(serviceId), query);
+    return this.availableGetService.getAvailability(
+      opk,
+      BigInt(serviceId),
+      query,
+    );
   }
 
   @Post('complete-onboarding-progress')

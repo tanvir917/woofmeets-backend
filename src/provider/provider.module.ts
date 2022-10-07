@@ -14,7 +14,14 @@ import { ProviderListService } from './provider-list.service';
 import { AvailabilityModule } from 'src/availability/availability.module';
 
 @Module({
-  imports: [PrismaModule, JwtModule, CommonModule, EmailModule, SecretModule, AvailabilityModule],
+  imports: [
+    PrismaModule,
+    JwtModule,
+    CommonModule,
+    EmailModule,
+    SecretModule,
+    AvailabilityModule,
+  ],
   controllers: [ProviderController],
   providers: [
     ProviderService,
