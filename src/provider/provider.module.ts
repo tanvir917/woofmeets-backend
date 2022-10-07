@@ -10,9 +10,11 @@ import { PasswordService } from 'src/auth/password.service';
 import { CommonService } from 'src/common/common.service';
 import { EmailModule } from 'src/email/email.module';
 import { SecretModule } from 'src/secret/secret.module';
+import { ProviderListService } from './provider-list.service';
+import { AvailabilityModule } from 'src/availability/availability.module';
 
 @Module({
-  imports: [PrismaModule, JwtModule, CommonModule, EmailModule, SecretModule],
+  imports: [PrismaModule, JwtModule, CommonModule, EmailModule, SecretModule, AvailabilityModule],
   controllers: [ProviderController],
   providers: [
     ProviderService,
@@ -20,6 +22,7 @@ import { SecretModule } from 'src/secret/secret.module';
     ProviderCreationService,
     PasswordService,
     CommonService,
+    ProviderListService,
   ],
 })
 export class ProviderModule {}

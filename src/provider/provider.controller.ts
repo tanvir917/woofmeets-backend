@@ -14,7 +14,9 @@ import { AvailabilityGetServcie } from 'src/availability/services/availability.g
 import { throwBadRequestErrorCheck } from 'src/global/exceptions/error-logic';
 import { ProviderCreationDto } from './dto/creation.dto';
 import { GetAvailableCalenderDto } from './dto/get.available.dto';
+import { SearchProviderDto } from './dto/search.provider.dto';
 import { ProviderCreationService } from './provider-creation.service';
+import { ProviderListService } from './provider-list.service';
 import { ProviderService } from './provider.service';
 
 @ApiTags('Provider')
@@ -25,7 +27,16 @@ export class ProviderController {
     private readonly jwtService: JwtService,
     private readonly availableGetService: AvailabilityGetServcie,
     private readonly providerCreationService: ProviderCreationService,
+    private readonly providerListService: ProviderListService,
   ) {}
+
+  @ApiOperation({
+    summary: 'Get all provider for search api.',
+  })
+  @Get()
+  async getProvidersList(@Query() query: SearchProviderDto) {
+    return this.providerListService.search(query);
+  }
 
   @ApiOperation({
     summary: 'Get all information of provider for landing page.',
@@ -57,7 +68,7 @@ export class ProviderController {
     @Param('serviceId') serviceId: number,
     @Query() query: GetAvailableCalenderDto,
   ) {
-    return this.availableGetService.getAvailability(opk, serviceId, query);
+    return this.availableGetService.getAvailability(opk, BigInt(serviceId), query);
   }
 
   @Post('complete-onboarding-progress')
