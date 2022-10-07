@@ -1,5 +1,6 @@
 import { RabbitMQModule } from '@golevelup/nestjs-rabbitmq';
 import { Module } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 
 import { MessagingController } from './messaging.controller';
 import { MessagingProxyService } from './messaging.service';
@@ -30,7 +31,7 @@ import { MessagingProxyService } from './messaging.service';
       },
     }),
   ],
-  providers: [MessagingProxyService],
+  providers: [MessagingProxyService, ConfigService],
   controllers: [MessagingController],
 })
 export class MessagingModule {}
