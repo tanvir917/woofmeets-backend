@@ -295,8 +295,20 @@ export class SubscriptionV2Service {
 
     if (priceObject?.membershipPlan?.slug == SubscriptionPlanSlugs.BASIC) {
       const paymentChecker = await this.checkUserSubsOrSignupPayment(user?.id);
-      throwBadRequestErrorCheck(!paymentChecker, 'User needs to pay the fee.');
+      throwBadRequestErrorCheck(
+        !paymentChecker,
+        'User needs to pay the fee first.',
+      );
     }
+
+    const cancelledSubscription = await this.cancelUserAllActiveSubscriptions(
+      user?.id,
+    );
+
+    throwBadRequestErrorCheck(
+      !cancelledSubscription,
+      'Error while cancelling and migrating to new subscription',
+    );
 
     let subscription: Stripe.Subscription;
     try {
@@ -399,5 +411,108 @@ export class SubscriptionV2Service {
         subscriptionInfo: user?.userSubscriptions[0],
       },
     };
+  }
+
+  async cancelUserSubscription(userId: bigint) {
+    const user = await this.prismaService.user.findFirst({
+      where: {
+        id: userId,
+        deletedAt: null,
+      },
+      include: {
+        userSubscriptions: {
+          where: {
+            status: 'active',
+          },
+          select: {
+            id: true,
+            userId: true,
+            stripeSubscriptionId: true,
+          },
+        },
+      },
+    });
+
+    throwBadRequestErrorCheck(!user, 'User not found');
+
+    throwBadRequestErrorCheck(
+      !user?.userSubscriptions?.length,
+      'No subscription found',
+    );
+
+    const subscriptions = user?.userSubscriptions;
+
+    for (const subscription of subscriptions) {
+      let stripeSubscription: Stripe.Subscription;
+      try {
+        stripeSubscription = await this.stripe.subscriptions.del(
+          subscription.stripeSubscriptionId,
+        );
+        await this.prismaService.userSubscriptions.update({
+          where: {
+            id: subscription.id,
+          },
+          data: {
+            status: stripeSubscription.status,
+            deletedAt: new Date(),
+            src: Object(stripeSubscription),
+          },
+        });
+      } catch (error) {
+        throwBadRequestErrorCheck(true, error.message);
+      }
+    }
+
+    return {
+      message: 'Subscription cancelled successfully.',
+    };
+  }
+
+  /**
+   * This function will cancel all active subscriptions of a user.
+   * It will be used by the subscription creation function.
+   * @param userId
+   * @returns true if all subscriptions are cancelled successfully.
+   * @returns false if any subscription is not cancelled successfully.
+   */
+
+  async cancelUserAllActiveSubscriptions(userId: bigint) {
+    const userSubscriptions =
+      await this.prismaService.userSubscriptions.findMany({
+        where: {
+          userId: userId,
+          status: 'active',
+          deletedAt: null,
+        },
+      });
+
+    // check if user has any active subscription
+    // If no, reuturn true. Because there is no subscription to cancel.
+    if (!userSubscriptions.length) {
+      return true;
+    }
+
+    for (const subscription of userSubscriptions) {
+      let stripeSubscription: Stripe.Subscription;
+      try {
+        stripeSubscription = await this.stripe.subscriptions.del(
+          subscription.stripeSubscriptionId,
+        );
+        await this.prismaService.userSubscriptions.update({
+          where: {
+            id: subscription.id,
+          },
+          data: {
+            status: stripeSubscription.status,
+            deletedAt: new Date(),
+            src: Object(stripeSubscription),
+          },
+        });
+      } catch (error) {
+        return false;
+      }
+    }
+
+    return true;
   }
 }

@@ -143,6 +143,14 @@ export class SubscriptionsController {
     return this.subscriptionV2Service.getUserCurrentSubscription(userId);
   }
 
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard)
+  @Delete('cancel-subscription')
+  cancelSubscription(@Request() req: any) {
+    const userId = BigInt(req.user?.id) ?? BigInt(-1);
+    return this.subscriptionV2Service.cancelUserSubscription(userId);
+  }
+
   /**
    * Basic verification info for the provider
    */
