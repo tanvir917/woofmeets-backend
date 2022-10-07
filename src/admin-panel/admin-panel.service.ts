@@ -1,16 +1,57 @@
 import { Injectable } from '@nestjs/common';
 import { format } from 'date-fns';
 import { AppointmentStatusEnum } from 'src/appointment/helpers/appointment-enum';
+import { AuthService } from 'src/auth/auth.service';
+import { LoginDto } from 'src/auth/dto/login.dto';
 import {
   throwBadRequestErrorCheck,
   throwNotFoundErrorCheck,
+  throwUnauthorizedErrorCheck,
 } from 'src/global/exceptions/error-logic';
 import { PrismaService } from 'src/prisma/prisma.service';
 
 @Injectable()
 export class AdminPanelService {
-  constructor(private readonly prismaService: PrismaService) {}
-  async getLandingPageDetails() {
+  constructor(
+    private readonly prismaService: PrismaService,
+    private readonly authService: AuthService,
+  ) {}
+
+  async adminCheck(userId: bigint) {
+    const admin = await this.prismaService.admin.findFirst({
+      where: {
+        userId,
+        deletedAt: null,
+      },
+    });
+
+    return admin ? true : false;
+  }
+
+  async adminLogin(loginDto: LoginDto, res: any) {
+    const { email } = loginDto;
+
+    const user = await this.prismaService.user.findFirst({
+      where: {
+        email,
+        deletedAt: null,
+      },
+    });
+
+    throwUnauthorizedErrorCheck(
+      !(await this.adminCheck(user?.id)),
+      'Unauthorized',
+    );
+
+    return await this.authService.validateUser(loginDto, res);
+  }
+
+  async getLandingPageDetails(userId: bigint) {
+    throwUnauthorizedErrorCheck(
+      !(await this.adminCheck(userId)),
+      'Unauthorized',
+    );
+
     const [
       userCount,
       providerCount,
@@ -49,7 +90,11 @@ export class AdminPanelService {
     };
   }
 
-  async getAllUsers(email: string) {
+  async getAllUsers(userId: bigint, email: string) {
+    throwUnauthorizedErrorCheck(
+      !(await this.adminCheck(userId)),
+      'Unauthorized',
+    );
     const users = await this.prismaService.user.findMany({
       where: {
         email,
@@ -82,7 +127,11 @@ export class AdminPanelService {
     };
   }
 
-  async getUserDetails(email: string) {
+  async getUserDetails(userId: bigint, email: string) {
+    throwUnauthorizedErrorCheck(
+      !(await this.adminCheck(userId)),
+      'Unauthorized',
+    );
     const user = await this.prismaService.user.findFirst({
       where: {
         email: email ?? '',
@@ -126,7 +175,11 @@ export class AdminPanelService {
     };
   }
 
-  async getAllProviders(email: string) {
+  async getAllProviders(userId: bigint, email: string) {
+    throwUnauthorizedErrorCheck(
+      !(await this.adminCheck(userId)),
+      'Unauthorized',
+    );
     const providers = await this.prismaService.provider.findMany({
       where: {
         user: {
@@ -165,7 +218,11 @@ export class AdminPanelService {
     };
   }
 
-  async getProviderDetails(email: string) {
+  async getProviderDetails(userId: bigint, email: string) {
+    throwUnauthorizedErrorCheck(
+      !(await this.adminCheck(userId)),
+      'Unauthorized',
+    );
     const provider = await this.prismaService.provider.findFirst({
       where: {
         user: {
@@ -221,7 +278,12 @@ export class AdminPanelService {
     };
   }
 
-  async getAllAppointments(opk: string, status: string) {
+  async getAllAppointments(userId: bigint, opk: string, status: string) {
+    throwUnauthorizedErrorCheck(
+      !(await this.adminCheck(userId)),
+      'Unauthorized',
+    );
+
     throwBadRequestErrorCheck(
       status ? !(status in AppointmentStatusEnum) : false,
       'Enter a valid status enum value.',
@@ -254,7 +316,11 @@ export class AdminPanelService {
     };
   }
 
-  async getAppointmentDetails(opk: string) {
+  async getAppointmentDetails(userId: bigint, opk: string) {
+    throwUnauthorizedErrorCheck(
+      !(await this.adminCheck(userId)),
+      'Unauthorized',
+    );
     const appointment = await this.prismaService.appointment.findFirst({
       where: {
         opk: opk ?? '',

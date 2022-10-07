@@ -496,7 +496,7 @@ export class AppointmentProposalService {
      * Invoice Number generation
      */
 
-    const invoiceNumber = this.commonService.getToken();
+    let invoiceNumber = this.commonService.getInvoiceNumber();
     let invoiceNumberGenerated = false;
     while (!invoiceNumberGenerated) {
       const checkInvoiceNumber = await this.prismaService.appointment.findFirst(
@@ -508,7 +508,7 @@ export class AppointmentProposalService {
         },
       );
       if (checkInvoiceNumber) {
-        opk = this.commonService.getOpk();
+        invoiceNumber = this.commonService.getInvoiceNumber();
       } else {
         invoiceNumberGenerated = true;
       }
