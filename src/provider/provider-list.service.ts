@@ -4,14 +4,17 @@ import { AvailabilityGetServcie } from 'src/availability/services/availability.g
 import { PrismaService } from 'src/prisma/prisma.service';
 import { SearchProviderDto } from './dto/search.provider.dto';
 import { addDays, isBefore } from 'date-fns';
-import { throwBadRequestErrorCheck, throwNotFoundErrorCheck } from 'src/global/exceptions/error-logic';
+import {
+  throwBadRequestErrorCheck,
+  throwNotFoundErrorCheck,
+} from 'src/global/exceptions/error-logic';
 
 @Injectable()
 export class ProviderListService {
   constructor(
     private readonly prismaService: PrismaService,
-    private readonly availabilityService: AvailabilityGetServcie
-  ) { }
+    private readonly availabilityService: AvailabilityGetServcie,
+  ) {}
 
   async search(body: SearchProviderDto) {
     const {
@@ -22,7 +25,7 @@ export class ProviderListService {
       lat,
       lng: long,
       startDate,
-      endDate
+      endDate,
     } = body;
 
     /**
@@ -35,7 +38,10 @@ export class ProviderListService {
      * get provider from the above result
      * get rates
      */
-    throwBadRequestErrorCheck(isBefore(new Date(endDate), new Date(startDate)), 'End date can not be less than start date!');
+    throwBadRequestErrorCheck(
+      isBefore(new Date(endDate), new Date(startDate)),
+      'End date can not be less than start date!',
+    );
 
     const raw = await this.prismaService.$queryRaw<
       {
@@ -69,7 +75,10 @@ export class ProviderListService {
         tempids.push(row.id);
       });
 
-    throwNotFoundErrorCheck(tempids.length === 0, 'Provider not found on specific criteria.')
+    throwNotFoundErrorCheck(
+      tempids.length === 0,
+      'Provider not found on specific criteria.',
+    );
 
     const services = await this.prismaService.providerServices.findMany({
       where: {
@@ -91,36 +100,46 @@ export class ProviderListService {
                     city: true,
                     state: true,
                     zipCode: true,
-                  }
-                }
-              }
-            }
-          }
+                  },
+                },
+              },
+            },
+          },
         },
         ServiceHasRates: true,
       },
     });
 
-    throwNotFoundErrorCheck(!services, 'Provider not found with specific criteria.')
+    throwNotFoundErrorCheck(
+      !services,
+      'Provider not found with specific criteria.',
+    );
 
     const providers = [];
     const start = startDate ? new Date(startDate) : new Date();
     const tmpQuery = {
       startDate: new Date(start).toISOString(),
-      endDate: endDate ?? new Date(start.setDate(start.getDate() + 3)).toISOString(),
-    }
+      endDate:
+        endDate ?? new Date(start.setDate(start.getDate() + 3)).toISOString(),
+    };
 
-    await Promise.all(services.map(async (service) => {
-      let s = service;
-      s.provider.user.password = null;
-      try {
-        const { data } = await this.availabilityService.getAvailability(service.provider.user.opk, service.id, tmpQuery);
-        providers.push({ ...s, availability: data })
-      } catch (e) {
-        console.log('Provider list: availability ', e);
-        providers.push({ ...s, availability: null })
-      }
-    }));
+    await Promise.all(
+      services.map(async (service) => {
+        let s = service;
+        s.provider.user.password = null;
+        try {
+          const { data } = await this.availabilityService.getAvailability(
+            service.provider.user.opk,
+            service.id,
+            tmpQuery,
+          );
+          providers.push({ ...s, availability: data });
+        } catch (e) {
+          console.log('Provider list: availability ', e);
+          providers.push({ ...s, availability: null });
+        }
+      }),
+    );
 
     return { providers };
   }
