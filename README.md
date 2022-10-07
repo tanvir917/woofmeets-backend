@@ -61,7 +61,7 @@
 yarn
 yarn migrate
 yarn dev
-// http://localhost:5000/docs #(Access Swagger)
+// http://localhost:5000/api-docs #(Access Swagger)
 ```
 
 Check **Compodoc Docs**
