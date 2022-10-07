@@ -14,5 +14,6 @@ import { AvailabilityGetServcie } from './services/availability.get.service';
     AvailabilityGetServcie,
     AvailableDateService,
   ],
+  exports: [AvailabilityGetServcie]
 })
 export class AvailabilityModule {}

@@ -15,7 +15,7 @@ export class AvailabilityGetServcie {
 
   async getAvailability(
     opk: string,
-    serviceId: number,
+    serviceId: bigint,
     query: GetAvailableCalenderDto,
   ) {
     /**
@@ -66,7 +66,7 @@ export class AvailabilityGetServcie {
         },
       },
     });
-    console.log(days);
+    // console.log(days);
     throwNotFoundErrorCheck(
       !days,
       'Availability not found with specific service id.',

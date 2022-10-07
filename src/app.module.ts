@@ -82,7 +82,7 @@ import { AdminPanelModule } from './admin-panel/admin-panel.module';
     CheckrModule,
     ZoomModule,
     AppointmentModule,
-    MessagingModule,
+    // MessagingModule,
     AdminPanelModule,
   ],
   controllers: [AppController],
