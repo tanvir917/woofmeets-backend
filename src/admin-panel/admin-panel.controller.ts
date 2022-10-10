@@ -18,8 +18,6 @@ import { AdminPanelService } from './admin-panel.service';
 export class AdminPanelController {
   constructor(private readonly adminPanelService: AdminPanelService) {}
 
-  @ApiBearerAuth('access-token')
-  @UseGuards(JwtAuthGuard)
   @Post('/log-in')
   async adminLogin(
     @Body() loginDto: LoginDto,

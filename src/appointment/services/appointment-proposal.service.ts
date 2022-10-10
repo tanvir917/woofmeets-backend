@@ -217,7 +217,96 @@ export class AppointmentProposalService {
 
     const appointments = await this.prismaService.appointment.findMany({
       where: {
-        OR: [{ userId }, { providerId: user?.provider?.id }],
+        userId,
+        status: status as AppointmentStatusEnum,
+        deletedAt: null,
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            opk: true,
+            email: true,
+            firstName: true,
+            lastName: true,
+            image: true,
+          },
+        },
+        provider: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                opk: true,
+                email: true,
+                firstName: true,
+                lastName: true,
+                image: true,
+              },
+            },
+          },
+        },
+        appointmentProposal: {
+          where: {
+            deletedAt: null,
+          },
+          orderBy: {
+            createdAt: 'desc',
+          },
+          include: {
+            appointmentPet: {
+              include: {
+                pet: {
+                  select: {
+                    id: true,
+                    opk: true,
+                    name: true,
+                    type: true,
+                    weight: true,
+                    weightUnit: true,
+                    ageYear: true,
+                    ageMonth: true,
+                    dob: true,
+                    gender: true,
+                    profile_image: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    throwNotFoundErrorCheck(
+      appointments?.length <= 0,
+      'Appointments not found.',
+    );
+
+    return {
+      message: 'Appointments found successfully',
+      data: appointments,
+    };
+  }
+
+  async getAllAppointmentsProvider(userId: bigint, status: string) {
+    const user = await this.prismaService.user.findFirst({
+      where: { id: userId, deletedAt: null },
+      include: {
+        provider: true,
+      },
+    });
+
+    throwNotFoundErrorCheck(!user || !user?.provider, 'Provider not found.');
+
+    throwBadRequestErrorCheck(
+      status ? !(status in AppointmentStatusEnum) : true,
+      'Enter a valid status enum value.',
+    );
+
+    const appointments = await this.prismaService.appointment.findMany({
+      where: {
+        providerId: user?.provider?.id,
         status: status as AppointmentStatusEnum,
         deletedAt: null,
       },
@@ -302,6 +391,11 @@ export class AppointmentProposalService {
         deletedAt: null,
       },
       include: {
+        providerService: {
+          include: {
+            serviceType: true,
+          },
+        },
         user: {
           select: {
             id: true,
@@ -310,6 +404,12 @@ export class AppointmentProposalService {
             firstName: true,
             lastName: true,
             image: true,
+            basicInfo: {
+              include: {
+                country: true,
+              },
+            },
+            contact: true,
           },
         },
         provider: {
@@ -322,6 +422,12 @@ export class AppointmentProposalService {
                 firstName: true,
                 lastName: true,
                 image: true,
+                basicInfo: {
+                  include: {
+                    country: true,
+                  },
+                },
+                contact: true,
               },
             },
           },
@@ -354,6 +460,11 @@ export class AppointmentProposalService {
                 dob: true,
                 gender: true,
                 profile_image: true,
+                petBreed: {
+                  include: {
+                    breed: true,
+                  },
+                },
               },
             },
           },

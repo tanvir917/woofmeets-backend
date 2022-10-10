@@ -39,7 +39,7 @@ export class AdminPanelService {
     });
 
     throwUnauthorizedErrorCheck(
-      !(await this.adminCheck(user?.id)),
+      !(await this.adminCheck(user?.id)) || !user,
       'Unauthorized',
     );
 
