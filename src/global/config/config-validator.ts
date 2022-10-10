@@ -199,6 +199,14 @@ export class EnvironmentVariable {
   @IsNotEmpty()
   @IsNumber()
   APPOINTMENT_INVOICE_NUMBER_LENGTH: number;
+
+  @IsNotEmpty()
+  @IsString()
+  STRIPE_ONBOARD_RETURN_URL: string;
+
+  @IsNotEmpty()
+  @IsString()
+  STRIPE_ONBOARD_REFRESH_URL: string;
 }
 
 export function validateEnvironmentVariables(

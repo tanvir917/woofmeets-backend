@@ -42,6 +42,7 @@ import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 import { UnavailabilityModule } from './unavailability/unavailability.module';
 import { UserProfileModule } from './user-profile/user-profile.module';
 import { ZoomModule } from './zoom/zoom.module';
+import { StripeConnectModule } from './stripe-connect/stripe-connect.module';
 
 @Module({
   imports: [
@@ -84,6 +85,7 @@ import { ZoomModule } from './zoom/zoom.module';
     AppointmentModule,
     MessagingModule,
     AdminPanelModule,
+    StripeConnectModule,
   ],
   controllers: [AppController],
   providers: [AppService, SecretService, PrismaService, SmsService],
