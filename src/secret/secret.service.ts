@@ -90,6 +90,13 @@ export class SecretService {
         'STRIPE_WEBHOOK_SECRET',
       ),
 
+      STRIPE_ONBOARD_RETURN_URL: this.configService.get<string>(
+        'STRIPE_ONBOARD_RETURN_URL',
+      ),
+      STRIPE_ONBOARD_REFRESH_URL: this.configService.get<string>(
+        'STRIPE_ONBOARD_REFRESH_URL',
+      ),
+
       /**
        * Checkr API Credentials
        */
@@ -221,6 +228,8 @@ export class SecretService {
       secretKey: this.#environment.STRIPE_SECRET_KEY,
       apiVersion: this.#environment.STRIPE_API_VERSION,
       webhookSecret: this.#environment.STRIPE_WEBHOOK_SECRET,
+      onboardReturnUrl: this.#environment.STRIPE_ONBOARD_RETURN_URL,
+      onboardRefreshUrl: this.#environment.STRIPE_ONBOARD_REFRESH_URL,
     };
   }
 

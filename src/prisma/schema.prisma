@@ -187,6 +187,7 @@ model User {
   miscellaneousPayments     MiscellaneousPayments[]
   appointment               Appointment[]
   admin                     Admin?
+  userStripeConnectAccount  UserStripeConnectAccount?
 }
 
 model UserContact {
@@ -677,7 +678,7 @@ model Quiz {
   deletedAt DateTime? @db.Timestamptz(3)
 }
 
-// SubscriptionPlan model is deprecated for now and membership plan will be used instead
+//! SubscriptionPlan model is deprecated for now and membership plan will be used instead
 model SubscriptionPlan {
   id              BigInt    @id @default(autoincrement())
   name            String
@@ -979,4 +980,26 @@ model Admin {
   createdAt DateTime       @default(now()) @db.Timestamptz(3)
   updatedAt DateTime?      @updatedAt @db.Timestamptz(3)
   deletedAt DateTime?      @db.Timestamptz(3)
+}
+
+model UserStripeConnectAccount {
+  id                 BigInt    @id @default(autoincrement())
+  userId             BigInt    @unique
+  user               User      @relation(fields: [userId], references: [id])
+  stripeAccountId    String    @unique
+  email              String    @unique
+  country            String?
+  defaultCurrency    String?
+  detailsSubmitted   Boolean   @default(false)
+  chargesEnabled     Boolean   @default(false)
+  payoutsEnabled     Boolean   @default(false)
+  capabilities       Json?
+  requirements       Json?
+  futureRequirements Json?
+  type               String?
+  src                Json?
+  meta               Json?
+  createdAt          DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt          DateTime? @updatedAt @db.Timestamptz(3)
+  deletedAt          DateTime? @db.Timestamptz(3)
 }
