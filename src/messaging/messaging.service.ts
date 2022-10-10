@@ -67,4 +67,33 @@ export class MessagingProxyService {
       return true;
     }
   }
+
+  async deleteGroup(sendWith: 'axios' | 'rabbitmq' = 'axios', id: string) {
+    if (sendWith === 'axios') {
+      try {
+        const result = await axios.delete(
+          `${this.configService.get<string>(
+            'MICROSERVICE_URL',
+          )}/v1/groups/${id}`,
+        );
+        return result.data;
+      } catch (error) {
+        console.log({ error });
+      }
+    } else if (sendWith === 'rabbitmq') {
+      this.amqpConnection.publish<{
+        body: string;
+      }>(
+        MESSAGE_SERVICE_NAMES.MESSAGE_EXCHANGE,
+        MESSAGE_SERVICE_NAMES.MESSAGE_TOPIC,
+        {
+          body: JSON.stringify({ id, command: 'DELETE' }),
+        },
+        {
+          persistent: true,
+        },
+      );
+      return true;
+    }
+  }
 }
