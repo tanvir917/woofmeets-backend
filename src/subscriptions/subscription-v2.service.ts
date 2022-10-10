@@ -311,6 +311,7 @@ export class SubscriptionV2Service {
     );
 
     let subscription: Stripe.Subscription;
+    let latestInvoice: Stripe.Invoice;
     try {
       subscription = await this.stripe.subscriptions.create({
         customer: user.userStripeCustomerAccount?.stripeCustomerId,
@@ -327,14 +328,13 @@ export class SubscriptionV2Service {
           priceId: priceObject.id.toString(),
         },
       });
+      // const stats = subscription['latest_invoice']['payment_intent']['status'];
+      // const clientSecret =
+      //   subscription['latest_invoice']['payment_intent']['client_secret'];
+      latestInvoice = Object(subscription['latest_invoice']);
     } catch (error) {
       throwBadRequestErrorCheck(true, error.message);
     }
-
-    // const stats = subscription['latest_invoice']['payment_intent']['status'];
-    // const clientSecret =
-    //   subscription['latest_invoice']['payment_intent']['client_secret'];
-    const latestInvoice = Object(subscription['latest_invoice']);
 
     const userSubscription = await this.prismaService.userSubscriptions.create({
       data: {
@@ -350,6 +350,56 @@ export class SubscriptionV2Service {
         src: Object(subscription),
       },
     });
+
+    await this.prismaService.userSubscriptionInvoices.create({
+      data: {
+        userId: user?.id,
+        userSubscriptionId: userSubscription?.id,
+        stripeInvoiceId: latestInvoice?.id,
+        customerStripeId: user?.userStripeCustomerAccount?.stripeCustomerId,
+        customerEmail: latestInvoice?.customer_email,
+        customerName: latestInvoice?.customer_name,
+        total: latestInvoice?.total / 100,
+        subTotal: latestInvoice?.subtotal / 100,
+        amountDue: latestInvoice?.amount_due / 100,
+        amountPaid: latestInvoice?.amount_paid / 100,
+        amountRemaining: latestInvoice?.amount_remaining / 100,
+        billingReason: latestInvoice?.billing_reason,
+        currency: latestInvoice?.currency,
+        paid: latestInvoice?.paid,
+        status: latestInvoice?.status,
+        src: Object(latestInvoice),
+      },
+    });
+
+    if (subscription.status == 'incomplete') {
+      const paymentIntent = latestInvoice.payment_intent ?? null;
+
+      if (paymentIntent) {
+        const latestPaymentError: Stripe.PaymentIntent.LastPaymentError =
+          Object(paymentIntent['last_payment_error']) ?? null;
+
+        if (latestPaymentError) {
+          if ((latestPaymentError.type = 'card_error')) {
+            await this.stripe.subscriptions.del(subscription.id);
+
+            await this.prismaService.userSubscriptions.update({
+              where: {
+                id: userSubscription?.id,
+              },
+              data: {
+                errors: Object(latestPaymentError),
+              },
+            });
+
+            throwBadRequestErrorCheck(
+              true,
+              'Your card was declined. Plase try with another card or contact your bank.',
+            );
+          }
+        }
+      }
+    }
 
     return {
       message: 'Subscription created successfully.',

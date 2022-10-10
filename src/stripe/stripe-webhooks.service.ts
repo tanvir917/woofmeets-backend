@@ -301,15 +301,15 @@ export class StripeWebhooksService {
       case 'customer.subscription.updated':
         console.log('Customer Subscription Updated');
         return await this.customerSubscriptionUpdated(event.data.object);
+      case 'invoice.updated':
+        console.log('Invoice updated');
+        return await this.stripeInvoiceAlteration(event.data.object);
       case 'invoice.payment_succeeded':
         console.log('Invoice Payment Succeeded');
         return await this.stripeInvoiceAlteration(event.data.object);
       case 'invoice.finalized':
         console.log('Invoice Finalized');
         return await this.stripeInvoiceAlteration(event.data.object);
-      case 'invoice.created':
-        console.log('Invoice Created');
-        return await this.stripeInvoiceCreated(event.data.object);
       default:
         return {
           statusCode: HttpStatus.BAD_REQUEST,

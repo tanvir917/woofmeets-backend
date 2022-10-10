@@ -747,6 +747,7 @@ model UserSubscriptions {
   paymentStatus            String?
   src                      Json?
   meta                     Json?
+  errors                   Json?
   createdAt                DateTime                   @default(now()) @db.Timestamptz(3)
   updatedAt                DateTime?                  @updatedAt @db.Timestamptz(3)
   deletedAt                DateTime?                  @db.Timestamptz(3)
