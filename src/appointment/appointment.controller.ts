@@ -88,6 +88,20 @@ export class AppointmentController {
 
   @ApiBearerAuth('access-token')
   @UseGuards(JwtAuthGuard)
+  @Get('/provider/inbox')
+  async getAllAppointmentsProvider(
+    @Query('status') status: string,
+    @Request() req: any,
+  ) {
+    const userId = BigInt(req.user?.id) ?? BigInt(-1);
+    return await this.appointmentProposalService.getAllAppointmentsProvider(
+      userId,
+      status,
+    );
+  }
+
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard)
   @Get('/:opk/proposal')
   async getlatestProposal(@Param('opk') opk: string, @Request() req: any) {
     const userId = BigInt(req.user?.id) ?? BigInt(-1);
