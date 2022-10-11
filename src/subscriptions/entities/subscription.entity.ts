@@ -25,3 +25,13 @@ export enum SubscriptionPlanSlugs {
   GOLD = 'gold',
   PLATINUM = 'platinum',
 }
+
+export enum SubscriptionStatusEnum {
+  incomplete = 'incomplete',
+  incomplete_expired = 'incomplete_expired',
+  trialing = 'trialing',
+  active = 'active',
+  past_due = 'past_due',
+  canceled = 'canceled',
+  unpaid = 'unpaid',
+}

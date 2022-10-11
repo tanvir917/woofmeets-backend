@@ -29,6 +29,7 @@ import { UpdateMembershipPlanDto } from './dto/update-membership-plan-dto';
 import { MembershipPlanPricesService } from './membership-plan-prices-service';
 import { CreateMembershipPlanPricesDto } from './dto/create-membership-plan-prices.dto';
 import { SubscriptionV2Service } from './subscription-v2.service';
+import { SubscriptionListsQueryParamsDto } from './dto/subscription-list-query-params.dto';
 
 @ApiTags('Subscriptions')
 @UseInterceptors(TransformInterceptor)
@@ -181,5 +182,16 @@ export class SubscriptionsController {
   async getUserBasicVerificationInfo(@Request() req: any) {
     const userId = BigInt(req.user?.id) ?? BigInt(-1);
     return await this.subscriptionsService.getUserBasicVerificationInfo(userId);
+  }
+
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard)
+  @Get('user-subscription-lists')
+  async getUserSubscriptionLists(
+    @Request() req: any,
+    @Query() query: SubscriptionListsQueryParamsDto,
+  ) {
+    const userId = BigInt(req.user?.id) ?? BigInt(-1);
+    return await this.subscriptionV2Service.getSubscriptionLists(userId, query);
   }
 }
