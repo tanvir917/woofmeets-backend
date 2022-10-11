@@ -8,9 +8,16 @@ import { MembershipPlanService } from './membership-plan.service';
 import { CommonModule } from '../common/common.module';
 import { MembershipPlanPricesService } from './membership-plan-prices-service';
 import { SubscriptionV2Service } from './subscription-v2.service';
+import { AdminPanelModule } from '../admin-panel/admin-panel.module';
 
 @Module({
-  imports: [PrismaModule, SecretModule, FileModule, CommonModule],
+  imports: [
+    PrismaModule,
+    SecretModule,
+    FileModule,
+    CommonModule,
+    AdminPanelModule,
+  ],
   controllers: [SubscriptionsController],
   providers: [
     SubscriptionsService,

@@ -1,8 +1,14 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
+import { userSubscriptionStatusEnum } from '@prisma/client';
 import Stripe from 'stripe';
-import { throwBadRequestErrorCheck } from '../global/exceptions/error-logic';
+import { AdminPanelService } from '../admin-panel/admin-panel.service';
+import {
+  throwBadRequestErrorCheck,
+  throwUnauthorizedErrorCheck,
+} from '../global/exceptions/error-logic';
 import { PrismaService } from '../prisma/prisma.service';
 import { SecretService } from '../secret/secret.service';
+import { SubscriptionListsQueryParamsDto } from './dto/subscription-list-query-params.dto';
 import { SubscriptionPlanSlugs } from './entities/subscription.entity';
 
 @Injectable()
@@ -11,6 +17,7 @@ export class SubscriptionV2Service {
   constructor(
     private prismaService: PrismaService,
     private secretService: SecretService,
+    private adminPanelService: AdminPanelService,
   ) {
     this.stripe = new Stripe(this.secretService.getStripeCreds().secretKey, {
       apiVersion: this.secretService.getStripeCreds().apiVersion,
@@ -564,5 +571,108 @@ export class SubscriptionV2Service {
     }
 
     return true;
+  }
+
+  async getSubscriptionLists(
+    userId: bigint,
+    query: SubscriptionListsQueryParamsDto,
+  ) {
+    throwUnauthorizedErrorCheck(
+      !(await this.adminPanelService.adminCheck(userId)),
+      'Unauthorized access!',
+    );
+
+    let { page, limit, sortBy, sortOrder } = query;
+    const { status } = query;
+    const orderbyObj = {};
+
+    const statusQuery = status
+      ? { status: userSubscriptionStatusEnum[status] }
+      : {};
+    if (!page || page < 1) page = 1;
+    if (!limit) limit = 20;
+    if (!sortOrder && sortOrder != 'asc' && sortOrder != 'desc')
+      sortOrder = 'desc';
+    if (!sortBy) sortBy = 'createdAt';
+
+    orderbyObj[sortBy] = sortOrder;
+    console.log(orderbyObj);
+
+    const [count, subscriptions] = await this.prismaService.$transaction([
+      this.prismaService.userSubscriptions.findMany({
+        where: {
+          ...statusQuery,
+        },
+        orderBy: orderbyObj,
+      }),
+
+      this.prismaService.userSubscriptions.findMany({
+        where: {
+          ...statusQuery,
+        },
+        select: {
+          id: true,
+          currentPeriodStart: true,
+          currentPeriodEnd: true,
+          currency: true,
+          status: true,
+          paymentStatus: true,
+          user: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              email: true,
+              image: true,
+            },
+          },
+          membershipPlanPrice: {
+            include: {
+              membershipPlan: true,
+            },
+          },
+          card: {
+            select: {
+              id: true,
+              brand: true,
+              last4: true,
+              expMonth: true,
+              expYear: true,
+            },
+          },
+          userSubscriptionInvoices: {
+            select: {
+              id: true,
+              userId: true,
+              userSubscriptionId: true,
+              customerName: true,
+              total: true,
+              subTotal: true,
+              amountDue: true,
+              amountPaid: true,
+              amountRemaining: true,
+              currency: true,
+              status: true,
+              billingDate: true,
+              meta: true,
+            },
+          },
+        },
+        skip: (page - 1) * limit,
+        take: limit,
+        orderBy: orderbyObj,
+      }),
+    ]);
+
+    throwBadRequestErrorCheck(
+      !count.length || !subscriptions.length,
+      'No subscription found.',
+    );
+
+    return {
+      message: 'Subscription lists.',
+      data: subscriptions,
+      meta: { total: count.length, currentPage: page, limit },
+    };
   }
 }
