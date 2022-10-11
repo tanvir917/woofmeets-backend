@@ -3,18 +3,18 @@ import {
   Get,
   Post,
   Body,
-  Patch,
-  Param,
-  Delete,
   UseGuards,
   Request,
+  UseInterceptors,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { TransformInterceptor } from '../transform.interceptor';
 import { UserOnboardingRefreshUrlDto } from './dto/create-stripe-connect.dto';
 import { StripeConnectService } from './stripe-connect.service';
 
 @ApiTags('Stripe Connect')
+@UseInterceptors(TransformInterceptor)
 @Controller('stripe-connect')
 export class StripeConnectController {
   constructor(private readonly stripeConnectService: StripeConnectService) {}

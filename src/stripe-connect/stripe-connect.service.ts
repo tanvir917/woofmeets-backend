@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { HttpStatus, Injectable } from '@nestjs/common';
 import Stripe from 'stripe';
 import { throwBadRequestErrorCheck } from '../global/exceptions/error-logic';
 import { PrismaService } from '../prisma/prisma.service';
@@ -42,32 +42,34 @@ export class StripeConnectService {
   }
 
   async onboardUser(userId: bigint) {
+    const user = await this.prismaService.user.findFirst({
+      where: {
+        id: userId,
+        deletedAt: null,
+      },
+      include: {
+        userStripeConnectAccount: true,
+      },
+    });
+
+    throwBadRequestErrorCheck(!user, 'No user found!');
+
+    // throwBadRequestErrorCheck(
+    //   !!user?.userStripeConnectAccount?.stripeAccountId,
+    //   'User onboardeding already initiated! Please use refresh url if you have not yet onboarded.',
+    // );
+
+    if (user?.userStripeConnectAccount?.stripeAccountId) {
+      return {
+        message:
+          'user onboardeding already initiated! Please use refresh url if you have not yet onboarded.',
+        data: {
+          alreadyInitiated: true,
+        },
+      };
+    }
+
     try {
-      const user = await this.prismaService.user.findFirst({
-        where: {
-          id: userId,
-          deletedAt: null,
-        },
-        include: {
-          userStripeConnectAccount: true,
-        },
-      });
-
-      throwBadRequestErrorCheck(!user, 'No user found!');
-
-      throwBadRequestErrorCheck(
-        !!user?.userStripeConnectAccount?.stripeAccountId,
-        'User onboardeding already initiated! Please use refresh url if you have not yet onboarded.',
-      );
-
-      // if (user?.userStripeConnectAccount?.stripeAccountId) {
-      //   return {
-      //     statusCode: HttpStatus.BAD_REQUEST,
-      //     message:
-      //       'user onboardeding already initiated! Please use refresh url if you have not yet onboarded.',
-      //   };
-      // }
-
       const account = await this.stripe.accounts.create({
         type: 'express',
         email: user?.email,
@@ -108,7 +110,6 @@ export class StripeConnectService {
             requirements: Object(account?.requirements),
             futureRequirements: Object(account?.future_requirements),
             type: account?.type,
-            meta: Object(account?.requirements),
           },
         });
 
@@ -129,21 +130,11 @@ export class StripeConnectService {
 
       return {
         message: 'Account onboarding Link!',
-        data: accountLink,
+        data: { alreadyInitiated: false, ...accountLink },
       };
     } catch (error) {
-      console.log(error);
-      const stripeAccount =
-        await this.prismaService.userStripeConnectAccount.findFirst({
-          where: { userId: userId },
-        });
-
-      throwBadRequestErrorCheck(
-        !!stripeAccount?.stripeAccountId,
-        'User onboardeding already initiated! Please use refresh url if you have not yet onboarded.',
-      );
-
-      throwBadRequestErrorCheck(true, 'Something went wrong!');
+      // console.log(error);
+      throw error as Error;
     }
   }
 
