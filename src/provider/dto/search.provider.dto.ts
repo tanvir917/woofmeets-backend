@@ -61,7 +61,7 @@ export class SearchProviderDto {
     required: false,
   })
   @IsOptional()
-  @IsEnum(HomeTypeEnum)
+  @IsEnum([HomeTypeEnum.FARM, HomeTypeEnum.HOUSE, HomeTypeEnum.APARTMENT])
   homeType: string;
 
   @ApiProperty({
@@ -69,7 +69,7 @@ export class SearchProviderDto {
     required: false,
   })
   @IsOptional()
-  @IsEnum(YardTypeEnum)
+  @IsEnum([YardTypeEnum.FENCED, YardTypeEnum.UNFENCED, YardTypeEnum.NO_YARD])
   yardType: string;
 
   @ApiProperty({
@@ -79,4 +79,28 @@ export class SearchProviderDto {
   @IsOptional()
   @IsString()
   preferenceIds: string;
+
+  @ApiProperty({ required: false })
+  @IsNumber()
+  @IsOptional()
+  minPrice: number;
+
+  @ApiProperty({ required: false })
+  @IsNumber()
+  @IsOptional()
+  maxPrice: number;
+
+  @ApiProperty({ required: false, default: 1, description: 'Page #' })
+  @IsNumber()
+  @IsOptional()
+  page?: number;
+
+  @ApiProperty({
+    required: false,
+    default: 20,
+    description: 'Item limit per page',
+  })
+  @IsNumber()
+  @IsOptional()
+  limit?: number;
 }

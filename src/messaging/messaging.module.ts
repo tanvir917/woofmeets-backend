@@ -27,7 +27,7 @@ import { MessagingProxyService } from './messaging.service';
         },
       },
       connectionInitOptions: {
-        wait: true,
+        wait: false,
       },
     }),
   ],

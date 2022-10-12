@@ -17,8 +17,9 @@ export class ProviderListService {
   ) {}
 
   async search(body: SearchProviderDto) {
-    const {
+    let {
       service: slug,
+      serviceId,
       pet_type,
       petsId,
       service_frequency,
@@ -26,48 +27,84 @@ export class ProviderListService {
       lng: long,
       startDate,
       endDate,
+      homeType,
+      yardType,
+      preferenceIds,
+      minPrice,
+      maxPrice,
+      page,
+      limit,
     } = body;
 
-    /**
-     * inner join with service and provider
-     * check service id / slug
-     * geo location search
-     * available day get
-     * available date + unavailable date get
-     * availability match
-     * get provider from the above result
-     * get rates
-     */
+    let attributesIds = [];
+    let customQuery = {};
+    let rawWhere = ``;
+
+    if (preferenceIds) {
+      attributesIds = preferenceIds.split(',');
+      attributesIds = attributesIds?.map((id) => {
+        return BigInt(id);
+      });
+    }
+
+    if (attributesIds.length > 0) {
+      customQuery = {
+        provider: {
+          HomeAttributes: {
+            some: {
+              homeAttributeTypeId: {
+                in: attributesIds,
+              },
+              deletedAt: null,
+            },
+          },
+        },
+      };
+    }
+
+    if (minPrice || maxPrice) {
+      minPrice = minPrice ?? 1;
+      maxPrice = maxPrice ?? 100;
+      customQuery = {
+        ...customQuery,
+        ServiceHasRates: {
+          some: {
+            amount: {
+              gte: minPrice,
+              lte: maxPrice,
+            },
+            serviceTypeRate: {
+              serviceRateTypeId: 1,
+            },
+          },
+        },
+      };
+    }
+
+    if (homeType) {
+      rawWhere = `AND p."homeType" = '${homeType}' `;
+    }
+
+    if (yardType) {
+      rawWhere = rawWhere + `AND p."yardType" = '${yardType}' `;
+    }
+
+    if (!page || page < 1) page = 1;
+    if (!limit) limit = 20;
+
     throwBadRequestErrorCheck(
       isBefore(new Date(endDate), new Date(startDate)),
       'End date can not be less than start date!',
     );
 
+    const sql = `select ST_DistanceSphere(ST_MakePoint(p.longitude, p.latitude), ST_MakePoint(${long}, ${lat})) / 1000 as distance, ps."id" as id from "ProviderServices" as ps inner join "Provider" as p on ps."providerId" = p.id WHERE ps."serviceTypeId" = ${serviceId} ${rawWhere} group by p.id, ps.id having (ST_DistanceSphere(ST_MakePoint(p.longitude, p.latitude), ST_MakePoint(${long}, ${lat})) / 1000) < 30 ORDER BY distance asc`;
+    // console.log(sql);
     const raw = await this.prismaService.$queryRaw<
       {
         id: number;
+        distance: number;
       }[]
-    >(
-      Prisma.sql`select ST_DistanceSphere(ST_MakePoint(p.longitude, p.latitude), ST_MakePoint(${long}, ${lat})) / 1000 as distance, ps.* from "ProviderServices" as ps inner join "Provider" as p on ps."providerId" = p.id group by p.id, ps.id having (ST_DistanceSphere(ST_MakePoint(p.longitude, p.latitude), ST_MakePoint(${long}, ${lat})) / 1000) < 30 ORDER BY distance asc`,
-    );
-
-    /**
-     * searchOptions: {
-     * * pet_type: ["dog"] || ["cat"] || ["dog","cat"]
-     * * petsId: [],  Ids got from the pets api
-     * * service_slug: "boarding" || "sitting" || "day_care" || "visit" || "walking",
-     * * location: {lat:"",lng:""},
-     * * service_frequency: "onetime" || "repeat",
-     * * weekdays: ["sun","mon","tue","wed","thu","fri","sat"],
-     * * startDate: undefined || ISO date format,
-     * * endDate: undefined || ISO date format,
-     * * numberOfPets:1 || 2 || 3+,
-     * * dogSize:"0-15"|| "16-40" || "41-100" || "100+",
-     * * minPrice: number,
-     * * maxPrice:number,
-     * * additionalFilters: [], Ids of the additional filters got from the api.
-     * }
-     */
+    >(Prisma.raw(sql));
 
     const tempids = [];
     raw &&
@@ -80,6 +117,7 @@ export class ProviderListService {
       'Provider not found on specific criteria.',
     );
 
+    console.log(customQuery);
     const services = await this.prismaService.providerServices.findMany({
       where: {
         id: {
@@ -88,6 +126,7 @@ export class ProviderListService {
         isActive: true,
         isApproved: true,
         deletedAt: null,
+        ...customQuery,
       },
       include: {
         provider: {
@@ -104,10 +143,19 @@ export class ProviderListService {
                 },
               },
             },
+            HomeAttributes: true,
           },
         },
-        ServiceHasRates: true,
+        ServiceHasRates: {
+          where: {
+            serviceTypeRate: {
+              serviceRateTypeId: 1, // base rate only
+            },
+          },
+        },
       },
+      take: limit,
+      skip: (page - 1) * limit,
     });
 
     throwNotFoundErrorCheck(
@@ -126,6 +174,7 @@ export class ProviderListService {
     await Promise.all(
       services.map(async (service) => {
         let s = service;
+        let tmp = raw && raw?.find((row) => BigInt(row.id) === service.id);
         s.provider.user.password = null;
         try {
           const { data } = await this.availabilityService.getAvailability(
@@ -133,14 +182,32 @@ export class ProviderListService {
             service.id,
             tmpQuery,
           );
-          providers.push({ ...s, availability: data });
+          providers.push({
+            ...s,
+            distance: { ...tmp, unit: 'km' },
+            availability: data,
+          });
         } catch (e) {
           console.log('Provider list: availability ', e);
-          providers.push({ ...s, availability: null });
+          providers.push({
+            ...s,
+            distance: { ...tmp, unit: 'km' },
+            availability: null,
+          });
         }
       }),
     );
 
-    return { providers };
+    throwNotFoundErrorCheck(
+      providers.length === 0,
+      'Provider not found with specific criteria.',
+    );
+
+    const meta = {
+      per_page: limit,
+      page,
+    };
+
+    return { message: 'Provider found successfully.', data: providers, meta };
   }
 }
