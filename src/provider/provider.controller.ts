@@ -14,9 +14,11 @@ import { AvailabilityGetServcie } from 'src/availability/services/availability.g
 import { throwBadRequestErrorCheck } from 'src/global/exceptions/error-logic';
 import { ProviderCreationDto } from './dto/creation.dto';
 import { GetAvailableCalenderDto } from './dto/get.available.dto';
+import { RecommendedProviderDto } from './dto/recommended.dto';
 import { SearchProviderDto } from './dto/search.provider.dto';
 import { ProviderCreationService } from './provider-creation.service';
 import { ProviderListService } from './provider-list.service';
+import { ProviderRecommendedService } from './provider-recommended.service';
 import { ProviderService } from './provider.service';
 
 @ApiTags('Provider')
@@ -28,6 +30,7 @@ export class ProviderController {
     private readonly availableGetService: AvailabilityGetServcie,
     private readonly providerCreationService: ProviderCreationService,
     private readonly providerListService: ProviderListService,
+    private readonly recommendedService: ProviderRecommendedService,
   ) {}
 
   @ApiOperation({
@@ -73,6 +76,16 @@ export class ProviderController {
       BigInt(serviceId),
       query,
     );
+  }
+
+  @ApiOperation({
+    summary: 'Get recommended providers. Queries are optional.',
+  })
+  @Get('/recommended')
+  async recommendedProvider(
+    @Query() query: RecommendedProviderDto,
+  ) {
+    return this.recommendedService.recommended(query);
   }
 
   @Post('complete-onboarding-progress')
