@@ -12,6 +12,7 @@ import { EmailModule } from 'src/email/email.module';
 import { SecretModule } from 'src/secret/secret.module';
 import { ProviderListService } from './provider-list.service';
 import { AvailabilityModule } from 'src/availability/availability.module';
+import { ProviderRecommendedService } from './provider-recommended.service';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { AvailabilityModule } from 'src/availability/availability.module';
     PasswordService,
     CommonService,
     ProviderListService,
+    ProviderRecommendedService,
   ],
 })
 export class ProviderModule {}
