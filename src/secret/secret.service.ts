@@ -89,6 +89,9 @@ export class SecretService {
       STRIPE_WEBHOOK_SECRET: this.configService.get<string>(
         'STRIPE_WEBHOOK_SECRET',
       ),
+      STRIPE_CONNECT_WEBHOOK_SECRET: this.configService.get<string>(
+        'STRIPE_CONNECT_WEBHOOK_SECRET',
+      ),
 
       STRIPE_ONBOARD_RETURN_URL: this.configService.get<string>(
         'STRIPE_ONBOARD_RETURN_URL',
@@ -230,6 +233,7 @@ export class SecretService {
       webhookSecret: this.#environment.STRIPE_WEBHOOK_SECRET,
       onboardReturnUrl: this.#environment.STRIPE_ONBOARD_RETURN_URL,
       onboardRefreshUrl: this.#environment.STRIPE_ONBOARD_REFRESH_URL,
+      connectWebhookSecret: this.#environment.STRIPE_CONNECT_WEBHOOK_SECRET,
     };
   }
 

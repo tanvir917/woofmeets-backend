@@ -207,6 +207,10 @@ export class EnvironmentVariable {
   @IsNotEmpty()
   @IsString()
   STRIPE_ONBOARD_REFRESH_URL: string;
+
+  @IsNotEmpty()
+  @IsString()
+  STRIPE_CONNECT_WEBHOOK_SECRET: string;
 }
 
 export function validateEnvironmentVariables(

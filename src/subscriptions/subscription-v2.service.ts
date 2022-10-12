@@ -9,7 +9,11 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { SecretService } from '../secret/secret.service';
 import { SubscriptionListsQueryParamsDto } from './dto/subscription-list-query-params.dto';
-import { SubscriptionPlanSlugs } from './entities/subscription.entity';
+import {
+  ProviderBackgourndCheckEnum,
+  SubscriptionPlanSlugs,
+  SubscriptionStatusEnum,
+} from './entities/subscription.entity';
 
 @Injectable()
 export class SubscriptionV2Service {
@@ -128,7 +132,7 @@ export class SubscriptionV2Service {
     }
   }
 
-  async payBasicPayment(userId: bigint) {
+  async payBasicPayment(userId: bigint, cardId: bigint) {
     const user = await this.prismaService.user.findFirst({
       where: {
         id: userId,
@@ -139,8 +143,8 @@ export class SubscriptionV2Service {
         userStripeCustomerAccount: true,
         userStripeCard: {
           where: {
+            id: cardId,
             deletedAt: null,
-            isDefault: true,
           },
         },
       },
@@ -152,7 +156,7 @@ export class SubscriptionV2Service {
 
     throwBadRequestErrorCheck(
       !user?.userStripeCard?.length,
-      'No card found. Please add a card.',
+      'No card found. Please check again or try with another card.',
     );
 
     const paymentChecker = await this.checkUserSubsOrSignupPayment(user?.id);
@@ -201,13 +205,39 @@ export class SubscriptionV2Service {
           },
         });
 
+        if (paymentIntent?.status === 'succeeded') {
+          await this.prismaService.provider.update({
+            where: {
+              id: user?.provider?.id,
+            },
+            data: {
+              backGroundCheck: ProviderBackgourndCheckEnum.BASIC,
+            },
+          });
+        }
+
         return {
           message: 'Payment successful',
         };
       } catch (error) {
-        throw error as Error;
+        throwBadRequestErrorCheck(true, error.message);
       }
     }
+  }
+
+  async updateBackgroundCheckStatus(
+    providerId: bigint,
+    status: ProviderBackgourndCheckEnum,
+  ) {
+    await this.prismaService.provider.update({
+      where: {
+        id: providerId,
+      },
+      data: {
+        backGroundCheck: status,
+      },
+    });
+    return true;
   }
 
   async createSubscriptionV2(userId: bigint, priceId: bigint, cardId: bigint) {
@@ -405,6 +435,38 @@ export class SubscriptionV2Service {
             );
           }
         }
+      }
+    }
+
+    /**
+     * LOGIC:
+     * 1.Check if user has an active subscription.
+     * 2.Check if the subscription plan is platinum. If yes, check if background check is not
+     *    platinum. If yes, create a background platinum check.
+     * 3.If subscription plan is Gold, check if background check is not gold or platinum. If yes,
+     *   create a gold background check.
+     */
+
+    if (subscription.status == SubscriptionStatusEnum.active) {
+      if (
+        user?.provider.backGroundCheck !=
+          ProviderBackgourndCheckEnum.PLATINUM &&
+        priceObject?.membershipPlan?.slug == SubscriptionPlanSlugs.PLATINUM
+      ) {
+        await this.updateBackgroundCheckStatus(
+          user?.provider?.id,
+          ProviderBackgourndCheckEnum.PLATINUM,
+        );
+      } else if (
+        user?.provider?.backGroundCheck != ProviderBackgourndCheckEnum.GOLD &&
+        user?.provider?.backGroundCheck !=
+          ProviderBackgourndCheckEnum.PLATINUM &&
+        priceObject?.membershipPlan?.slug == SubscriptionPlanSlugs.GOLD
+      ) {
+        await this.updateBackgroundCheckStatus(
+          user?.provider?.id,
+          ProviderBackgourndCheckEnum.GOLD,
+        );
       }
     }
 
