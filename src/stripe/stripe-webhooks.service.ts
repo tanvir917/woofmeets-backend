@@ -260,15 +260,6 @@ export class StripeWebhooksService {
         'Miscellenous payment can not be updated.',
       );
 
-      await this.prismaService.provider.update({
-        where: {
-          id: provider?.id,
-        },
-        data: {
-          backGroundCheck: ProviderBackgourndCheckEnum.BASIC,
-        },
-      });
-
       return {
         message: 'Charge Succeeded',
       };
@@ -277,55 +268,6 @@ export class StripeWebhooksService {
         message: 'Charge Succeeded for other methods',
       };
     }
-  }
-
-  private async handleAccontUpdated(account: object) {
-    const {
-      id,
-      charges_enabled,
-      payouts_enabled,
-      details_submitted,
-      requirements,
-      type,
-      future_requirements,
-      capabilities,
-      country,
-      default_currency,
-      email,
-    } = Object(account);
-
-    const stripeAccount =
-      await this.prismaService.userStripeConnectAccount.findFirst({
-        where: {
-          stripeAccountId: id,
-          deletedAt: null,
-        },
-      });
-
-    throwBadRequestErrorCheck(!stripeAccount, 'Account not found!');
-
-    const accountUpdated =
-      await this.prismaService.userStripeConnectAccount.update({
-        where: { id: stripeAccount?.id },
-        data: {
-          country: country,
-          defaultCurrency: default_currency,
-          chargesEnabled: charges_enabled,
-          payoutsEnabled: payouts_enabled,
-          detailsSubmitted: details_submitted,
-          requirements: requirements,
-          futureRequirements: future_requirements,
-          capabilities: capabilities,
-          email,
-          type,
-        },
-      });
-
-    throwBadRequestErrorCheck(!accountUpdated, 'Account can not be updated!');
-
-    return {
-      message: 'Account Updated!',
-    };
   }
 
   async stripeWebhook(stripeSignature: any, body: any) {
@@ -359,8 +301,6 @@ export class StripeWebhooksService {
       case 'invoice.finalized':
         console.log('Invoice Finalized');
         return await this.stripeInvoiceAlteration(event.data.object);
-      case 'account.updated':
-        return this.handleAccontUpdated(event.data.object);
       default:
         return {
           statusCode: HttpStatus.BAD_REQUEST,

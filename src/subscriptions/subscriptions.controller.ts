@@ -115,9 +115,12 @@ export class SubscriptionsController {
   @ApiBearerAuth('access-token')
   @UseGuards(JwtAuthGuard)
   @Post('pay-basic-verification-payment')
-  async payBasicVerificationPayment(@Request() req: any) {
+  async payBasicVerificationPayment(
+    @Request() req: any,
+    @Query('cardId') cardId: string,
+  ) {
     const userId = BigInt(req.user?.id) ?? BigInt(-1);
-    return this.subscriptionV2Service.payBasicPayment(userId);
+    return this.subscriptionV2Service.payBasicPayment(userId, BigInt(cardId));
   }
 
   @ApiBearerAuth('access-token')
