@@ -56,6 +56,8 @@ export class ZoomService {
           },
         );
 
+        console.log({ tokenResult });
+
         const JSONResponse =
           '<pre><code>' +
           JSON.stringify(

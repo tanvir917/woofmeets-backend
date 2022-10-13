@@ -222,6 +222,11 @@ export class AppointmentProposalService {
         deletedAt: null,
       },
       include: {
+        providerService: {
+          include: {
+            serviceType: true,
+          },
+        },
         user: {
           select: {
             id: true,
@@ -311,6 +316,11 @@ export class AppointmentProposalService {
         deletedAt: null,
       },
       include: {
+        providerService: {
+          include: {
+            serviceType: true,
+          },
+        },
         user: {
           select: {
             id: true,

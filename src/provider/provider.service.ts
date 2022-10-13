@@ -59,6 +59,7 @@ export class ProviderService {
             },
             providerServices: {
               where: {
+                isApproved: true,
                 deletedAt: null,
               },
               include: {

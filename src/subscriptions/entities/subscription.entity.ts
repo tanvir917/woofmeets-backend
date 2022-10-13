@@ -5,6 +5,7 @@ export enum SubscriptionPackageTypeEnum {
 }
 
 export enum ProviderSubscriptionTypeEnum {
+  NONE = 'NONE',
   BASIC = 'BASIC',
   GOLD = 'GOLD',
   PLATINUM = 'PLATINUM',
