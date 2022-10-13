@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { CommonService } from 'src/common/common.service';
+import { EmailService } from 'src/email/email.service';
 import {
   throwBadRequestErrorCheck,
   throwConflictErrorCheck,
@@ -28,6 +29,7 @@ export class AuthService {
     private jwtService: JwtService,
     private prismaService: PrismaService,
     private passwordService: PasswordService,
+    private emailService: EmailService,
   ) {}
 
   async validateUser(loginDto: LoginDto, res: any) {
@@ -149,6 +151,9 @@ export class AuthService {
     });
 
     throwBadRequestErrorCheck(!user, 'User is not created');
+
+    //Sending welcome email
+    await this.emailService.signupWelcomeEmail(email);
 
     const {
       password: ignoredPassword,
