@@ -48,6 +48,7 @@ export class UserProfileService {
             backGroundCheck: true,
             providerDetails: true,
             isApproved: true,
+            profileSubmitted: true,
             providerServices: {
               include: {
                 serviceType: true,
