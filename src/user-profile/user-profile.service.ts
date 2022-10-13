@@ -1,14 +1,18 @@
-import { Injectable } from '@nestjs/common';
+import { HttpStatus, Injectable } from '@nestjs/common';
 import {
   throwBadRequestErrorCheck,
   throwNotFoundErrorCheck,
 } from 'src/global/exceptions/error-logic';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CheckHavePetDTo } from './dto/have-pets.dto';
+import { UserOnboardingProgressService } from './user-onboarding-progress.service';
 
 @Injectable()
 export class UserProfileService {
-  constructor(private prismaService: PrismaService) {}
+  constructor(
+    private prismaService: PrismaService,
+    private userOnboardingProgressService: UserOnboardingProgressService,
+  ) {}
 
   async getCountry() {
     const country = await this.prismaService.country.findMany({
@@ -108,6 +112,60 @@ export class UserProfileService {
     return {
       message: 'Provider have pets updated successfully.',
       data: provider,
+    };
+  }
+
+  async submitOnboardingProcess(userId: bigint) {
+    const user = await this.prismaService.user.findFirst({
+      where: { id: userId, deletedAt: null },
+      include: {
+        provider: true,
+      },
+    });
+
+    throwBadRequestErrorCheck(!user, 'User not found.');
+
+    throwBadRequestErrorCheck(
+      user?.provider?.profileSubmitted,
+      'Onboarding already submitted.',
+    );
+
+    const onboarding =
+      await this.userOnboardingProgressService.getUserOnboardingProgress(
+        user?.id,
+      );
+
+    if (
+      !onboarding?.serviceSelection ||
+      !onboarding?.serviceSetup ||
+      !onboarding?.profileSetup ||
+      !onboarding?.safetyQuiz ||
+      !onboarding?.subscription
+    ) {
+      return {
+        statusCode: HttpStatus.BAD_REQUEST,
+        message: 'Onboarding process is not completed.',
+        data: onboarding,
+      };
+    }
+
+    const providerProfileSubmitted = await this.prismaService.provider.update({
+      where: {
+        id: user?.provider?.id,
+      },
+      data: {
+        profileSubmitted: true,
+      },
+    });
+
+    throwBadRequestErrorCheck(
+      !providerProfileSubmitted,
+      'Provider onboarding process can not be submitted. Please try again later.',
+    );
+
+    return {
+      message: 'Provider onboarding process submitted successfully.',
+      data: providerProfileSubmitted,
     };
   }
 }
