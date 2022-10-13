@@ -52,4 +52,16 @@ export class EmailService {
       },
     );
   }
+
+  async signupWelcomeEmail(email: string) {
+    return this.mailgunService.createEmail(
+      this.secretService.getMailgunCreds().domain,
+      {
+        from: this.secretService.getMailgunCreds().from,
+        to: email,
+        subject: 'Welcome to Woofmeets',
+        template: 'signup_welcome',
+      },
+    );
+  }
 }
