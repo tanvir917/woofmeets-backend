@@ -265,4 +265,13 @@ export class UserProfileController {
       data: await this.userOnboardingService.getUserOnboardingProgress(userId),
     };
   }
+
+  //Submit the onboarding process when it is completed
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard)
+  @Post('submit-onboarding-process')
+  async submitOnboardingProcess(@Req() req: any) {
+    const userId = BigInt(req.user?.id) ?? BigInt(-1);
+    return await this.userProfileService.submitOnboardingProcess(userId);
+  }
 }
