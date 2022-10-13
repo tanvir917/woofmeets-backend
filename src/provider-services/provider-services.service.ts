@@ -118,8 +118,8 @@ export class ProviderServicesService {
         `${provider.slug}-${serviceType.slug}`,
       );
 
-      const providerServices = await this.prismaService.providerServices.create(
-        {
+      const [providerServices] = await this.prismaService.$transaction([
+        this.prismaService.providerServices.create({
           data: {
             providerId: provider?.id,
             serviceTypeId,
@@ -128,8 +128,16 @@ export class ProviderServicesService {
           include: {
             serviceType: true,
           },
-        },
-      );
+        }),
+        this.prismaService.backgroundCheck.create({
+          data: {
+            providerId: provider?.id,
+            type: provider?.backGroundCheck,
+            value: 0,
+          },
+        }),
+      ]);
+
       return {
         message: 'Provider service created successfully',
         data: providerServices,
@@ -153,6 +161,7 @@ export class ProviderServicesService {
       {
         where: {
           providerId: user.provider.id,
+          isApproved: true,
           deletedAt: null,
         },
         include: {

@@ -12,6 +12,7 @@ import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { LoginDto } from 'src/auth/dto/login.dto';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 import { AdminPanelService } from './admin-panel.service';
+import { ProviderServiceToggleDto } from './dto/provider-service.toggle.dto';
 
 @ApiTags('Admin-Panel')
 @Controller('admin-panel')
@@ -52,6 +53,14 @@ export class AdminPanelController {
 
   @ApiBearerAuth('access-token')
   @UseGuards(JwtAuthGuard)
+  @Get('/user/permanent-block')
+  async userPermanentBlock(@Query('email') email: string, @Request() req: any) {
+    const userId = BigInt(req.user?.id) ?? BigInt(-1);
+    return await this.adminPanelService.userPermanentBlock(userId, email);
+  }
+
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard)
   @Get('/all-providers')
   async getAllProviders(@Query('email') email: string, @Request() req: any) {
     const userId = BigInt(req.user?.id) ?? BigInt(-1);
@@ -64,6 +73,58 @@ export class AdminPanelController {
   async getProviderDetails(@Query('email') email: string, @Request() req: any) {
     const userId = BigInt(req.user?.id) ?? BigInt(-1);
     return await this.adminPanelService.getProviderDetails(userId, email);
+  }
+
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard)
+  @Get('/provider/approval')
+  async toggleProviderApproval(
+    @Query('email') email: string,
+    @Request() req: any,
+  ) {
+    const userId = BigInt(req.user?.id) ?? BigInt(-1);
+    return await this.adminPanelService.toggleProviderApproval(userId, email);
+  }
+
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard)
+  @Post('/provider/service-approval')
+  async toggleProviderServiceApproval(
+    @Query('email') email: string,
+    @Body() providerServiceToggleDto: ProviderServiceToggleDto,
+    @Request() req: any,
+  ) {
+    const userId = BigInt(req.user?.id) ?? BigInt(-1);
+    return await this.adminPanelService.toggleProviderServiceApproval(
+      userId,
+      email,
+      providerServiceToggleDto,
+    );
+  }
+
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard)
+  @Get('/provider/background-check')
+  async providerBackgroundCheck(
+    @Query('email') email: string,
+    @Request() req: any,
+  ) {
+    const userId = BigInt(req.user?.id) ?? BigInt(-1);
+    return await this.adminPanelService.providerBackgroundCheck(userId, email);
+  }
+
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard)
+  @Get('/provider/update/background-check')
+  async updateProviderBackgroundCheck(
+    @Query('email') email: string,
+    @Request() req: any,
+  ) {
+    const userId = BigInt(req.user?.id) ?? BigInt(-1);
+    return await this.adminPanelService.updateroviderBackgroundCheck(
+      userId,
+      email,
+    );
   }
 
   @ApiBearerAuth('access-token')

@@ -9,6 +9,7 @@ import {
   throwUnauthorizedErrorCheck,
 } from 'src/global/exceptions/error-logic';
 import { PrismaService } from 'src/prisma/prisma.service';
+import { ProviderServiceToggleDto } from './dto/provider-service.toggle.dto';
 
 @Injectable()
 export class AdminPanelService {
@@ -122,7 +123,7 @@ export class AdminPanelService {
     throwNotFoundErrorCheck(users?.length <= 0, 'Users not found.');
 
     return {
-      messages: 'Users found successfully',
+      messages: 'Users found successfully.',
       data: users,
     };
   }
@@ -170,8 +171,42 @@ export class AdminPanelService {
     throwNotFoundErrorCheck(!user, 'User not found.');
 
     return {
-      messages: 'User details found successfully',
+      messages: 'User details found successfully.',
       data: user,
+    };
+  }
+
+  async userPermanentBlock(userId: bigint, email: string) {
+    throwUnauthorizedErrorCheck(
+      !(await this.adminCheck(userId)),
+      'Unauthorized',
+    );
+
+    const user = await this.prismaService.user.findFirst({
+      where: {
+        email: email ?? '',
+      },
+    });
+
+    throwNotFoundErrorCheck(!user, 'User not found.');
+
+    const updatedUser = await this.prismaService.user.update({
+      where: {
+        id: user?.id,
+      },
+      data: {
+        deletedAt: user?.deletedAt ? null : new Date(),
+      },
+    });
+
+    throwBadRequestErrorCheck(
+      !updatedUser,
+      'User permanent block can not toggle now.',
+    );
+
+    return {
+      messages: 'User permanent block toggled successfully.',
+      data: updatedUser,
     };
   }
 
@@ -213,7 +248,7 @@ export class AdminPanelService {
     throwNotFoundErrorCheck(providers?.length <= 0, 'Providers not found.');
 
     return {
-      messages: 'Providers found successfully',
+      messages: 'Providers found successfully.',
       data: providers,
     };
   }
@@ -230,11 +265,40 @@ export class AdminPanelService {
         },
       },
       include: {
-        providerServices: true,
+        backgroundCheck: {
+          orderBy: {
+            createdAt: 'desc',
+          },
+        },
+        providerServices: {
+          include: {
+            ServiceHasRates: {
+              include: {
+                serviceTypeRate: {
+                  include: {
+                    serviceRateType: true,
+                  },
+                },
+              },
+            },
+            serviceType: true,
+          },
+        },
         providerDetails: true,
+        providerSkills: {
+          where: {
+            deletedAt: null,
+          },
+          include: {
+            skillType: true,
+          },
+        },
+        HomeAttributes: {
+          include: {
+            homeAttributeType: true,
+          },
+        },
         ServicePetPreference: true,
-        HomeAttributes: true,
-        providerSkills: true,
         providerCheckrCandidate: true,
         zoomInfo: true,
         appointment: true,
@@ -278,6 +342,214 @@ export class AdminPanelService {
     };
   }
 
+  async toggleProviderApproval(userId: bigint, email: string) {
+    throwUnauthorizedErrorCheck(
+      !(await this.adminCheck(userId)),
+      'Unauthorized',
+    );
+
+    const provider = await this.prismaService.provider.findFirst({
+      where: {
+        user: {
+          email: email ?? '',
+        },
+        deletedAt: null,
+      },
+    });
+
+    throwNotFoundErrorCheck(!provider, 'Provider not found.');
+
+    const updatedProvider = await this.prismaService.provider.update({
+      where: {
+        id: provider?.id,
+      },
+      data: {
+        isApproved: !provider?.isApproved,
+      },
+    });
+
+    throwBadRequestErrorCheck(
+      !updatedProvider,
+      'Provider approval can not toggle now.',
+    );
+
+    return {
+      messages: 'Provider approval toggled successfully.',
+      data: updatedProvider,
+    };
+  }
+
+  async toggleProviderServiceApproval(
+    userId: bigint,
+    email: string,
+    providerServiceToggleDto: ProviderServiceToggleDto,
+  ) {
+    throwUnauthorizedErrorCheck(
+      !(await this.adminCheck(userId)),
+      'Unauthorized',
+    );
+
+    const provider = await this.prismaService.provider.findFirst({
+      where: {
+        user: {
+          email: email ?? '',
+        },
+      },
+    });
+
+    throwNotFoundErrorCheck(!provider, 'Provider not found.');
+
+    const { providerServiceId } = providerServiceToggleDto;
+
+    let providerService = await this.prismaService.providerServices.findMany({
+      where: {
+        id: {
+          in: providerServiceId,
+        },
+      },
+    });
+
+    const promises = [];
+
+    for (let i = 0; i < providerService?.length; i++) {
+      promises.push(
+        await this.prismaService.providerServices.update({
+          where: {
+            id: providerService[i]?.id,
+          },
+          data: {
+            isApproved: !providerService[i]?.isApproved,
+          },
+        }),
+      );
+    }
+
+    await Promise.allSettled(promises);
+
+    providerService = await this.prismaService.providerServices.findMany({
+      where: {
+        id: {
+          in: providerServiceId,
+        },
+      },
+    });
+
+    return {
+      messages: 'Provider service approval toggled successfully.',
+      data: providerService,
+    };
+  }
+
+  async providerBackgroundCheck(userId: bigint, email: string) {
+    throwUnauthorizedErrorCheck(
+      !(await this.adminCheck(userId)),
+      'Unauthorized',
+    );
+
+    const provider = await this.prismaService.provider.findFirst({
+      where: {
+        user: {
+          email: email ?? '',
+        },
+      },
+      include: {
+        backgroundCheck: {
+          orderBy: {
+            createdAt: 'desc',
+          },
+        },
+      },
+    });
+
+    throwNotFoundErrorCheck(!provider, 'Provider not found.');
+
+    throwBadRequestErrorCheck(
+      provider?.backgroundCheck?.length <= 0,
+      'Need to update background check.',
+    );
+    if (provider?.backGroundCheck == 'PLATINUM') {
+      throwBadRequestErrorCheck(
+        provider?.backgroundCheck[0]?.value < 3,
+        'Need to update background check.',
+      );
+    } else if (provider?.backGroundCheck == 'GOLD') {
+      throwBadRequestErrorCheck(
+        provider?.backgroundCheck[0]?.value < 2,
+        'Need to update background check.',
+      );
+    } else if (provider?.backGroundCheck == 'BASIC') {
+      throwBadRequestErrorCheck(
+        provider?.backgroundCheck[0]?.value < 1,
+        'Need to update background check.',
+      );
+    }
+
+    const updatedProvider = await this.prismaService.provider.update({
+      where: {
+        id: provider?.id,
+      },
+      data: {
+        isApproved: !provider?.isApproved,
+      },
+    });
+
+    throwBadRequestErrorCheck(
+      !updatedProvider,
+      'Provider approval can not toggle now.',
+    );
+
+    return {
+      messages: 'Provider background checked successfully.',
+      data: provider,
+    };
+  }
+
+  async updateroviderBackgroundCheck(userId: bigint, email: string) {
+    throwUnauthorizedErrorCheck(
+      !(await this.adminCheck(userId)),
+      'Unauthorized',
+    );
+
+    const provider = await this.prismaService.provider.findFirst({
+      where: {
+        user: {
+          email: email ?? '',
+        },
+      },
+    });
+
+    throwNotFoundErrorCheck(!provider, 'Provider not found.');
+
+    const backgroundCheckValue = {
+      NONE: 0,
+      BASIC: 1,
+      GOLD: 2,
+      PLATINUM: 3,
+    };
+
+    const updateBackgroundCheck =
+      await this.prismaService.backgroundCheck.create({
+        data: {
+          providerId: provider?.id,
+          type: provider?.backGroundCheck,
+          value: backgroundCheckValue[provider?.backGroundCheck],
+        },
+      });
+
+    throwBadRequestErrorCheck(
+      !updateBackgroundCheck,
+      'Provider approval can not toggle now.',
+    );
+
+    return {
+      messages: 'Provider background checked successfully.',
+      data: {
+        ...provider,
+        updateBackgroundCheck,
+      },
+    };
+  }
+
   async getAllAppointments(userId: bigint, opk: string, status: string) {
     throwUnauthorizedErrorCheck(
       !(await this.adminCheck(userId)),
@@ -296,7 +568,11 @@ export class AdminPanelService {
       },
       include: {
         user: true,
-        provider: true,
+        provider: {
+          include: {
+            user: true,
+          },
+        },
         providerService: {
           include: {
             serviceType: true,
@@ -311,7 +587,7 @@ export class AdminPanelService {
     );
 
     return {
-      messages: 'Appointments found successfully',
+      messages: 'Appointments found successfully.',
       data: appointments,
     };
   }
@@ -350,7 +626,7 @@ export class AdminPanelService {
     throwNotFoundErrorCheck(!appointment, 'Appointment not found.');
 
     return {
-      messages: 'Appointment details found successfully',
+      messages: 'Appointment details found successfully.',
       data: appointment,
     };
   }

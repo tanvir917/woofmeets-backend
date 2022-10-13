@@ -11,6 +11,7 @@ import { SecretService } from '../secret/secret.service';
 import { SubscriptionListsQueryParamsDto } from './dto/subscription-list-query-params.dto';
 import {
   ProviderBackgourndCheckEnum,
+  ProviderSubscriptionTypeEnum,
   SubscriptionPlanSlugs,
   SubscriptionStatusEnum,
 } from './entities/subscription.entity';
@@ -469,6 +470,16 @@ export class SubscriptionV2Service {
         );
       }
     }
+
+    await this.prismaService.provider.update({
+      where: {
+        id: user?.provider?.id,
+      },
+      data: {
+        subscriptionType:
+          priceObject?.membershipPlan?.slug?.toUpperCase() as ProviderSubscriptionTypeEnum,
+      },
+    });
 
     return {
       message: 'Subscription created successfully.',

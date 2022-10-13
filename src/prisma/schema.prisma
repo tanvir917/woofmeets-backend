@@ -48,6 +48,7 @@ enum optionTypeEnum {
 }
 
 enum subscriptionTypeEnum {
+  NONE
   BASIC
   GOLD
   PLATINUM
@@ -148,7 +149,7 @@ enum clientSubscriptonsInvoiceStatus {
 
 enum adminRoleEnum {
   SUPERADMIN
-  adminRoleEnum
+  ADMIN
 }
 
 model User {
@@ -260,7 +261,7 @@ model Provider {
   slug                    String                   @unique
   isApproved              Boolean                  @default(false)
   havePets                havePetsEnum             @default(NOT_SELECTED)
-  subscriptionType        subscriptionTypeEnum     @default(BASIC)
+  subscriptionType        subscriptionTypeEnum     @default(NONE)
   quizPassed              Boolean                  @default(false)
   photoSubmitted          Boolean                  @default(false)
   backGroundCheck         backGroundCheckEnum      @default(NONE)
@@ -283,6 +284,7 @@ model Provider {
   providerCheckrCandidate ProviderCheckrCandidate?
   zoomInfo                ZoomInfo?
   appointment             Appointment[]
+  backgroundCheck         BackgroundCheck[]
 }
 
 model ProviderServices {
@@ -981,6 +983,18 @@ model Admin {
   createdAt DateTime       @default(now()) @db.Timestamptz(3)
   updatedAt DateTime?      @updatedAt @db.Timestamptz(3)
   deletedAt DateTime?      @db.Timestamptz(3)
+}
+
+model BackgroundCheck {
+  id         BigInt              @id @default(autoincrement())
+  providerId BigInt
+  provider   Provider            @relation(fields: [providerId], references: [id])
+  type       backGroundCheckEnum
+  value      Int?
+  meta       Json?
+  createdAt  DateTime            @default(now()) @db.Timestamptz(3)
+  updatedAt  DateTime?           @updatedAt @db.Timestamptz(3)
+  deletedAt  DateTime?           @db.Timestamptz(3)
 }
 
 model UserStripeConnectAccount {
