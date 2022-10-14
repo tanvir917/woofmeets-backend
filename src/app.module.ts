@@ -43,6 +43,7 @@ import { UnavailabilityModule } from './unavailability/unavailability.module';
 import { UserProfileModule } from './user-profile/user-profile.module';
 import { ZoomModule } from './zoom/zoom.module';
 import { StripeConnectModule } from './stripe-connect/stripe-connect.module';
+import { CouponsModule } from './coupons/coupons.module';
 
 @Module({
   imports: [
@@ -86,6 +87,7 @@ import { StripeConnectModule } from './stripe-connect/stripe-connect.module';
     MessagingModule,
     AdminPanelModule,
     StripeConnectModule,
+    CouponsModule,
   ],
   controllers: [AppController],
   providers: [AppService, SecretService, PrismaService, SmsService],
