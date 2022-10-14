@@ -236,15 +236,13 @@ export class AuthService {
       });
 
       throwBadRequestErrorCheck(!user, 'User is not created');
-    } else {
-      const signinProvider =
-        user?.loginProvider == 'LOCAL'
-          ? 'EMAIL and PASSWORD'
-          : user?.loginProvider;
 
+      //Sending welcome email
+      await this.emailService.signupWelcomeEmail(email);
+    } else if (user?.loginProvider == 'LOCAL') {
       throwConflictErrorCheck(
         user?.loginProvider != provider,
-        `Email already exists, please login through ${signinProvider} login.`,
+        `Email already exists, please login through email and password login.`,
       );
     }
 
