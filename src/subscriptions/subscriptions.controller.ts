@@ -30,6 +30,7 @@ import { MembershipPlanPricesService } from './membership-plan-prices-service';
 import { CreateMembershipPlanPricesDto } from './dto/create-membership-plan-prices.dto';
 import { SubscriptionV2Service } from './subscription-v2.service';
 import { SubscriptionListsQueryParamsDto } from './dto/subscription-list-query-params.dto';
+import { CreateSubscriptionQueryDto } from './dto/create-subscription.dto';
 
 @ApiTags('Subscriptions')
 @UseInterceptors(TransformInterceptor)
@@ -128,15 +129,10 @@ export class SubscriptionsController {
   @Post('subscribe')
   subscribeToPlan(
     @Request() req: any,
-    @Query('priceId') priceId: string,
-    @Query('cardId') cardId: string,
+    @Query() query: CreateSubscriptionQueryDto,
   ) {
     const userId = BigInt(req.user?.id) ?? BigInt(-1);
-    return this.subscriptionV2Service.createSubscriptionV2(
-      userId,
-      BigInt(priceId),
-      BigInt(cardId),
-    );
+    return this.subscriptionV2Service.createSubscriptionV2(userId, query);
   }
 
   @ApiBearerAuth('access-token')
@@ -150,9 +146,15 @@ export class SubscriptionsController {
   @ApiBearerAuth('access-token')
   @UseGuards(JwtAuthGuard)
   @Delete('cancel-subscription')
-  cancelSubscription(@Request() req: any) {
+  cancelSubscription(
+    @Request() req: any,
+    @Query('subscriptionId') subscriptionId: string,
+  ) {
     const userId = BigInt(req.user?.id) ?? BigInt(-1);
-    return this.subscriptionV2Service.cancelUserSubscription(userId);
+    return this.subscriptionV2Service.cancelUserSubscription(
+      userId,
+      BigInt(subscriptionId),
+    );
   }
 
   /**
