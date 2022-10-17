@@ -3,7 +3,10 @@ import Stripe from 'stripe';
 import { throwBadRequestErrorCheck } from '../global/exceptions/error-logic';
 import { PrismaService } from '../prisma/prisma.service';
 import { SecretService } from '../secret/secret.service';
-import { ProviderBackgourndCheckEnum } from '../subscriptions/entities/subscription.entity';
+import {
+  SubscriptionPlanSlugs,
+  SubscriptionStatusEnum,
+} from '../subscriptions/entities/subscription.entity';
 
 @Injectable()
 export class StripeWebhooksService {
@@ -213,6 +216,79 @@ export class StripeWebhooksService {
     }
   }
 
+  async customerSubscriptionCanceled(subData: Stripe.Subscription) {
+    try {
+      const { id, current_period_start, current_period_end, status } = subData;
+
+      const customerSubs =
+        await this.prismaService.userSubscriptions.findUnique({
+          where: { stripeSubscriptionId: id },
+        });
+      throwBadRequestErrorCheck(!customerSubs, 'Subscription not found');
+
+      await this.prismaService.userSubscriptions.update({
+        where: { stripeSubscriptionId: id },
+        data: {
+          currentPeriodStart: new Date(current_period_start * 1000),
+          currentPeriodEnd: new Date(current_period_end * 1000),
+          status: status,
+          src: Object(subData),
+        },
+      });
+
+      const priceObject =
+        await this.prismaService.membershipPlanPrices.findFirst({
+          where: {
+            membershipPlan: {
+              slug: SubscriptionPlanSlugs.BASIC,
+            },
+            deletedAt: null,
+          },
+        });
+
+      throwBadRequestErrorCheck(!priceObject, 'Price not found');
+
+      const userSubs = await this.prismaService.userSubscriptions.findFirst({
+        where: {
+          membershipPlanPriceId: priceObject?.id,
+          status: SubscriptionStatusEnum.active,
+        },
+      });
+
+      if (!userSubs) {
+        const endDate: Date = new Date();
+        endDate.setMonth(endDate.getMonth() + 60);
+        await this.prismaService.$transaction([
+          this.prismaService.userSubscriptions.create({
+            data: {
+              userId: customerSubs?.userId,
+              membershipPlanPriceId: priceObject.id,
+              status: SubscriptionStatusEnum.active,
+              paymentStatus: 'paid',
+              currentPeriodStart: new Date(),
+              currentPeriodEnd: endDate,
+              currency: 'usd',
+            },
+          }),
+          this.prismaService.provider.update({
+            where: {
+              userId: customerSubs?.userId,
+            },
+            data: {
+              subscriptionType: 'BASIC',
+            },
+          }),
+        ]);
+      }
+      return {
+        statusCode: HttpStatus.OK,
+        data: 'Successful',
+      };
+    } catch (e) {
+      throw e as Error;
+    }
+  }
+
   async chargeSucceeded(charge: Stripe.Charge) {
     const {
       id,
@@ -292,6 +368,9 @@ export class StripeWebhooksService {
       case 'customer.subscription.updated':
         console.log('Customer Subscription Updated');
         return await this.customerSubscriptionUpdated(event.data.object);
+      case 'customer.subscription.deleted':
+        console.log('Customer Subscription Deleted');
+        return await this.customerSubscriptionCanceled(event.data.object);
       case 'invoice.updated':
         console.log('Invoice updated');
         return await this.stripeInvoiceAlteration(event.data.object);

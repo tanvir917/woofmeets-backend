@@ -1,5 +1,9 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
-import { userSubscriptionStatusEnum } from '@prisma/client';
+import {
+  UserStripeCard,
+  UserSubscriptions,
+  userSubscriptionStatusEnum,
+} from '@prisma/client';
 import Stripe from 'stripe';
 import { AdminPanelService } from '../admin-panel/admin-panel.service';
 import {
@@ -8,6 +12,7 @@ import {
 } from '../global/exceptions/error-logic';
 import { PrismaService } from '../prisma/prisma.service';
 import { SecretService } from '../secret/secret.service';
+import { CreateSubscriptionQueryDto } from './dto/create-subscription.dto';
 import { SubscriptionListsQueryParamsDto } from './dto/subscription-list-query-params.dto';
 import {
   ProviderBackgourndCheckEnum,
@@ -241,7 +246,11 @@ export class SubscriptionV2Service {
     return true;
   }
 
-  async createSubscriptionV2(userId: bigint, priceId: bigint, cardId: bigint) {
+  async createSubscriptionV2(
+    userId: bigint,
+    query: CreateSubscriptionQueryDto,
+  ) {
+    const { priceId, cardId } = query;
     const user = await this.prismaService.user.findFirst({
       where: {
         id: userId,
@@ -271,8 +280,6 @@ export class SubscriptionV2Service {
 
     throwBadRequestErrorCheck(!priceId, 'Price id is required');
 
-    throwBadRequestErrorCheck(!cardId, 'Card id is required');
-
     const priceObject = await this.prismaService.membershipPlanPrices.findFirst(
       {
         where: {
@@ -287,15 +294,21 @@ export class SubscriptionV2Service {
 
     throwBadRequestErrorCheck(!priceObject, 'Price not found');
 
-    const card = await this.prismaService.userStripeCard.findFirst({
-      where: {
-        id: cardId,
-        deletedAt: null,
-        userId: userId,
-      },
-    });
+    let card: UserStripeCard;
 
-    throwBadRequestErrorCheck(!card, 'Card not found');
+    if (priceObject?.membershipPlan?.slug != SubscriptionPlanSlugs.BASIC) {
+      throwBadRequestErrorCheck(!cardId, 'Card id is required');
+
+      card = await this.prismaService.userStripeCard.findFirst({
+        where: {
+          id: cardId,
+          deletedAt: null,
+          userId: userId,
+        },
+      });
+
+      throwBadRequestErrorCheck(!card, 'Card not found');
+    }
 
     /**
      * LOGIC:
@@ -327,18 +340,7 @@ export class SubscriptionV2Service {
       'User already have basic subscription. Please upgrade subscription plan to continue.',
     );
 
-    /**
-     * If the user selected a basic subscription plan, check if the user is eligible for payment
-     */
-
-    if (priceObject?.membershipPlan?.slug == SubscriptionPlanSlugs.BASIC) {
-      const paymentChecker = await this.checkUserSubsOrSignupPayment(user?.id);
-      throwBadRequestErrorCheck(
-        !paymentChecker,
-        'User needs to pay the fee first.',
-      );
-    }
-
+    // If user has an active subscription cancel the subscription
     const cancelledSubscription = await this.cancelUserAllActiveSubscriptions(
       user?.id,
     );
@@ -348,126 +350,159 @@ export class SubscriptionV2Service {
       'Error while cancelling and migrating to new subscription',
     );
 
-    let subscription: Stripe.Subscription;
-    let latestInvoice: Stripe.Invoice;
-    try {
-      subscription = await this.stripe.subscriptions.create({
-        customer: user.userStripeCustomerAccount?.stripeCustomerId,
-        default_payment_method: card.stripeCardId,
-        items: [
-          {
-            price: priceObject.stripePriceId,
-          },
-        ],
-        currency: 'usd',
-        expand: ['latest_invoice.payment_intent'],
-        metadata: {
-          userId: user.id.toString(),
-          priceId: priceObject.id.toString(),
+    /**
+     * If the user selected a basic subscription plan, check if the user is eligible for payment
+     */
+
+    let userSubscription: UserSubscriptions;
+
+    // For Basic Subscription
+    if (priceObject?.membershipPlan?.slug == SubscriptionPlanSlugs.BASIC) {
+      const paymentChecker = await this.checkUserSubsOrSignupPayment(user?.id);
+      throwBadRequestErrorCheck(
+        !paymentChecker,
+        'User needs to pay the fee first.',
+      );
+
+      const endDate: Date = new Date();
+      endDate.setMonth(endDate.getMonth() + 60);
+
+      userSubscription = await this.prismaService.userSubscriptions.create({
+        data: {
+          userId: user.id,
+          membershipPlanPriceId: priceObject.id,
+          status: SubscriptionStatusEnum.active,
+          paymentStatus: 'paid',
+          currentPeriodStart: new Date(),
+          currentPeriodEnd: endDate,
+          currency: 'usd',
         },
       });
-      // const stats = subscription['latest_invoice']['payment_intent']['status'];
-      // const clientSecret =
-      //   subscription['latest_invoice']['payment_intent']['client_secret'];
-      latestInvoice = Object(subscription['latest_invoice']);
-    } catch (error) {
-      throwBadRequestErrorCheck(true, error.message);
-    }
+    } else {
+      // For Gold and Platinum Subscription
+      let subscription: Stripe.Subscription;
+      let latestInvoice: Stripe.Invoice;
+      try {
+        subscription = await this.stripe.subscriptions.create({
+          customer: user.userStripeCustomerAccount?.stripeCustomerId,
+          default_payment_method: card.stripeCardId,
+          items: [
+            {
+              price: priceObject.stripePriceId,
+            },
+          ],
+          currency: 'usd',
+          expand: ['latest_invoice.payment_intent'],
+          metadata: {
+            userId: user.id.toString(),
+            priceId: priceObject.id.toString(),
+          },
+        });
+        // const stats = subscription['latest_invoice']['payment_intent']['status'];
+        // const clientSecret =
+        //   subscription['latest_invoice']['payment_intent']['client_secret'];
+        latestInvoice = Object(subscription['latest_invoice']);
+      } catch (error) {
+        throwBadRequestErrorCheck(true, error.message);
+      }
 
-    const userSubscription = await this.prismaService.userSubscriptions.create({
-      data: {
-        userId: user.id,
-        membershipPlanPriceId: priceObject.id,
-        stripeSubscriptionId: subscription.id,
-        status: subscription.status,
-        paymentStatus: latestInvoice?.status,
-        currentPeriodStart: new Date(subscription.current_period_start * 1000),
-        currentPeriodEnd: new Date(subscription.current_period_end * 1000),
-        cardId: card.id,
-        currency: subscription.currency,
-        src: Object(subscription),
-      },
-    });
+      userSubscription = await this.prismaService.userSubscriptions.create({
+        data: {
+          userId: user.id,
+          membershipPlanPriceId: priceObject.id,
+          stripeSubscriptionId: subscription.id,
+          status: subscription.status,
+          paymentStatus: latestInvoice?.status,
+          currentPeriodStart: new Date(
+            subscription.current_period_start * 1000,
+          ),
+          currentPeriodEnd: new Date(subscription.current_period_end * 1000),
+          cardId: card.id,
+          currency: subscription.currency,
+          src: Object(subscription),
+        },
+      });
 
-    await this.prismaService.userSubscriptionInvoices.create({
-      data: {
-        userId: user?.id,
-        userSubscriptionId: userSubscription?.id,
-        stripeInvoiceId: latestInvoice?.id,
-        customerStripeId: user?.userStripeCustomerAccount?.stripeCustomerId,
-        customerEmail: latestInvoice?.customer_email,
-        customerName: latestInvoice?.customer_name,
-        total: latestInvoice?.total / 100,
-        subTotal: latestInvoice?.subtotal / 100,
-        amountDue: latestInvoice?.amount_due / 100,
-        amountPaid: latestInvoice?.amount_paid / 100,
-        amountRemaining: latestInvoice?.amount_remaining / 100,
-        billingReason: latestInvoice?.billing_reason,
-        currency: latestInvoice?.currency,
-        paid: latestInvoice?.paid,
-        status: latestInvoice?.status,
-        src: Object(latestInvoice),
-      },
-    });
+      await this.prismaService.userSubscriptionInvoices.create({
+        data: {
+          userId: user?.id,
+          userSubscriptionId: userSubscription?.id,
+          stripeInvoiceId: latestInvoice?.id,
+          customerStripeId: user?.userStripeCustomerAccount?.stripeCustomerId,
+          customerEmail: latestInvoice?.customer_email,
+          customerName: latestInvoice?.customer_name,
+          total: latestInvoice?.total / 100,
+          subTotal: latestInvoice?.subtotal / 100,
+          amountDue: latestInvoice?.amount_due / 100,
+          amountPaid: latestInvoice?.amount_paid / 100,
+          amountRemaining: latestInvoice?.amount_remaining / 100,
+          billingReason: latestInvoice?.billing_reason,
+          currency: latestInvoice?.currency,
+          paid: latestInvoice?.paid,
+          status: latestInvoice?.status,
+          src: Object(latestInvoice),
+        },
+      });
 
-    if (subscription.status == 'incomplete') {
-      const paymentIntent = latestInvoice.payment_intent ?? null;
+      if (subscription.status == 'incomplete') {
+        const paymentIntent = latestInvoice.payment_intent ?? null;
 
-      if (paymentIntent) {
-        const latestPaymentError: Stripe.PaymentIntent.LastPaymentError =
-          Object(paymentIntent['last_payment_error']) ?? null;
+        if (paymentIntent) {
+          const latestPaymentError: Stripe.PaymentIntent.LastPaymentError =
+            Object(paymentIntent['last_payment_error']) ?? null;
 
-        if (latestPaymentError) {
-          if ((latestPaymentError.type = 'card_error')) {
-            await this.stripe.subscriptions.del(subscription.id);
+          if (latestPaymentError) {
+            if ((latestPaymentError.type = 'card_error')) {
+              await this.stripe.subscriptions.del(subscription.id);
 
-            await this.prismaService.userSubscriptions.update({
-              where: {
-                id: userSubscription?.id,
-              },
-              data: {
-                errors: Object(latestPaymentError),
-              },
-            });
+              await this.prismaService.userSubscriptions.update({
+                where: {
+                  id: userSubscription?.id,
+                },
+                data: {
+                  errors: Object(latestPaymentError),
+                },
+              });
 
-            throwBadRequestErrorCheck(
-              true,
-              'Your card was declined. Plase try with another card or contact your bank.',
-            );
+              throwBadRequestErrorCheck(
+                true,
+                'Your card was declined. Plase try with another card or contact your bank.',
+              );
+            }
           }
         }
       }
-    }
 
-    /**
-     * LOGIC:
-     * 1.Check if user has an active subscription.
-     * 2.Check if the subscription plan is platinum. If yes, check if background check is not
-     *    platinum. If yes, create a background platinum check.
-     * 3.If subscription plan is Gold, check if background check is not gold or platinum. If yes,
-     *   create a gold background check.
-     */
+      /**
+       * LOGIC:
+       * 1.Check if user has an active subscription.
+       * 2.Check if the subscription plan is platinum. If yes, check if background check is not
+       *    platinum. If yes, create a background platinum check.
+       * 3.If subscription plan is Gold, check if background check is not gold or platinum. If yes,
+       *   create a gold background check.
+       */
 
-    if (subscription.status == SubscriptionStatusEnum.active) {
-      if (
-        user?.provider.backGroundCheck !=
-          ProviderBackgourndCheckEnum.PLATINUM &&
-        priceObject?.membershipPlan?.slug == SubscriptionPlanSlugs.PLATINUM
-      ) {
-        await this.updateBackgroundCheckStatus(
-          user?.provider?.id,
-          ProviderBackgourndCheckEnum.PLATINUM,
-        );
-      } else if (
-        user?.provider?.backGroundCheck != ProviderBackgourndCheckEnum.GOLD &&
-        user?.provider?.backGroundCheck !=
-          ProviderBackgourndCheckEnum.PLATINUM &&
-        priceObject?.membershipPlan?.slug == SubscriptionPlanSlugs.GOLD
-      ) {
-        await this.updateBackgroundCheckStatus(
-          user?.provider?.id,
-          ProviderBackgourndCheckEnum.GOLD,
-        );
+      if (subscription.status == SubscriptionStatusEnum.active) {
+        if (
+          user?.provider.backGroundCheck !=
+            ProviderBackgourndCheckEnum.PLATINUM &&
+          priceObject?.membershipPlan?.slug == SubscriptionPlanSlugs.PLATINUM
+        ) {
+          await this.updateBackgroundCheckStatus(
+            user?.provider?.id,
+            ProviderBackgourndCheckEnum.PLATINUM,
+          );
+        } else if (
+          user?.provider?.backGroundCheck != ProviderBackgourndCheckEnum.GOLD &&
+          user?.provider?.backGroundCheck !=
+            ProviderBackgourndCheckEnum.PLATINUM &&
+          priceObject?.membershipPlan?.slug == SubscriptionPlanSlugs.GOLD
+        ) {
+          await this.updateBackgroundCheckStatus(
+            user?.provider?.id,
+            ProviderBackgourndCheckEnum.GOLD,
+          );
+        }
       }
     }
 
@@ -543,44 +578,50 @@ export class SubscriptionV2Service {
     };
   }
 
-  async cancelUserSubscription(userId: bigint) {
+  async cancelUserSubscription(userId: bigint, subscriptionId: bigint) {
+    throwBadRequestErrorCheck(!subscriptionId, 'Subscription id is required');
+
     const user = await this.prismaService.user.findFirst({
       where: {
         id: userId,
         deletedAt: null,
       },
-      include: {
-        userSubscriptions: {
-          where: {
-            status: 'active',
-          },
-          select: {
-            id: true,
-            userId: true,
-            stripeSubscriptionId: true,
-          },
-        },
-      },
     });
 
     throwBadRequestErrorCheck(!user, 'User not found');
 
-    throwBadRequestErrorCheck(
-      !user?.userSubscriptions?.length,
-      'No subscription found',
-    );
+    const userSubscription =
+      await this.prismaService.userSubscriptions.findFirst({
+        where: {
+          id: subscriptionId,
+          userId: user?.id,
+          status: 'active',
+        },
+        include: {
+          membershipPlanPrice: {
+            include: {
+              membershipPlan: true,
+            },
+          },
+        },
+      });
 
-    const subscriptions = user?.userSubscriptions;
+    throwBadRequestErrorCheck(!userSubscription, 'No subscription found');
 
-    for (const subscription of subscriptions) {
+    if (
+      userSubscription?.membershipPlanPrice?.membershipPlan?.slug ==
+      SubscriptionPlanSlugs.BASIC
+    ) {
+      throwBadRequestErrorCheck(true, 'You can not cancel basic subscription.');
+    } else {
       let stripeSubscription: Stripe.Subscription;
       try {
         stripeSubscription = await this.stripe.subscriptions.del(
-          subscription.stripeSubscriptionId,
+          userSubscription.stripeSubscriptionId,
         );
         await this.prismaService.userSubscriptions.update({
           where: {
-            id: subscription.id,
+            id: userSubscription.id,
           },
           data: {
             status: stripeSubscription.status,
@@ -591,11 +632,11 @@ export class SubscriptionV2Service {
       } catch (error) {
         throwBadRequestErrorCheck(true, error.message);
       }
-    }
 
-    return {
-      message: 'Subscription cancelled successfully.',
-    };
+      return {
+        message: 'Subscription cancelled successfully.',
+      };
+    }
   }
 
   /**
@@ -623,23 +664,35 @@ export class SubscriptionV2Service {
     }
 
     for (const subscription of userSubscriptions) {
-      let stripeSubscription: Stripe.Subscription;
-      try {
-        stripeSubscription = await this.stripe.subscriptions.del(
-          subscription.stripeSubscriptionId,
-        );
+      if (subscription?.stripeSubscriptionId) {
+        let stripeSubscription: Stripe.Subscription;
+        try {
+          stripeSubscription = await this.stripe.subscriptions.del(
+            subscription.stripeSubscriptionId,
+          );
+          await this.prismaService.userSubscriptions.update({
+            where: {
+              id: subscription.id,
+            },
+            data: {
+              status: stripeSubscription.status,
+              deletedAt: new Date(),
+              src: Object(stripeSubscription),
+            },
+          });
+        } catch (error) {
+          return false;
+        }
+      } else {
         await this.prismaService.userSubscriptions.update({
           where: {
             id: subscription.id,
           },
           data: {
-            status: stripeSubscription.status,
+            status: SubscriptionStatusEnum.canceled,
             deletedAt: new Date(),
-            src: Object(stripeSubscription),
           },
         });
-      } catch (error) {
-        return false;
       }
     }
 
