@@ -44,6 +44,7 @@ import { UserProfileModule } from './user-profile/user-profile.module';
 import { ZoomModule } from './zoom/zoom.module';
 import { StripeConnectModule } from './stripe-connect/stripe-connect.module';
 import { CouponsModule } from './coupons/coupons.module';
+import { ReviewModule } from './review/review.module';
 
 @Module({
   imports: [
@@ -88,6 +89,7 @@ import { CouponsModule } from './coupons/coupons.module';
     AdminPanelModule,
     StripeConnectModule,
     CouponsModule,
+    ReviewModule,
   ],
   controllers: [AppController],
   providers: [AppService, SecretService, PrismaService, SmsService],

@@ -2,7 +2,6 @@ import { ApiProperty } from '@nestjs/swagger';
 import {
   IsDateString,
   IsEnum,
-  IsNotEmpty,
   IsNumber,
   IsOptional,
   IsString,
@@ -57,11 +56,11 @@ export class SearchProviderDto {
   endDate: string;
 
   @ApiProperty({
-    enum: [HomeTypeEnum.FARM, HomeTypeEnum.HOUSE, HomeTypeEnum.APARTMENT],
+    enum: [HomeTypeEnum.BUSINESS, HomeTypeEnum.HOUSE, HomeTypeEnum.APARTMENT],
     required: false,
   })
   @IsOptional()
-  @IsEnum([HomeTypeEnum.FARM, HomeTypeEnum.HOUSE, HomeTypeEnum.APARTMENT])
+  @IsEnum([HomeTypeEnum.BUSINESS, HomeTypeEnum.HOUSE, HomeTypeEnum.APARTMENT])
   homeType: string;
 
   @ApiProperty({

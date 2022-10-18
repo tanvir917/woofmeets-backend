@@ -2,7 +2,8 @@ export enum HomeTypeEnum {
   NOT_SELECTED = 'NOT_SELECTED',
   HOUSE = 'HOUSE',
   APARTMENT = 'APARTMENT',
-  FARM = 'FARM',
+  //FARM = 'FARM',
+  BUSINESS = 'BUSINESS',
 }
 
 export enum YardTypeEnum {

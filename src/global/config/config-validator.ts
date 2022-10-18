@@ -211,6 +211,10 @@ export class EnvironmentVariable {
   @IsNotEmpty()
   @IsString()
   STRIPE_CONNECT_WEBHOOK_SECRET: string;
+
+  @IsNotEmpty()
+  @IsString()
+  CRYPTO_SECRET: string;
 }
 
 export function validateEnvironmentVariables(

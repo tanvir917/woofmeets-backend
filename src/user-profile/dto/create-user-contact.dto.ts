@@ -30,7 +30,6 @@ export class CreateEmergencyContactDto {
   })
   @IsOptional()
   @IsString()
-  @IsPhoneNumber()
   phone?: string;
 }
 
