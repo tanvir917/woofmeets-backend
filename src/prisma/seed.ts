@@ -1,16 +1,16 @@
 import { PrismaClient } from '@prisma/client';
 import { breeds } from './seeder/breeds';
 import { country } from './seeder/country';
+import { holidays } from './seeder/holidays';
 import {
   homeAttributeBoardingHome,
   homeAttributeHostAble,
 } from './seeder/homeAttributeTypes';
 import { mappedPolicies } from './seeder/policies';
 import { profileSkills } from './seeder/profileSkills';
-import { ServiceTypesSeeder } from './seeder/services';
-import { rateTypes } from './seeder/rateTypes';
 import { quizSets } from './seeder/quiz';
-import { subscriptionPlanSeeder } from './seeder/subscriptionPlan';
+import { rateTypes } from './seeder/rateTypes';
+import { ServiceTypesSeeder } from './seeder/services';
 
 const prisma = new PrismaClient();
 
@@ -248,6 +248,13 @@ const addQuizQuestions = async () => {
   });
 };
 
+const addHolidays = async () => {
+  await prisma.holidays.createMany({
+    data: holidays,
+    skipDuplicates: true,
+  });
+};
+
 async function main() {
   console.log('.... Seeding Data ....');
 
@@ -259,6 +266,7 @@ async function main() {
   addPolicies();
   addServiceRateTypes();
   addQuizQuestions();
+  addHolidays();
 
   console.log('✨  Seed Completed ✨');
 }

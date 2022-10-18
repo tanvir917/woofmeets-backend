@@ -2,6 +2,7 @@ import { AmqpConnection } from '@golevelup/nestjs-rabbitmq';
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
+import { Request } from 'express';
 import { PinoLogger } from 'nestjs-pino';
 import { MESSAGE_SERVICE_NAMES } from './config.type';
 import { CreateGroupDTO } from './dto/messages.dto';
@@ -36,6 +37,7 @@ export class MessagingProxyService {
   }
 
   async createGroup(
+    req: Request,
     sendWith: 'axios' | 'rabbitmq' = 'axios',
     body: CreateGroupDTO,
   ) {
@@ -46,6 +48,13 @@ export class MessagingProxyService {
             'MICROSERVICE_URL',
           )}/v1/groups/users`,
           body,
+          {
+            headers: {
+              Authorization: `Bearer ${
+                req?.cookies?.token || req?.headers?.authorization
+              }`,
+            },
+          },
         );
         return result.data;
       } catch (error) {
@@ -68,13 +77,24 @@ export class MessagingProxyService {
     }
   }
 
-  async deleteGroup(sendWith: 'axios' | 'rabbitmq' = 'axios', id: string) {
+  async deleteGroup(
+    req: Request,
+    sendWith: 'axios' | 'rabbitmq' = 'axios',
+    id: string,
+  ) {
     if (sendWith === 'axios') {
       try {
         const result = await axios.delete(
           `${this.configService.get<string>(
             'MICROSERVICE_URL',
           )}/v1/groups/${id}`,
+          {
+            headers: {
+              Authorization: `Bearer ${
+                req?.cookies?.token || req?.headers?.authorization
+              }`,
+            },
+          },
         );
         return result.data;
       } catch (error) {

@@ -4,6 +4,7 @@ import {
   Delete,
   Param,
   Post,
+  Req,
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiBody, ApiTags } from '@nestjs/swagger';
@@ -28,14 +29,14 @@ export class MessagingController {
   @UseGuards(JwtAuthGuard)
   @Post('/creategroup')
   @ApiBody({ type: CreateGroupDTO })
-  async createGroup(@Body() body: CreateGroupDTO) {
-    return this.messagingService.createGroup('axios', body);
+  async createGroup(@Body() body: CreateGroupDTO, @Req() req) {
+    return this.messagingService.createGroup(req, 'axios', body);
   }
 
   @ApiBearerAuth('access-token')
   @UseGuards(JwtAuthGuard)
   @Delete('/deletegroup/:id')
-  async deleteGroup(@Param('id') id: string) {
-    return this.messagingService.deleteGroup('axios', id);
+  async deleteGroup(@Param('id') id: string, @Req() req) {
+    return this.messagingService.deleteGroup(req, 'axios', id);
   }
 }

@@ -5,10 +5,11 @@ import { ProviderServicesModule } from 'src/provider-services/provider-services.
 import { SecretModule } from 'src/secret/secret.module';
 import { AppointmentController } from './appointment.controller';
 import { AppointmentProposalService } from './services/appointment-proposal.service';
+import { AppointmentRecurringService } from './services/appointment-recurring.service';
 
 @Module({
   imports: [CommonModule, PrismaModule, ProviderServicesModule, SecretModule],
-  providers: [AppointmentProposalService],
+  providers: [AppointmentProposalService, AppointmentRecurringService],
   controllers: [AppointmentController],
 })
 export class AppointmentModule {}

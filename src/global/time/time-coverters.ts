@@ -1,5 +1,5 @@
 import { PrismaClient } from '@prisma/client';
-import { formatInTimeZone, toDate, format, utcToZonedTime } from 'date-fns-tz';
+import { format, formatInTimeZone, toDate, utcToZonedTime } from 'date-fns-tz';
 
 export const timeFormatHelper = (
   date: Date,
@@ -27,6 +27,30 @@ export const extractZoneSpecificDateWithFirstHourTime = (
   const countryDate = utcToZonedTime(parsedDate, zone);
 
   return format(countryDate, 'yyyy-MM-dd HH:mm:ssxxx', { timeZone: zone });
+};
+
+export const extractZoneSpecificDateWithFixedHourTime = (
+  date: Date,
+  zone: string,
+  time = 'T00:00:00',
+) => {
+  const formattedDateTime = timeFormatHelper(date, 'yyyy-MM-dd', zone).concat(
+    time,
+  );
+
+  const parsedDate = toDate(formattedDateTime, {
+    timeZone: zone,
+  });
+
+  const countryDate = utcToZonedTime(parsedDate, zone);
+
+  return format(countryDate, 'yyyy-MM-dd HH:mm:ssxxx', { timeZone: zone });
+};
+
+export const getZoneTimeString = (date: Date, timeZone: string) => {
+  return format(utcToZonedTime(date, timeZone), 'KK:mm a', {
+    timeZone,
+  });
 };
 
 export const getDatabaseTimezone = async (prisma: PrismaClient) => {

@@ -923,12 +923,14 @@ model Appointment {
   providerService     ProviderServices      @relation(fields: [providerServiceId], references: [id])
   status              appointmentStatusEnum
   providerTimeZone    String?
-  endOfLife           String?
+  endOfLife           DateTime?             @db.Timestamptz(3)
+  lastProposalId      BigInt?
   createdAt           DateTime              @default(now()) @db.Timestamptz(3)
   updatedAt           DateTime?             @updatedAt @db.Timestamptz(3)
   deletedAt           DateTime?             @db.Timestamptz(3)
   appointmentProposal AppointmentProposal[]
   appointmentPet      AppointmentPet[]
+  AppointmentDates    AppointmentDates[]
   couponTrack         CouponTrack[]
 }
 
@@ -957,13 +959,48 @@ model AppointmentProposal {
   proposalEndDate        String?
   proposalOtherDate      Json[]
   isRecurring            Boolean?
-  recurringStartDate     String?
+  recurringStartDate     DateTime                  @default(now()) @db.Timestamptz(3)
   recurringSelectedDay   Json[]
   meta                   Json?
   createdAt              DateTime                  @default(now()) @db.Timestamptz(3)
   updatedAt              DateTime?                 @updatedAt @db.Timestamptz(3)
   deletedAt              DateTime?                 @db.Timestamptz(3)
   appointmentPet         AppointmentPet[]
+  AppointmentDates       AppointmentDates[]
+}
+
+model AppointmentDates {
+  id                     BigInt              @id @default(autoincrement())
+  date                   DateTime            @db.Timestamptz(3)
+  appointmentId          BigInt
+  appointment            Appointment         @relation(fields: [appointmentId], references: [id])
+  appointmentProposalId  BigInt
+  appointmentProposal    AppointmentProposal @relation(fields: [appointmentProposalId], references: [id])
+  day                    String
+  isHoliday              Boolean
+  holidayNames           String[]
+  visitStartTimeString   String
+  visitStartInDateTime   DateTime            @db.Timestamptz(3)
+  visitEndTimeString     String
+  visitEndTimeInDateTime DateTime            @db.Timestamptz(3)
+  durationInMinutes      Int
+  createdAt              DateTime            @default(now()) @db.Timestamptz(3)
+  updatedAt              DateTime?           @updatedAt @db.Timestamptz(3)
+  deletedAt              DateTime?           @db.Timestamptz(3)
+}
+
+model Holidays {
+  id        BigInt    @id @default(autoincrement())
+  title     String
+  startDate DateTime  @db.Timestamptz(3)
+  endDate   DateTime  @db.Timestamptz(3)
+  timeZone  String
+  meta      Json?
+  createdAt DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime? @updatedAt @db.Timestamptz(3)
+  deletedAt DateTime? @db.Timestamptz(3)
+
+  @@unique([startDate, endDate])
 }
 
 model AppointmentPet {
