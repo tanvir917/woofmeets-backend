@@ -280,6 +280,11 @@ export class AppointmentProposalService {
             },
           },
         },
+        review: {
+          where: {
+            deletedAt: null,
+          },
+        },
       },
     });
 
@@ -372,6 +377,11 @@ export class AppointmentProposalService {
                 },
               },
             },
+          },
+        },
+        review: {
+          where: {
+            deletedAt: null,
           },
         },
       },
@@ -648,47 +658,42 @@ export class AppointmentProposalService {
         providerServiceId,
         status: AppointmentStatusEnum.PROPOSAL,
         providerTimeZone,
+        appointmentProposal: {
+          create: {
+            proposedBy: appointmentProposalEnum.USER,
+            original: true,
+            appointmentserviceType,
+            length,
+            petQuantity: petsId?.length,
+            additionalLengthPrice,
+            regularPrice,
+            additionalCharge,
+            providerExtraFee,
+            totalPrice,
+            firstMessage,
+            isRecivedPhotos,
+            dropOffStartTime,
+            dropOffEndTime,
+            pickUpStartTime,
+            pickUpEndTime,
+            proposalStartDate,
+            proposalEndDate,
+            proposalOtherDate,
+            isRecurring,
+            recurringStartDate,
+            recurringSelectedDay,
+          },
+        },
+      },
+      include: {
+        appointmentProposal: true,
       },
     });
 
     throwBadRequestErrorCheck(!appointment, 'Appointment can not create now');
 
-    /**
-     * Proposal Creation
-     */
-
-    const proposal = await this.prismaService.appointmentProposal.create({
-      data: {
-        appointmentId: appointment?.id,
-        proposedBy: appointmentProposalEnum.USER,
-        original: true,
-        appointmentserviceType,
-        length,
-        petQuantity: petsId?.length,
-        additionalLengthPrice,
-        regularPrice,
-        additionalCharge,
-        providerExtraFee,
-        totalPrice,
-        firstMessage,
-        isRecivedPhotos,
-        dropOffStartTime,
-        dropOffEndTime,
-        pickUpStartTime,
-        pickUpEndTime,
-        proposalStartDate,
-        proposalEndDate,
-        proposalOtherDate,
-        isRecurring,
-        recurringStartDate,
-        recurringSelectedDay,
-      },
-    });
-
-    throwBadRequestErrorCheck(
-      !proposal,
-      'Appointment proposal can not create now',
-    );
+    const { appointmentProposal: ignoredAppointmentProposal, ...others } =
+      appointment;
 
     /**
      * Create appoinntment pet relation
@@ -701,7 +706,7 @@ export class AppointmentProposalService {
           data: {
             petId: petsId[i],
             appointmentId: appointment?.id,
-            proposalId: proposal?.id,
+            proposalId: appointment?.appointmentProposal[0]?.id,
           },
         }),
       );
@@ -715,8 +720,8 @@ export class AppointmentProposalService {
     return {
       message: 'Appointment proposal created successfully',
       data: {
-        appointment,
-        proposal,
+        appointment: { ...others },
+        proposal: { ...appointment?.appointmentProposal[0] },
       },
     };
   }

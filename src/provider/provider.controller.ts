@@ -1,12 +1,11 @@
 import {
+  Body,
   Controller,
   Get,
   Param,
-  Request,
-  Query,
-  Body,
   Post,
-  Response,
+  Query,
+  Request,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
@@ -82,9 +81,7 @@ export class ProviderController {
     summary: 'Get recommended providers. Queries are optional.',
   })
   @Get('/recommended')
-  async recommendedProvider(
-    @Query() query: RecommendedProviderDto,
-  ) {
+  async recommendedProvider(@Query() query: RecommendedProviderDto) {
     return this.recommendedService.recommended(query);
   }
 

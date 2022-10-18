@@ -76,6 +76,32 @@ export class ProviderService {
               },
             },
             ServicePetPreference: true,
+            review: {
+              where: {
+                deletedAt: null,
+              },
+              include: {
+                user: {
+                  select: {
+                    id: true,
+                    opk: true,
+                    email: true,
+                    emailVerified: true,
+                    firstName: true,
+                    lastName: true,
+                    zipcode: true,
+                    image: true,
+                    timezone: true,
+                    meta: true,
+                    basicInfo: {
+                      include: {
+                        country: true,
+                      },
+                    },
+                  },
+                },
+              },
+            },
           },
         },
         Gallery: {
@@ -95,6 +121,19 @@ export class ProviderService {
 
     throwNotFoundErrorCheck(!providerUser, 'Provider not found.');
 
+    const reviewStatistics = await this.prismaService.review.aggregate({
+      where: {
+        providerId: providerUser?.id,
+        deletedAt: null,
+      },
+      _avg: {
+        rating: true,
+      },
+      _count: {
+        id: true,
+      },
+    });
+
     return {
       message: 'Provider details found successfully',
       data: {
@@ -104,7 +143,12 @@ export class ProviderService {
           lastName: providerUser?.lastName,
           email: providerUser?.email,
           avatar: providerUser?.image,
-          rating: null,
+          rating: {
+            average: reviewStatistics?._avg?.rating
+              ? Number(reviewStatistics?._avg?.rating?.toFixed(1))
+              : 0,
+            totalCount: reviewStatistics?._count?.id ?? 0,
+          },
           description: providerUser?.provider?.providerDetails?.headline,
           address: providerUser?.basicInfo,
           latitude: providerUser?.basicInfo?.latitude,
@@ -143,7 +187,7 @@ export class ProviderService {
           },
           pastCLients: [],
         },
-        reviews: [],
+        reviews: providerUser?.provider?.review,
         recomendedSitters: [],
       },
     };

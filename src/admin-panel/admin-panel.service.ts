@@ -516,9 +516,22 @@ export class AdminPanelService {
           email: email ?? '',
         },
       },
+      include: {
+        backgroundCheck: {
+          orderBy: {
+            createdAt: 'desc',
+          },
+        },
+      },
     });
 
     throwNotFoundErrorCheck(!provider, 'Provider not found.');
+    if (provider?.backGroundCheck == provider?.backgroundCheck[0]?.type) {
+      return {
+        messages: 'Provider background checked already up to date.',
+        data: provider,
+      };
+    }
 
     const backgroundCheckValue = {
       NONE: 0,

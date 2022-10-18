@@ -246,6 +246,18 @@ export class AuthService {
       );
     }
 
+    //database facebook id check as user can login through facbook but signup through google
+    if (!user?.facebook && facebookId) {
+      await this.prismaService.user.update({
+        where: {
+          id: user?.id,
+        },
+        data: {
+          facebook: facebookId,
+        },
+      });
+    }
+
     const {
       password: ignoredPassword,
       provider: ignoredProvider,

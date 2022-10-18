@@ -1,6 +1,7 @@
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import * as CryptoJS from 'crypto-js';
 import { CommonService } from 'src/common/common.service';
 import {
   throwBadRequestErrorCheck,
@@ -315,14 +316,20 @@ export class ZoomService {
 
     throwNotFoundErrorCheck(!user?.provider, 'Provider not found.');
 
+    // Encryption
+    const ciphertext = CryptoJS.AES.encrypt(
+      refreshToken,
+      this.secretService.getCryptoCreds().secret,
+    ).toString();
+
     const zoomInfo = await this.prismaService.zoomInfo.upsert({
       where: {
         providerId: user?.provider?.id,
       },
-      update: { refreshToken },
+      update: { refreshToken: ciphertext },
       create: {
         providerId: user?.provider?.id,
-        refreshToken,
+        refreshToken: ciphertext,
       },
     });
 
@@ -357,8 +364,14 @@ export class ZoomService {
 
       const jwtToken = this.jwtService.sign(payload);
 
-      const tokenInfo = await this.getRefreshAccessToken(
+      // Decryption
+      const originalRefreshToken = CryptoJS.AES.decrypt(
         user?.provider?.zoomInfo?.refreshToken,
+        this.secretService.getCryptoCreds().secret,
+      );
+
+      const tokenInfo = await this.getRefreshAccessToken(
+        originalRefreshToken.toString(CryptoJS.enc.Utf8),
       );
 
       const password = this.commonService.getOpk();
@@ -399,12 +412,18 @@ export class ZoomService {
         },
       );
 
+      // Encryption
+      const ciphertext = CryptoJS.AES.encrypt(
+        tokenInfo?.data?.refresh_token,
+        this.secretService.getCryptoCreds().secret,
+      ).toString();
+
       await this.prismaService.zoomInfo.update({
         where: {
           id: user?.provider?.zoomInfo?.id,
         },
         data: {
-          refreshToken: tokenInfo?.data?.refresh_token,
+          refreshToken: ciphertext,
         },
       });
 

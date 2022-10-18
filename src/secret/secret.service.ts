@@ -121,6 +121,12 @@ export class SecretService {
       APPOINTMENT_INVOICE_NUMBER_LENGTH: this.configService.get<number>(
         'APPOINTMENT_INVOICE_NUMBER_LENGTH',
       ),
+
+      /**
+       * Encryption variable
+       */
+
+      CRYPTO_SECRET: this.configService.get<string>('CRYPTO_SECRET'),
     };
 
     this.#environment = plainToInstance(EnvironmentVariable, env);
@@ -241,6 +247,12 @@ export class SecretService {
     return {
       distanceLimit: this.#environment.APPOINTMENT_DISTANCE_LIMIT,
       invoiceNumberLength: this.#environment.APPOINTMENT_INVOICE_NUMBER_LENGTH,
+    };
+  }
+
+  getCryptoCreds(): { secret: string } {
+    return {
+      secret: this.#environment.CRYPTO_SECRET,
     };
   }
 

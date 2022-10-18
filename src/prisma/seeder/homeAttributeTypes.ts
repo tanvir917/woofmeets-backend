@@ -28,7 +28,7 @@ export const homeAttributeBoardingHome = [
     displayName: 'Caged pets in home',
   },
   {
-    slug: 'none_of_the_above',
+    slug: 'none_of_the_above_boarding_home',
     displayName: 'None of the above',
   },
 ];
@@ -56,7 +56,7 @@ export const homeAttributeHostAble = [
   },
   {
     slug: 'accepts_non_neutered_males',
-    displayName: 'Un neurered male dogs',
+    displayName: 'Unneutered male dogs',
   },
   {
     slug: 'none_of_the_above',
