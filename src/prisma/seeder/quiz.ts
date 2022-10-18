@@ -5,18 +5,18 @@ export const quizSets = [
     options: [
       {
         key: 'a',
-        text: "Return to the client's home and be sure.",
+        text: 'Question your actions and acknowledge, "Yep, I know I locked it."',
       },
       {
         key: 'b',
-        text: 'Question your actions and acknowledge, "Yep, I know I locked it."',
+        text: "Return to the client's home and be sure.",
       },
       {
         key: 'c',
         text: "Put it out of your mind as you'll be going back in the morning.",
       },
     ],
-    answer: 'a',
+    answer: 'b',
   },
   {
     question:
@@ -54,7 +54,7 @@ export const quizSets = [
         text: 'Call the client and tell them to cancel the appointment.',
       },
     ],
-    answer: 'a',
+    answer: 'c',
   },
   {
     question:
@@ -72,8 +72,12 @@ export const quizSets = [
         key: 'c',
         text: 'Make a client call.',
       },
+      {
+        key: 'd',
+        text: 'All of the above.',
+      },
     ],
-    answer: 'a',
+    answer: 'd',
   },
   {
     question:
@@ -110,7 +114,7 @@ export const quizSets = [
         text: "Continue strolling and hope the dog doesn't bite. He won't ever bite that little kid, I assure you!",
       },
     ],
-    answer: 'a',
+    answer: 'b',
   },
   {
     question:
@@ -118,17 +122,17 @@ export const quizSets = [
     options: [
       {
         key: 'a',
-        text: 'Check the customer forms to see if the cat hiding locations were mentioned.',
+        text: `Make a phone call to the clients and explain which cats are there and where you've looked for the ones that are hidden.`,
       },
       {
         key: 'b',
-        text: `Make a phone call to the clients and explain which cats are there and where you've looked for the ones that are hidden.`,
+        text: 'Check the customer forms to see if the cat hiding locations were mentioned.',
       },
       {
         key: 'c',
         text: 'Leave out tuna to attract cats out of hiding.',
       },
     ],
-    answer: 'a',
+    answer: 'b',
   },
 ];
