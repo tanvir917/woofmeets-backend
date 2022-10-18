@@ -35,7 +35,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       user: {
         email: payload?.email,
         opk: payload?.opk,
-        provider: payload?.provider?.isApproved ? true : false,
+        provider: payload?.provider,
         id: payload?.id,
       },
     });
