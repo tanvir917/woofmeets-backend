@@ -16,12 +16,14 @@ import { CreateAppointmentProposalDto } from './dto/create-appointment-proposal.
 import { PetsCheckDto } from './dto/pet-check.dto';
 import { UpdateAppointmentProposalDto } from './dto/update-appointment-proposal.dto';
 import { AppointmentProposalService } from './services/appointment-proposal.service';
+import { AppointmentRecurringService } from './services/appointment-recurring.service';
 
 @ApiTags('Appointment')
 @Controller('appointment')
 export class AppointmentController {
   constructor(
     private readonly appointmentProposalService: AppointmentProposalService,
+    private readonly appointmentRecurringService: AppointmentRecurringService,
   ) {}
 
   @ApiBearerAuth('access-token')
@@ -113,6 +115,18 @@ export class AppointmentController {
       userId,
       opk,
     );
+  }
+
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard)
+  @Get('/:opk/generate-recurring-dates')
+  async generateRecurringDates(@Param('opk') opk: string, @Request() req: any) {
+    // const userId = BigInt(req.user?.id) ?? BigInt(-1);
+    throwBadRequestErrorCheck(
+      !opk || opk == undefined,
+      'Invalid appointment opk. Please, try again after sometime with valid appointment opk.',
+    );
+    return await this.appointmentRecurringService.generateRecurringDates(opk);
   }
 
   @ApiBearerAuth('access-token')
