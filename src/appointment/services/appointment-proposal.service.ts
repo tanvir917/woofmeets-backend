@@ -1,4 +1,6 @@
 import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import axios from 'axios';
 import { appointmentProposalEnum, appointmentStatusEnum } from '@prisma/client';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime';
 import { PinoLogger } from 'nestjs-pino';
@@ -7,6 +9,7 @@ import {
   throwBadRequestErrorCheck,
   throwNotFoundErrorCheck,
 } from 'src/global/exceptions/error-logic';
+import { MessagingProxyService } from 'src/messaging/messaging.service';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { ProviderServicesService } from 'src/provider-services/provider-services.service';
 import { SecretService } from 'src/secret/secret.service';
@@ -23,6 +26,8 @@ export class AppointmentProposalService {
     private readonly commonService: CommonService,
     private readonly providerServicesService: ProviderServicesService,
     private readonly secretService: SecretService,
+    private readonly messageService: MessagingProxyService,
+    private readonly configService: ConfigService,
     private readonly logger: PinoLogger,
   ) {
     this.logger.setContext(AppointmentProposalService.name);
@@ -508,6 +513,7 @@ export class AppointmentProposalService {
   async createAppointmentProposal(
     authUserId: bigint,
     createAppointmentProposalDto: CreateAppointmentProposalDto,
+    req: Request,
   ) {
     // When proposal is created (TRANSACTION)
     // The an appointment is created with status as PROPOSAL
@@ -519,7 +525,6 @@ export class AppointmentProposalService {
       providerServiceId,
       userId,
       providerId,
-      providerTimeZone,
       appointmentserviceType,
       petsId,
       length,
@@ -539,6 +544,7 @@ export class AppointmentProposalService {
       recurringStartDate,
       recurringSelectedDay,
       firstMessage,
+      formattedMessage,
       isRecivedPhotos,
     } = createAppointmentProposalDto;
 
@@ -568,6 +574,7 @@ export class AppointmentProposalService {
           deletedAt: null,
         },
         include: {
+          user: true,
           providerServices: {
             where: {
               id: providerServiceId,
@@ -658,7 +665,7 @@ export class AppointmentProposalService {
         providerId,
         providerServiceId,
         status: AppointmentStatusEnum.PROPOSAL,
-        providerTimeZone,
+        providerTimeZone: provider?.user?.timezone,
         appointmentProposal: {
           create: {
             proposedBy: appointmentProposalEnum.USER,
@@ -683,6 +690,7 @@ export class AppointmentProposalService {
             isRecurring,
             recurringStartDate,
             recurringSelectedDay,
+            meta: { formattedMessage },
           },
         },
       },
@@ -692,9 +700,6 @@ export class AppointmentProposalService {
     });
 
     throwBadRequestErrorCheck(!appointment, 'Appointment can not create now');
-
-    const { appointmentProposal: ignoredAppointmentProposal, ...others } =
-      appointment;
 
     /**
      * Create appoinntment pet relation
@@ -715,13 +720,58 @@ export class AppointmentProposalService {
 
     await Promise.allSettled(promises);
 
-    // TODO: MESSAGING SERVICE: a message group will have to be created with the appointment id
+    /**
+     * MESSAGING SERVICE: a message group will have to be created with the appointment id
+     * First and formatted message will send to particular room
+     */
+
+    const messageRoom = await this.messageService.createGroup(req, 'axios', {
+      sender: userId,
+      receiver: providerId,
+      appointmentId: appointment?.opk,
+    });
+
+    const messagePromises = [];
+
+    messagePromises.push(
+      await axios.post(
+        `${this.configService.get<string>('MICROSERVICE_URL')}/v1/messages`,
+        {
+          sender: userId,
+          group: messageRoom?.data?._id,
+          content: firstMessage,
+        },
+      ),
+    );
+
+    messagePromises.push(
+      await axios.post(
+        `${this.configService.get<string>('MICROSERVICE_URL')}/v1/messages`,
+        {
+          sender: userId,
+          group: messageRoom?.data?._id,
+          content: formattedMessage,
+        },
+      ),
+    );
+    await Promise.allSettled(messagePromises);
+
+    const updatedAppointment = await this.prismaService.appointment.update({
+      where: {
+        id: appointment?.id,
+      },
+      data: {
+        lastProposalId: appointment?.appointmentProposal[0]?.id,
+        messageGroupId: messageRoom?.data?._id,
+      },
+    });
+
     // TODO: Price calculation
     // TODO: Unavailability check
     return {
       message: 'Appointment proposal created successfully',
       data: {
-        appointment: { ...others },
+        appointment: updatedAppointment,
         proposal: { ...appointment?.appointmentProposal[0] },
       },
     };
@@ -784,6 +834,7 @@ export class AppointmentProposalService {
       isRecurring,
       recurringStartDate,
       recurringSelectedDay,
+      formattedMessage,
     } = updateAppointmentProposalDto;
 
     const proposal = await this.prismaService.appointmentProposal.create({
@@ -809,6 +860,7 @@ export class AppointmentProposalService {
         isRecurring,
         recurringStartDate,
         recurringSelectedDay,
+        meta: { formattedMessage },
       },
     });
 
@@ -837,6 +889,15 @@ export class AppointmentProposalService {
 
     await Promise.allSettled(promises);
 
+    await this.prismaService.appointment.update({
+      where: {
+        id: appointment?.id,
+      },
+      data: {
+        lastProposalId: proposal?.id,
+      },
+    });
+
     return {
       message: 'Appointment proposal updated successfully',
       data: {
@@ -846,14 +907,70 @@ export class AppointmentProposalService {
     };
   }
 
-  async acceptAppointmentProposal() {
+  async acceptAppointmentProposal(
+    userId: bigint,
+    provider: boolean,
+    opk: string,
+  ) {
     // (TRANSACTION)
     // can only be accepted by other user
     // example:
     // if sitter made the last request, then the customer can accept it
     // and vice versa
     // TODO: dispatch notification via notification service
-    return;
+
+    const [user, appointment] = await this.prismaService.$transaction([
+      this.prismaService.user.findFirst({
+        where: {
+          id: userId,
+          deletedAt: null,
+        },
+        include: {
+          provider: true,
+        },
+      }),
+      this.prismaService.appointment.findFirst({
+        where: {
+          opk,
+          deletedAt: null,
+        },
+        include: {
+          appointmentProposal: {
+            orderBy: {
+              createdAt: 'desc',
+            },
+          },
+        },
+      }),
+    ]);
+
+    throwNotFoundErrorCheck(!user, 'User not found.');
+    throwNotFoundErrorCheck(!appointment, 'Appointment not found.');
+    throwBadRequestErrorCheck(
+      appointment.status === 'ACCEPTED',
+      'Appointment already accepted.',
+    );
+    throwBadRequestErrorCheck(
+      (appointment?.appointmentProposal[0]?.proposedBy === 'USER' &&
+        !provider) ||
+        (appointment?.appointmentProposal[0]?.proposedBy === 'PROVIDER' &&
+          provider),
+      'User can not accept own proposal.',
+    );
+
+    const updatedAppointment = await this.prismaService.appointment.update({
+      where: {
+        id: appointment?.id,
+      },
+      data: {
+        status: 'ACCEPTED',
+      },
+    });
+
+    return {
+      message: 'Appointment accepted successfully.',
+      data: updatedAppointment,
+    };
   }
 
   async handleProposalUpdate(/* status will be sent here, |accept|reject|edit|etc */) {

@@ -33,5 +33,6 @@ import { MessagingProxyService } from './messaging.service';
   ],
   providers: [MessagingProxyService, ConfigService],
   controllers: [MessagingController],
+  exports: [MessagingProxyService],
 })
 export class MessagingModule {}

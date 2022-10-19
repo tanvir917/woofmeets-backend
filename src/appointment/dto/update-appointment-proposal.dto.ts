@@ -81,4 +81,8 @@ export class UpdateAppointmentProposalDto {
   @ApiProperty()
   @IsOptional()
   recurringSelectedDay?: any;
+
+  @ApiProperty()
+  @IsOptional()
+  formattedMessage?: string;
 }

@@ -20,9 +20,9 @@ export class CreateAppointmentProposalDto {
   @IsNotEmpty()
   providerId: number;
 
-  @ApiProperty()
-  @IsNotEmpty()
-  providerTimeZone: string;
+  // @ApiProperty()
+  // @IsNotEmpty()
+  // providerTimeZone: string;
 
   @ApiProperty()
   @IsEnum(AppointmentLengthTypeEnum)
@@ -99,6 +99,10 @@ export class CreateAppointmentProposalDto {
   @ApiProperty()
   @IsOptional()
   firstMessage?: string;
+
+  @ApiProperty()
+  @IsOptional()
+  formattedMessage?: string;
 
   @ApiProperty()
   @IsOptional()
