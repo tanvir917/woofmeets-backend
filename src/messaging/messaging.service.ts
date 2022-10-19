@@ -37,7 +37,7 @@ export class MessagingProxyService {
   }
 
   async createGroup(
-    req: Request,
+    req: any,
     sendWith: 'axios' | 'rabbitmq' = 'axios',
     body: CreateGroupDTO,
   ) {

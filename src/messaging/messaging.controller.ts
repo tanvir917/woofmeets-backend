@@ -29,7 +29,7 @@ export class MessagingController {
   @UseGuards(JwtAuthGuard)
   @Post('/creategroup')
   @ApiBody({ type: CreateGroupDTO })
-  async createGroup(@Body() body: CreateGroupDTO, @Req() req) {
+  async createGroup(@Body() body: CreateGroupDTO, @Req() req: any) {
     return this.messagingService.createGroup(req, 'axios', body);
   }
 
