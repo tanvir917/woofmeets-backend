@@ -162,4 +162,14 @@ export class AppointmentController {
       updateAppointmentProposalDto,
     );
   }
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard)
+  @Put('/cancel/:opk')
+  async cancelAppointment(@Param('opk') opk: string) {
+    throwBadRequestErrorCheck(
+      !opk || opk == undefined,
+      'Invalid appointment opk. Please, try again after sometime with valid appointment opk.',
+    );
+    return this.appointmentProposalService.cancelAppointment(opk);
+  }
 }
