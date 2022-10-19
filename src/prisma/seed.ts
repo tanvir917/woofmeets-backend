@@ -43,6 +43,7 @@ const addServiceTypes = async () => {
         slug: obj.slug,
       },
       update: {
+        id: obj?.id,
         name: obj?.name,
         displayName: obj?.displayName,
         description: obj?.description,
@@ -57,6 +58,7 @@ const addServiceTypes = async () => {
         sequence: obj?.sequence,
       },
       create: {
+        id: obj?.id,
         slug: obj.slug,
         name: obj?.name,
         displayName: obj?.displayName,
