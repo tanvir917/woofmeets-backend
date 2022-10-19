@@ -940,38 +940,40 @@ model Appointment {
 }
 
 model AppointmentProposal {
-  id                     BigInt                    @id @default(autoincrement())
-  appointmentId          BigInt
-  appointment            Appointment               @relation(fields: [appointmentId], references: [id])
-  proposedBy             appointmentProposalEnum
-  original               Boolean                   @default(false)
-  countered              Boolean                   @default(false)
-  appointmentserviceType appointmentLengthTypeEnum
-  length                 Float?
-  additionalLengthPrice  Float?
-  petQuantity            Float?
-  regularPrice           Float?
-  additionalCharge       Json?
-  providerExtraFee       Float?
-  totalPrice             Float?
-  firstMessage           String?
-  isRecivedPhotos        Boolean?
-  dropOffStartTime       String?
-  dropOffEndTime         String?
-  pickUpStartTime        String?
-  pickUpEndTime          String?
-  proposalStartDate      String?
-  proposalEndDate        String?
-  proposalOtherDate      Json[]
-  isRecurring            Boolean?
-  recurringStartDate     DateTime                  @default(now()) @db.Timestamptz(3)
-  recurringSelectedDay   Json[]
-  meta                   Json?
-  createdAt              DateTime                  @default(now()) @db.Timestamptz(3)
-  updatedAt              DateTime?                 @updatedAt @db.Timestamptz(3)
-  deletedAt              DateTime?                 @db.Timestamptz(3)
-  appointmentPet         AppointmentPet[]
-  AppointmentDates       AppointmentDates[]
+  id                       BigInt                    @id @default(autoincrement())
+  appointmentId            BigInt
+  appointment              Appointment               @relation(fields: [appointmentId], references: [id])
+  proposedBy               appointmentProposalEnum
+  original                 Boolean                   @default(false)
+  countered                Boolean                   @default(false)
+  appointmentserviceType   appointmentLengthTypeEnum
+  length                   Float?
+  additionalLengthPrice    Float?
+  petQuantity              Float?
+  regularPrice             Float?
+  additionalCharge         Json?
+  providerExtraFee         Float?
+  totalPrice               Float?
+  firstMessage             String?
+  isRecivedPhotos          Boolean?
+  dropOffStartTime         String?
+  dropOffEndTime           String?
+  pickUpStartTime          String?
+  pickUpEndTime            String?
+  proposalStartDate        String?
+  appointmentStartDateTime DateTime?                 @db.Timestamptz(3)
+  proposalEndDate          String?
+  appointmentEndDateTime   DateTime?                 @db.Timestamptz(3)
+  proposalOtherDate        Json[]
+  isRecurring              Boolean?
+  recurringStartDate       DateTime                  @default(now()) @db.Timestamptz(3)
+  recurringSelectedDay     Json[]
+  meta                     Json?
+  createdAt                DateTime                  @default(now()) @db.Timestamptz(3)
+  updatedAt                DateTime?                 @updatedAt @db.Timestamptz(3)
+  deletedAt                DateTime?                 @db.Timestamptz(3)
+  appointmentPet           AppointmentPet[]
+  AppointmentDates         AppointmentDates[]
 }
 
 model AppointmentDates {

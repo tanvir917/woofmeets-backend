@@ -1,7 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { appointmentProposalEnum } from '@prisma/client';
 import axios from 'axios';
+import { appointmentProposalEnum, appointmentStatusEnum } from '@prisma/client';
+import { PrismaClientKnownRequestError } from '@prisma/client/runtime';
 import { PinoLogger } from 'nestjs-pino';
 import { CommonService } from 'src/common/common.service';
 import {
@@ -977,5 +978,27 @@ export class AppointmentProposalService {
     // for example:
     // if reject -> this.rejectAppointmentProposal(params)
     return;
+  }
+
+  async cancelAppointment(opk: string) {
+    try {
+      const result = await this.prismaService.appointment.update({
+        where: {
+          opk,
+        },
+        data: {
+          status: appointmentStatusEnum.CANCELLED,
+        },
+      });
+      return { message: 'Appointment Canceled Successfully', data: { result } };
+    } catch (error) {
+      if (error instanceof PrismaClientKnownRequestError) {
+        throwBadRequestErrorCheck(
+          error.code === 'P2025',
+          `No record found by ${opk}`,
+        );
+      }
+      throw error;
+    }
   }
 }

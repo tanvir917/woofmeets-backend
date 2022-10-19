@@ -48,7 +48,7 @@ export class AppointmentRecurringService {
     );
 
     const currentDate = utcToZonedTime(
-      new Date('2022-12-20T15:23:28.811Z'),
+      new Date(),
       appointment.providerTimeZone,
     );
 

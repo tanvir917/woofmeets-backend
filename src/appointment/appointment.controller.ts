@@ -166,7 +166,7 @@ export class AppointmentController {
 
   @ApiBearerAuth('access-token')
   @UseGuards(JwtAuthGuard)
-  @Get('/accept/appointment/:opk')
+  @Get('/accept/proposal/:opk')
   async acceptAppointmentProposal(
     @Param('opk') opk: string,
     @Request() req: any,
@@ -182,5 +182,16 @@ export class AppointmentController {
       provider,
       opk,
     );
+  }
+
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard)
+  @Put('/cancel/:opk')
+  async cancelAppointment(@Param('opk') opk: string) {
+    throwBadRequestErrorCheck(
+      !opk || opk == undefined,
+      'Invalid appointment opk. Please, try again after sometime with valid appointment opk.',
+    );
+    return this.appointmentProposalService.cancelAppointment(opk);
   }
 }
