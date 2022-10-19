@@ -140,6 +140,7 @@ export class AppointmentController {
     return await this.appointmentProposalService.createAppointmentProposal(
       userId,
       createAppointmentProposalDto,
+      req,
     );
   }
 
@@ -162,6 +163,27 @@ export class AppointmentController {
       updateAppointmentProposalDto,
     );
   }
+
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard)
+  @Get('/accept/proposal/:opk')
+  async acceptAppointmentProposal(
+    @Param('opk') opk: string,
+    @Request() req: any,
+  ) {
+    const userId = BigInt(req.user?.id) ?? BigInt(-1);
+    const provider = req?.user?.provider;
+    throwBadRequestErrorCheck(
+      !opk || opk == undefined,
+      'Invalid appointment opk. Please, try again after sometime with valid appointment opk.',
+    );
+    return await this.appointmentProposalService.acceptAppointmentProposal(
+      userId,
+      provider,
+      opk,
+    );
+  }
+
   @ApiBearerAuth('access-token')
   @UseGuards(JwtAuthGuard)
   @Put('/cancel/:opk')
