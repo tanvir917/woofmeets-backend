@@ -2,6 +2,7 @@ import { PetTypeEnum } from 'src/utils/enums';
 
 export const ServiceTypesSeeder = [
   {
+    id: 1,
     name: 'Boarding',
     displayName: 'Boarding',
     slug: 'boarding',
@@ -17,6 +18,7 @@ export const ServiceTypesSeeder = [
     sequence: 1,
   },
   {
+    id: 2,
     name: 'House Sitting',
     displayName: 'House Sitting',
     slug: 'house-sitting',
@@ -32,6 +34,7 @@ export const ServiceTypesSeeder = [
     sequence: 2,
   },
   {
+    id: 3,
     name: 'Drop-In Visits',
     displayName: 'Drop-In Visits',
     slug: 'drop-in-visits',
@@ -47,6 +50,7 @@ export const ServiceTypesSeeder = [
     sequence: 3,
   },
   {
+    id: 4,
     name: 'Doggy Day Care',
     displayName: 'Doggy Day Care',
     slug: 'doggy-day-care',
@@ -62,6 +66,7 @@ export const ServiceTypesSeeder = [
     sequence: 4,
   },
   {
+    id: 5,
     name: 'Dog Walking',
     displayName: 'Dog Walking',
     slug: 'dog-walking',
