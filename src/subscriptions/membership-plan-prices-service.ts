@@ -1,7 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import Stripe from 'stripe';
+import { AdminPanelService } from '../admin-panel/admin-panel.service';
 import { CommonService } from '../common/common.service';
-import { throwBadRequestErrorCheck } from '../global/exceptions/error-logic';
+import {
+  throwBadRequestErrorCheck,
+  throwUnauthorizedErrorCheck,
+} from '../global/exceptions/error-logic';
 import { PrismaService } from '../prisma/prisma.service';
 import { SecretService } from '../secret/secret.service';
 import { CreateMembershipPlanPricesDto } from './dto/create-membership-plan-prices.dto';
@@ -13,6 +17,7 @@ export class MembershipPlanPricesService {
     private prismaService: PrismaService,
     private commonService: CommonService,
     private secretService: SecretService,
+    private adminPanelService: AdminPanelService,
   ) {
     this.stripe = new Stripe(this.secretService.getStripeCreds().secretKey, {
       apiVersion: this.secretService.getStripeCreds().apiVersion,
@@ -20,9 +25,15 @@ export class MembershipPlanPricesService {
   }
 
   async createMembershipPlanPrice(
+    userId: bigint,
     planId: bigint,
     createMembershipPlanPricesDto: CreateMembershipPlanPricesDto,
   ) {
+    throwUnauthorizedErrorCheck(
+      !(await this.adminPanelService.adminCheck(userId)),
+      'Unauthorized access!',
+    );
+
     const { rate, cropRate, validity, meta } = createMembershipPlanPricesDto;
 
     const membershipPlan = await this.prismaService.membershipPlan.findFirst({
@@ -64,7 +75,11 @@ export class MembershipPlanPricesService {
     };
   }
 
-  async deleteMembershipPlanPrice(priceId: bigint) {
+  async deleteMembershipPlanPrice(userId: bigint, priceId: bigint) {
+    throwUnauthorizedErrorCheck(
+      !(await this.adminPanelService.adminCheck(userId)),
+      'Unauthorized access!',
+    );
     const membershipPlanPrice =
       await this.prismaService.membershipPlanPrices.findFirst({
         where: {
