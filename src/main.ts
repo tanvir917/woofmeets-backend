@@ -7,6 +7,7 @@ import { AppModule } from './app.module';
 import { globalValidationPipe } from './global/error';
 import { SecretService } from './secret/secret.service';
 import cookieParser from 'cookie-parser';
+import { Logger as BaseLogger } from '@nestjs/common/services/logger.service';
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const cloneBuffer = require('clone-buffer');
@@ -16,12 +17,15 @@ async function bootstrap() {
     bufferLogs: true,
   });
 
-  const secretService = app.get(SecretService);
-
   // setup logger
   const logger = app.get(Logger);
   app.useLogger(logger);
+  BaseLogger.flush();
   app.flushLogs();
+  app.useGlobalInterceptors(new LoggerErrorInterceptor());
+  // end setup logger
+
+  const secretService = app.get(SecretService);
 
   app.use(cookieParser());
 
@@ -36,9 +40,6 @@ async function bootstrap() {
       },
     }),
   );
-
-  app.useGlobalInterceptors(new LoggerErrorInterceptor());
-  // end setup logger
 
   // enable api versioning
   app.enableVersioning({
