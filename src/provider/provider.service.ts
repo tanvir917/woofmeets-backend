@@ -123,7 +123,7 @@ export class ProviderService {
 
     const reviewStatistics = await this.prismaService.review.aggregate({
       where: {
-        providerId: providerUser?.id,
+        providerId: providerUser?.provider?.id,
         deletedAt: null,
       },
       _avg: {

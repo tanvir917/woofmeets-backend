@@ -193,6 +193,10 @@ export class EnvironmentVariable {
   MESSAGE_MICROSERVICE_CHANNEL: string;
 
   @IsNotEmpty()
+  @IsString()
+  MICROSERVICE_URL: string;
+
+  @IsNotEmpty()
   @IsNumber()
   APPOINTMENT_DISTANCE_LIMIT: number;
 

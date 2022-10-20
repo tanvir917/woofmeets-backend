@@ -110,6 +110,7 @@ export class SecretService {
       MESSAGE_MICROSERVICE_CHANNEL: this.configService.get<string>(
         'MESSAGE_MICROSERVICE_CHANNEL',
       ),
+      MICROSERVICE_URL: this.configService.get<string>('MICROSERVICE_URL'),
 
       /**
        * APPOINTMENT CHECK

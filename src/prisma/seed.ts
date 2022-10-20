@@ -258,6 +258,20 @@ const addHolidays = async () => {
 };
 
 async function main() {
+  const addExtentions = async () => {
+    try {
+      await prisma.$queryRaw`CREATE EXTENSION IF NOT EXISTS postgis;`;
+      await prisma.$queryRaw`CREATE EXTENSION IF NOT EXISTS postgis_raster;`;
+      await prisma.$queryRaw`CREATE EXTENSION IF NOT EXISTS postgis_topology;`;
+      await prisma.$queryRaw`CREATE EXTENSION IF NOT EXISTS fuzzystrmatch;`;
+      await prisma.$queryRaw`CREATE EXTENSION IF NOT EXISTS postgis_tiger_geocoder;`;
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  addExtentions();
+
   console.log('.... Seeding Data ....');
 
   addServiceTypes();

@@ -52,6 +52,13 @@ export class ProviderController {
       req?.cookies?.token?.length > 0
     ) {
       viewer = this.jwtService.decode(req?.cookies?.token);
+    } else if (req?.headers?.authorization) {
+      viewer = this.jwtService.decode(
+        req?.headers?.authorization?.substring(
+          7,
+          req?.headers?.authorization?.length,
+        ),
+      );
     }
 
     throwBadRequestErrorCheck(
