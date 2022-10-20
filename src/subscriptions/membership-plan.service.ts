@@ -1,8 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { customAlphabet } from 'nanoid';
 import Stripe from 'stripe';
+import { AdminPanelService } from '../admin-panel/admin-panel.service';
 import { CommonService } from '../common/common.service';
-import { throwBadRequestErrorCheck } from '../global/exceptions/error-logic';
+import {
+  throwBadRequestErrorCheck,
+  throwUnauthorizedErrorCheck,
+} from '../global/exceptions/error-logic';
 import { PrismaService } from '../prisma/prisma.service';
 import { SecretService } from '../secret/secret.service';
 import { CreateMembershipPlanDto } from './dto/create-membership-plan.dto';
@@ -15,13 +19,22 @@ export class MembershipPlanService {
     private prismaService: PrismaService,
     private commonService: CommonService,
     private secretService: SecretService,
+    private adminPanelService: AdminPanelService,
   ) {
     this.stripe = new Stripe(this.secretService.getStripeCreds().secretKey, {
       apiVersion: this.secretService.getStripeCreds().apiVersion,
     });
   }
 
-  async createMembershipPlan(createMembershipPlanDto: CreateMembershipPlanDto) {
+  async createMembershipPlan(
+    userId: bigint,
+    createMembershipPlanDto: CreateMembershipPlanDto,
+  ) {
+    throwUnauthorizedErrorCheck(
+      !(await this.adminPanelService.adminCheck(userId)),
+      'Unauthorized access!',
+    );
+
     const { name, displayName, details, features } = createMembershipPlanDto;
     let slug = this.commonService.getSlug(name);
     let slugExists = true;
@@ -109,9 +122,14 @@ export class MembershipPlanService {
   }
 
   async updateMembershipPlan(
+    userId: bigint,
     planId: bigint,
     updateMembershipPlanDto: UpdateMembershipPlanDto,
   ) {
+    throwUnauthorizedErrorCheck(
+      !(await this.adminPanelService.adminCheck(userId)),
+      'Unauthorized access!',
+    );
     const { name, displayName, details, features } = updateMembershipPlanDto;
 
     const membershipPlan = await this.prismaService.membershipPlan.findFirst({
@@ -152,7 +170,11 @@ export class MembershipPlanService {
     };
   }
 
-  async deleteMembershipPlan(planId: bigint) {
+  async deleteMembershipPlan(userId: bigint, planId: bigint) {
+    throwUnauthorizedErrorCheck(
+      !(await this.adminPanelService.adminCheck(userId)),
+      'Unauthorized access!',
+    );
     const membershipPlan = await this.prismaService.membershipPlan.findFirst({
       where: {
         id: planId,

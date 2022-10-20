@@ -51,8 +51,13 @@ export class SubscriptionsController {
   @ApiBearerAuth('access-token')
   @UseGuards(JwtAuthGuard)
   @Post('membership-plans')
-  createPlans(@Body() createMembershipPlanDto: CreateMembershipPlanDto) {
+  createPlans(
+    @Body() createMembershipPlanDto: CreateMembershipPlanDto,
+    @Request() req: any,
+  ) {
+    const userId = BigInt(req.user?.id) ?? BigInt(-1);
     return this.membershipPlanService.createMembershipPlan(
+      userId,
       createMembershipPlanDto,
     );
   }
@@ -63,8 +68,11 @@ export class SubscriptionsController {
   updatePlans(
     @Body() updateMembershipPlanDto: UpdateMembershipPlanDto,
     @Param('planId') planId: string,
+    @Request() req: any,
   ) {
+    const userId = BigInt(req.user?.id) ?? BigInt(-1);
     return this.membershipPlanService.updateMembershipPlan(
+      userId,
       BigInt(planId),
       updateMembershipPlanDto,
     );
@@ -73,8 +81,12 @@ export class SubscriptionsController {
   @ApiBearerAuth('access-token')
   @UseGuards(JwtAuthGuard)
   @Delete('membership-plans/:planId')
-  deletePlans(@Param('planId') planId: string) {
-    return this.membershipPlanService.deleteMembershipPlan(BigInt(planId));
+  deletePlans(@Param('planId') planId: string, @Request() req: any) {
+    const userId = BigInt(req.user?.id) ?? BigInt(-1);
+    return this.membershipPlanService.deleteMembershipPlan(
+      userId,
+      BigInt(planId),
+    );
   }
 
   @ApiBearerAuth('access-token')
@@ -83,8 +95,11 @@ export class SubscriptionsController {
   createPlanPrice(
     @Param('planId') planId: string,
     @Body() createMembershipPlanPricesDto: CreateMembershipPlanPricesDto,
+    @Request() req: any,
   ) {
+    const userId = BigInt(req.user?.id) ?? BigInt(-1);
     return this.membershipPlanPricesService.createMembershipPlanPrice(
+      userId,
       BigInt(planId),
       createMembershipPlanPricesDto,
     );
@@ -93,8 +108,10 @@ export class SubscriptionsController {
   @ApiBearerAuth('access-token')
   @UseGuards(JwtAuthGuard)
   @Delete('membership-plans/:planId/prices/:priceId')
-  deletePlanPrice(@Param('priceId') priceId: string) {
+  deletePlanPrice(@Param('priceId') priceId: string, @Request() req: any) {
+    const userId = BigInt(req.user?.id) ?? BigInt(-1);
     return this.membershipPlanPricesService.deleteMembershipPlanPrice(
+      userId,
       BigInt(priceId),
     );
   }
