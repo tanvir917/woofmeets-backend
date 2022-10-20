@@ -184,13 +184,13 @@ export class EnvironmentVariable {
   // @IsString()
   // CKR_BASE_URL: string;
 
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
-  RABBIT_MQ_URL: string;
+  RABBIT_MQ_URL?: string;
 
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
-  MESSAGE_MICROSERVICE_CHANNEL: string;
+  MESSAGE_MICROSERVICE_CHANNEL?: string;
 
   @IsNotEmpty()
   @IsString()
