@@ -1,10 +1,8 @@
-import { AmqpConnection } from '@golevelup/nestjs-rabbitmq';
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
 import { Request } from 'express';
 import { PinoLogger } from 'nestjs-pino';
-import { MESSAGE_SERVICE_NAMES } from './config.type';
 import { CreateGroupDTO } from './dto/messages.dto';
 
 // https://www.npmjs.com/package/nestjs-amqp
@@ -13,26 +11,12 @@ import { CreateGroupDTO } from './dto/messages.dto';
 export class MessagingProxyService {
   constructor(
     private readonly logger: PinoLogger,
-    private readonly amqpConnection: AmqpConnection,
     private readonly configService: ConfigService,
   ) {
     this.logger.setContext(MessagingProxyService.name);
   }
 
   async sendMessage(message?: string) {
-    this.amqpConnection.publish<{
-      name: string;
-    }>(
-      MESSAGE_SERVICE_NAMES.MESSAGE_EXCHANGE,
-      MESSAGE_SERVICE_NAMES.MESSAGE_TOPIC,
-      {
-        name: message,
-      },
-      {
-        persistent: true,
-      },
-    );
-
     return message ?? `No message`;
   }
 
@@ -58,21 +42,10 @@ export class MessagingProxyService {
         );
         return result.data;
       } catch (error) {
-        console.log({ error });
+        this.logger.error({ error });
       }
     } else if (sendWith === 'rabbitmq') {
-      this.amqpConnection.publish<{
-        body: string;
-      }>(
-        MESSAGE_SERVICE_NAMES.MESSAGE_EXCHANGE,
-        MESSAGE_SERVICE_NAMES.MESSAGE_TOPIC,
-        {
-          body: JSON.stringify(body),
-        },
-        {
-          persistent: true,
-        },
-      );
+      this.logger.error('RabbitMq implementation removed');
       return true;
     }
   }
@@ -98,21 +71,10 @@ export class MessagingProxyService {
         );
         return result.data;
       } catch (error) {
-        console.log({ error });
+        this.logger.error({ error });
       }
     } else if (sendWith === 'rabbitmq') {
-      this.amqpConnection.publish<{
-        body: string;
-      }>(
-        MESSAGE_SERVICE_NAMES.MESSAGE_EXCHANGE,
-        MESSAGE_SERVICE_NAMES.MESSAGE_TOPIC,
-        {
-          body: JSON.stringify({ id, command: 'DELETE' }),
-        },
-        {
-          persistent: true,
-        },
-      );
+      this.logger.error('RabbitMq implementation removed');
       return true;
     }
   }

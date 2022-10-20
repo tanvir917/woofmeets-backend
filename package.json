@@ -37,7 +37,7 @@
   },
   "config": {
     "commitizen": {
-      "path": "./node_modules/@digitalroute/cz-conventional-changelog-for-jira",
+      "path": "./commitizen.js",
       "jiraOptional": true,
       "jiraPrefix": "WOOF",
       "skipScope": false,
@@ -45,7 +45,6 @@
     }
   },
   "dependencies": {
-    "@golevelup/nestjs-rabbitmq": "^3.3.0",
     "@nestjs/axios": "^0.1.0",
     "@nestjs/common": "^9.0.0",
     "@nestjs/config": "^2.2.0",
@@ -76,9 +75,11 @@
     "nestjs-pino": "^3.1.1",
     "passport": "^0.6.0",
     "passport-jwt": "^4.0.0",
+    "pino": "^8.6.1",
     "pino-http": "^8.2.0",
     "reflect-metadata": "^0.1.13",
     "rimraf": "^3.0.2",
+    "rotating-file-stream": "^3.0.4",
     "rxjs": "^7.2.0",
     "stripe": "^10.7.0",
     "twilio": "^3.80.1",
