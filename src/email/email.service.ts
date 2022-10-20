@@ -60,6 +60,18 @@ export class EmailService {
         from: this.secretService.getMailgunCreds().from,
         to: email,
         subject: 'Welcome to Woofmeets',
+        template: 'cms_woofmeets',
+      },
+    );
+  }
+
+  async completeOnBoardingEmail(email: string) {
+    return this.mailgunService.createEmail(
+      this.secretService.getMailgunCreds().domain,
+      {
+        from: this.secretService.getMailgunCreds().from,
+        to: email,
+        subject: 'Your woofmeets journey begins from here.',
         template: 'signup_welcome',
       },
     );

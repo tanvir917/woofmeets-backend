@@ -166,7 +166,7 @@ export class AppointmentController {
 
   @ApiBearerAuth('access-token')
   @UseGuards(JwtAuthGuard)
-  @Get('/accept/proposal/:opk')
+  @Put('/accept/proposal/:opk')
   async acceptAppointmentProposal(
     @Param('opk') opk: string,
     @Request() req: any,
