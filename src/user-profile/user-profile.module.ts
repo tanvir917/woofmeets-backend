@@ -9,9 +9,10 @@ import { SmsModule } from 'src/sms/sms.module';
 import { UserProfileContactService } from './user-profile-contact.service';
 import { SecretModule } from 'src/secret/secret.module';
 import { UserOnboardingProgressService } from './user-onboarding-progress.service';
+import { EmailModule } from 'src/email/email.module';
 
 @Module({
-  imports: [PrismaModule, SmsModule, FileModule, SecretModule],
+  imports: [PrismaModule, SmsModule, FileModule, SecretModule, EmailModule],
   controllers: [UserProfileController],
   providers: [
     UserProfileService,

@@ -1,7 +1,7 @@
 export const quizSets = [
   {
     question:
-      "You've just returned home after your final evening pet-sitting session, and although theclient's front door is 15 minutes away, you can't recall if you locked it. Do you?",
+      "You've just returned home after your final evening pet-sitting session, and although the client's front door is 15 minutes away, you can't recall if you locked it. Do you?",
     options: [
       {
         key: 'a',

@@ -1,4 +1,5 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
+import { EmailService } from 'src/email/email.service';
 import {
   throwBadRequestErrorCheck,
   throwNotFoundErrorCheck,
@@ -12,6 +13,7 @@ export class UserProfileService {
   constructor(
     private prismaService: PrismaService,
     private userOnboardingProgressService: UserOnboardingProgressService,
+    private emailService: EmailService,
   ) {}
 
   async getCountry() {
@@ -163,6 +165,8 @@ export class UserProfileService {
       !providerProfileSubmitted,
       'Provider onboarding process can not be submitted. Please try again later.',
     );
+
+    await this.emailService.completeOnBoardingEmail(user?.email);
 
     return {
       message: 'Provider onboarding process submitted successfully.',
