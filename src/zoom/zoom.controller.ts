@@ -90,7 +90,7 @@ export class ZoomController {
     const userId = BigInt(req.user?.id) ?? BigInt(-1);
     return this.zoomService.saveRefreshToken(
       userId,
-      createZoomInfoDto?.refreshToken,
+      createZoomInfoDto?.zoomCode,
     );
   }
 

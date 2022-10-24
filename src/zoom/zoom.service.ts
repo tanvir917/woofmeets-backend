@@ -32,58 +32,60 @@ export class ZoomService {
         // Step 3:
         // Request an access token using the auth code
 
-        const url =
-          'https://zoom.us/oauth/token?grant_type=authorization_code&code=' +
-          req?.query?.code +
-          '&redirect_uri=' +
-          this.secretService.getZoomJwtCreds().oAuthRedirectUri;
+        return req?.query?.code;
 
-        const tokenResult = await this.httpService.axiosRef.post(
-          url,
-          {},
-          {
-            headers: {
-              Host: 'zoom.us',
-              Authorization:
-                'Basic ' +
-                Buffer.from(
-                  this.secretService.getZoomJwtCreds().oAuthId +
-                    ':' +
-                    this.secretService.getZoomJwtCreds().oAuthSecret,
-                ).toString('base64'),
-              'content-type': 'application/x-www-form-urlencoded',
-              accept: 'application/json',
-            },
-          },
-        );
+        // const url =
+        //   'https://zoom.us/oauth/token?grant_type=authorization_code&code=' +
+        //   req?.query?.code +
+        //   '&redirect_uri=' +
+        //   this.secretService.getZoomJwtCreds().oAuthRedirectUri;
 
-        console.log({ tokenResult });
+        // const tokenResult = await this.httpService.axiosRef.post(
+        //   url,
+        //   {},
+        //   {
+        //     headers: {
+        //       Host: 'zoom.us',
+        //       Authorization:
+        //         'Basic ' +
+        //         Buffer.from(
+        //           this.secretService.getZoomJwtCreds().oAuthId +
+        //             ':' +
+        //             this.secretService.getZoomJwtCreds().oAuthSecret,
+        //         ).toString('base64'),
+        //       'content-type': 'application/x-www-form-urlencoded',
+        //       accept: 'application/json',
+        //     },
+        //   },
+        // );
 
-        const JSONResponse =
-          '<pre><code>' +
-          JSON.stringify(
-            Object({
-              ...tokenResult?.data,
-            }),
-            null,
-            2,
-          ) +
-          '</code></pre>';
+        // console.log({ tokenResult });
 
-        return res.send(`
-            <html>
-            <style>
-              @import url('https://fonts.googleapis.com/css?family=Open+Sans:400,600&display=swap');@import url('https://necolas.github.io/normalize.css/8.0.1/normalize.css');html {color: #232333;font-family: 'Open Sans', Helvetica, Arial, sans-serif;-webkit-font-smoothing: antialiased;-moz-osx-font-smoothing: grayscale;}h2 {font-weight: 700;font-size: 24px;}h4 {font-weight: 600;font-size: 14px;}.container {margin: 24px auto;padding: 16px;max-width: 720px;}.info {display: flex;align-items: center;}.info>div>span, .info>div>p {font-weight: 400;font-size: 13px;color: #747487;line-height: 16px;}.info>div>span::before {content: "👋";}.info>div>h2 {padding: 8px 0 6px;margin: 0;}.info>div>p {padding: 0;margin: 0;}.info>img {background: #747487;height: 96px;width: 96px;border-radius: 31.68px;overflow: hidden;margin: 0 20px 0 0;}.response {margin: 32px 0;display: flex;flex-wrap: wrap;align-items: center;justify-content: space-between;}.response>a {text-decoration: none;color: #2D8CFF;font-size: 14px;}.response>pre {overflow-x: scroll;background: #f6f7f9;padding: 1.2em 1.4em;border-radius: 10.56px;width: 100%;box-sizing: border-box;}
-            </style>
-            <body>
-              <div>
-                <h3>
-                ${JSONResponse}
-                </h3>
-              </div>
-            </body>
-            </html>
-            `);
+        // const JSONResponse =
+        //   '<pre><code>' +
+        //   JSON.stringify(
+        //     Object({
+        //       ...tokenResult?.data,
+        //     }),
+        //     null,
+        //     2,
+        //   ) +
+        //   '</code></pre>';
+
+        // return res.send(`
+        //     <html>
+        //     <style>
+        //       @import url('https://fonts.googleapis.com/css?family=Open+Sans:400,600&display=swap');@import url('https://necolas.github.io/normalize.css/8.0.1/normalize.css');html {color: #232333;font-family: 'Open Sans', Helvetica, Arial, sans-serif;-webkit-font-smoothing: antialiased;-moz-osx-font-smoothing: grayscale;}h2 {font-weight: 700;font-size: 24px;}h4 {font-weight: 600;font-size: 14px;}.container {margin: 24px auto;padding: 16px;max-width: 720px;}.info {display: flex;align-items: center;}.info>div>span, .info>div>p {font-weight: 400;font-size: 13px;color: #747487;line-height: 16px;}.info>div>span::before {content: "👋";}.info>div>h2 {padding: 8px 0 6px;margin: 0;}.info>div>p {padding: 0;margin: 0;}.info>img {background: #747487;height: 96px;width: 96px;border-radius: 31.68px;overflow: hidden;margin: 0 20px 0 0;}.response {margin: 32px 0;display: flex;flex-wrap: wrap;align-items: center;justify-content: space-between;}.response>a {text-decoration: none;color: #2D8CFF;font-size: 14px;}.response>pre {overflow-x: scroll;background: #f6f7f9;padding: 1.2em 1.4em;border-radius: 10.56px;width: 100%;box-sizing: border-box;}
+        //     </style>
+        //     <body>
+        //       <div>
+        //         <h3>
+        //         ${JSONResponse}
+        //         </h3>
+        //       </div>
+        //     </body>
+        //     </html>
+        //     `);
 
         // if (tokenResult?.data?.access_token) {
         // Step 4:
@@ -302,7 +304,7 @@ export class ZoomService {
     }
   }
 
-  async saveRefreshToken(userId: bigint, refreshToken: string) {
+  async saveRefreshToken(userId: bigint, zoomCode: string) {
     const user = await this.prismaService.user.findFirst({
       where: { id: userId, deletedAt: null },
       select: {
@@ -314,11 +316,36 @@ export class ZoomService {
       },
     });
 
-    throwNotFoundErrorCheck(!user?.provider, 'Provider not found.');
+    //throwNotFoundErrorCheck(!user?.provider, 'Provider not found.');
+
+    const url =
+      'https://zoom.us/oauth/token?grant_type=authorization_code&code=' +
+      zoomCode +
+      '&redirect_uri=' +
+      this.secretService.getZoomJwtCreds().oAuthRedirectUri;
+
+    const tokenResult = await this.httpService.axiosRef.post(
+      url,
+      {},
+      {
+        headers: {
+          Host: 'zoom.us',
+          Authorization:
+            'Basic ' +
+            Buffer.from(
+              this.secretService.getZoomJwtCreds().oAuthId +
+                ':' +
+                this.secretService.getZoomJwtCreds().oAuthSecret,
+            ).toString('base64'),
+          'content-type': 'application/x-www-form-urlencoded',
+          accept: 'application/json',
+        },
+      },
+    );
 
     // Encryption
     const ciphertext = CryptoJS.AES.encrypt(
-      refreshToken,
+      tokenResult?.data?.refresh_token,
       this.secretService.getCryptoCreds().secret,
     ).toString();
 
@@ -336,8 +363,7 @@ export class ZoomService {
     throwBadRequestErrorCheck(!zoomInfo, 'Zoominfo can not create now.');
 
     return {
-      message: 'Zomm info created successfully',
-      data: zoomInfo,
+      message: 'Zomm info saved successfully',
     };
   }
 
@@ -353,7 +379,7 @@ export class ZoomService {
       },
     });
 
-    throwBadRequestErrorCheck(!user?.provider, 'Provider not found.');
+    //throwBadRequestErrorCheck(!user?.provider, 'Provider not found.');
 
     try {
       const payload = {

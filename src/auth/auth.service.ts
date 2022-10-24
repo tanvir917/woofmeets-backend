@@ -37,7 +37,6 @@ export class AuthService {
     const foundUser = await this.prismaService.user.findFirst({
       where: {
         email,
-        deletedAt: null,
       },
       include: {
         provider: {
@@ -48,6 +47,12 @@ export class AuthService {
       },
     });
     throwNotFoundErrorCheck(!foundUser, 'Email not found please sign up.');
+
+    //check if the user is block or not
+    throwBadRequestErrorCheck(
+      !!foundUser && foundUser?.deletedAt != null,
+      'Your account is blocked.',
+    );
 
     const isPasswordValid = foundUser?.password
       ? await this.passwordService.comparePassword(
@@ -98,10 +103,15 @@ export class AuthService {
     //Check unique email
     const emailTaken = await this.prismaService.user.findFirst({
       where: {
-        email,
-        deletedAt: null,
+        email: email,
       },
     });
+
+    //check if the user is block or not
+    throwBadRequestErrorCheck(
+      !!emailTaken && emailTaken?.deletedAt != null,
+      'Your account is blocked.',
+    );
 
     //check if email is taken or not
     throwConflictErrorCheck(!!emailTaken, 'Email already taken');
@@ -137,7 +147,7 @@ export class AuthService {
         firstName,
         lastName,
         password: hashedPassword,
-        email,
+        email: email.toLowerCase(),
         zipcode,
         loginProvider: LoginProviderEnum.LOCAL,
       },
@@ -188,7 +198,6 @@ export class AuthService {
     let user = await this.prismaService.user.findFirst({
       where: {
         email,
-        deletedAt: null,
       },
       include: {
         provider: {
@@ -198,6 +207,12 @@ export class AuthService {
         },
       },
     });
+
+    //check if the user is block or not
+    throwBadRequestErrorCheck(
+      !!user && user?.deletedAt != null,
+      'Your account is blocked.',
+    );
 
     if (!user) {
       let opk = this.commonService.getOpk();
