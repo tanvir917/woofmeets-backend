@@ -929,11 +929,7 @@ export class AppointmentProposalService {
     };
   }
 
-  async acceptAppointmentProposal(
-    userId: bigint,
-    provider: boolean,
-    opk: string,
-  ) {
+  async acceptAppointmentProposal(userId: bigint, opk: string) {
     // (TRANSACTION)
     // can only be accepted by other user
     // example:
@@ -974,10 +970,10 @@ export class AppointmentProposalService {
     );
     throwBadRequestErrorCheck(
       (appointment?.appointmentProposal[0]?.proposedBy === 'USER' &&
-        !provider) ||
+        userId == appointment?.userId) ||
         (appointment?.appointmentProposal[0]?.proposedBy === 'PROVIDER' &&
-          provider),
-      'User can not accept own proposal.',
+          user?.provider?.id == appointment?.providerId),
+      'Proposal giver can not accept own proposal.',
     );
 
     const updatedAppointment = await this.prismaService.appointment.update({
