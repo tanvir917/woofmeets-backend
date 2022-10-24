@@ -172,14 +172,12 @@ export class AppointmentController {
     @Request() req: any,
   ) {
     const userId = BigInt(req.user?.id) ?? BigInt(-1);
-    const provider = req?.user?.provider;
     throwBadRequestErrorCheck(
       !opk || opk == undefined,
       'Invalid appointment opk. Please, try again after sometime with valid appointment opk.',
     );
     return await this.appointmentProposalService.acceptAppointmentProposal(
       userId,
-      provider,
       opk,
     );
   }

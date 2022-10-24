@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import axios from 'axios';
 import { appointmentProposalEnum, appointmentStatusEnum } from '@prisma/client';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime';
+import axios from 'axios';
 import { PinoLogger } from 'nestjs-pino';
 import { CommonService } from 'src/common/common.service';
 import {
@@ -221,10 +221,21 @@ export class AppointmentProposalService {
       'Enter a valid status enum value.',
     );
 
+    const statusArray: AppointmentStatusEnum[] = [];
+    statusArray.push(status as AppointmentStatusEnum);
+
+    if (status == 'PROPOSAL') {
+      statusArray.push(AppointmentStatusEnum.ACCEPTED);
+    } else if (status == 'CANCELLED') {
+      statusArray.push(AppointmentStatusEnum.REJECTED);
+    }
+
     const appointments = await this.prismaService.appointment.findMany({
       where: {
         userId,
-        status: status as AppointmentStatusEnum,
+        status: {
+          in: statusArray,
+        },
         deletedAt: null,
       },
       include: {
@@ -320,10 +331,21 @@ export class AppointmentProposalService {
       'Enter a valid status enum value.',
     );
 
+    const statusArray: AppointmentStatusEnum[] = [];
+    statusArray.push(status as AppointmentStatusEnum);
+
+    if (status == 'PROPOSAL') {
+      statusArray.push(AppointmentStatusEnum.ACCEPTED);
+    } else if (status == 'CANCELLED') {
+      statusArray.push(AppointmentStatusEnum.REJECTED);
+    }
+
     const appointments = await this.prismaService.appointment.findMany({
       where: {
         providerId: user?.provider?.id,
-        status: status as AppointmentStatusEnum,
+        status: {
+          in: statusArray,
+        },
         deletedAt: null,
       },
       include: {
@@ -907,11 +929,7 @@ export class AppointmentProposalService {
     };
   }
 
-  async acceptAppointmentProposal(
-    userId: bigint,
-    provider: boolean,
-    opk: string,
-  ) {
+  async acceptAppointmentProposal(userId: bigint, opk: string) {
     // (TRANSACTION)
     // can only be accepted by other user
     // example:
@@ -952,10 +970,10 @@ export class AppointmentProposalService {
     );
     throwBadRequestErrorCheck(
       (appointment?.appointmentProposal[0]?.proposedBy === 'USER' &&
-        !provider) ||
+        userId == appointment?.userId) ||
         (appointment?.appointmentProposal[0]?.proposedBy === 'PROVIDER' &&
-          provider),
-      'User can not accept own proposal.',
+          user?.provider?.id == appointment?.providerId),
+      'Proposal giver can not accept own proposal.',
     );
 
     const updatedAppointment = await this.prismaService.appointment.update({
