@@ -9,6 +9,7 @@ import {
 } from 'src/global/exceptions/error-logic';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { SecretService } from 'src/secret/secret.service';
+import { CreateZoomInfoDto } from './dto/create.zoominfo.dto';
 import { CreateZoomLinkDto } from './dto/create.zoomlink.dto';
 
 @Injectable()
@@ -304,7 +305,8 @@ export class ZoomService {
     }
   }
 
-  async saveRefreshToken(userId: bigint, zoomCode: string) {
+  async saveRefreshToken(userId: bigint, createZoomInfoDto: CreateZoomInfoDto) {
+    const { zoomCode, redirectUri } = createZoomInfoDto;
     const user = await this.prismaService.user.findFirst({
       where: { id: userId, deletedAt: null },
       select: {
@@ -316,32 +318,39 @@ export class ZoomService {
       },
     });
 
-    //throwNotFoundErrorCheck(!user?.provider, 'Provider not found.');
+    throwNotFoundErrorCheck(!user?.provider, 'Provider not found.');
 
     const url =
       'https://zoom.us/oauth/token?grant_type=authorization_code&code=' +
       zoomCode +
       '&redirect_uri=' +
-      this.secretService.getZoomJwtCreds().oAuthRedirectUri;
+      redirectUri;
+    //this.secretService.getZoomJwtCreds().oAuthRedirectUri;
 
-    const tokenResult = await this.httpService.axiosRef.post(
-      url,
-      {},
-      {
-        headers: {
-          Host: 'zoom.us',
-          Authorization:
-            'Basic ' +
-            Buffer.from(
-              this.secretService.getZoomJwtCreds().oAuthId +
-                ':' +
-                this.secretService.getZoomJwtCreds().oAuthSecret,
-            ).toString('base64'),
-          'content-type': 'application/x-www-form-urlencoded',
-          accept: 'application/json',
+    let tokenResult;
+    try {
+      tokenResult = await this.httpService.axiosRef.post(
+        url,
+        {},
+        {
+          headers: {
+            Host: 'zoom.us',
+            Authorization:
+              'Basic ' +
+              Buffer.from(
+                this.secretService.getZoomJwtCreds().oAuthId +
+                  ':' +
+                  this.secretService.getZoomJwtCreds().oAuthSecret,
+              ).toString('base64'),
+            'content-type': 'application/x-www-form-urlencoded',
+            accept: 'application/json',
+          },
         },
-      },
-    );
+      );
+    } catch (error) {
+      console.log(error);
+      return;
+    }
 
     // Encryption
     const ciphertext = CryptoJS.AES.encrypt(
@@ -379,7 +388,7 @@ export class ZoomService {
       },
     });
 
-    //throwBadRequestErrorCheck(!user?.provider, 'Provider not found.');
+    throwBadRequestErrorCheck(!user?.provider, 'Provider not found.');
 
     try {
       const payload = {

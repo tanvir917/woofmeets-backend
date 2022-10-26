@@ -5,6 +5,8 @@ import { PrismaClientKnownRequestError } from '@prisma/client/runtime';
 import axios from 'axios';
 import { PinoLogger } from 'nestjs-pino';
 import { CommonService } from 'src/common/common.service';
+import { SuccessfulUploadResponse } from 'src/file/dto/upload-flie.dto';
+import { MulterFileUploadService } from 'src/file/multer-file-upload-service';
 import {
   throwBadRequestErrorCheck,
   throwNotFoundErrorCheck,
@@ -27,6 +29,7 @@ export class AppointmentProposalService {
     private readonly providerServicesService: ProviderServicesService,
     private readonly secretService: SecretService,
     private readonly messageService: MessagingProxyService,
+    private readonly multerFileUploadService: MulterFileUploadService,
     private readonly configService: ConfigService,
     private readonly logger: PinoLogger,
   ) {
@@ -1018,5 +1021,40 @@ export class AppointmentProposalService {
       }
       throw error;
     }
+  }
+
+  async appointmentMessageUploadFile(
+    userId: bigint,
+    opk: string,
+    files: Express.Multer.File[], //: Promise<SuccessfulUploadResponse[]>
+  ): Promise<SuccessfulUploadResponse[]> {
+    const [user, appointment] = await this.prismaService.$transaction([
+      this.prismaService.user.findFirst({
+        where: {
+          id: userId,
+          deletedAt: null,
+        },
+      }),
+      this.prismaService.appointment.findFirst({
+        where: {
+          opk,
+          deletedAt: null,
+        },
+      }),
+    ]);
+
+    throwNotFoundErrorCheck(!user, 'User not found.');
+    throwNotFoundErrorCheck(!appointment, 'Appointment not found.');
+    const uploadedFiles = await this.multerFileUploadService.uploadMultiple(
+      files,
+      `appointment/message/${opk}`,
+    );
+
+    return uploadedFiles;
+
+    // return {
+    //   message: 'Appointment message file upload successfullfy',
+    //   data: uploadedFiles,
+    // };
   }
 }

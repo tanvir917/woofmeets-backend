@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { CommonModule } from 'src/common/common.module';
+import { FileModule } from 'src/file/file.module';
 import { MessagingModule } from 'src/messaging/messaging.module';
 import { PrismaModule } from 'src/prisma/prisma.module';
 import { ProviderServicesModule } from 'src/provider-services/provider-services.module';
@@ -15,6 +16,7 @@ import { AppointmentRecurringService } from './services/appointment-recurring.se
     ProviderServicesModule,
     SecretModule,
     MessagingModule,
+    FileModule,
   ],
   providers: [AppointmentProposalService, AppointmentRecurringService],
   controllers: [AppointmentController],

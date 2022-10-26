@@ -7,10 +7,15 @@ import {
   Put,
   Query,
   Request,
+  UploadedFiles,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { FilesInterceptor } from '@nestjs/platform-express';
+import { ApiBearerAuth, ApiConsumes, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
+import { FileUploadBody } from 'src/file/dto/file-upload-body.dto';
+import { SuccessfulUploadResponse } from 'src/file/dto/upload-flie.dto';
 import { throwBadRequestErrorCheck } from 'src/global/exceptions/error-logic';
 import { CreateAppointmentProposalDto } from './dto/create-appointment-proposal.dto';
 import { PetsCheckDto } from './dto/pet-check.dto';
@@ -191,5 +196,30 @@ export class AppointmentController {
       'Invalid appointment opk. Please, try again after sometime with valid appointment opk.',
     );
     return this.appointmentProposalService.cancelAppointment(opk);
+  }
+
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard)
+  @ApiConsumes('multipart/form-data')
+  @UseInterceptors(FilesInterceptor('files', 10))
+  @Post('/message/upload-file/:opk')
+  async appointmentMessageUploadFile(
+    @UploadedFiles() files: Express.Multer.File[],
+    @Param('opk') opk: string,
+    @Body() body: FileUploadBody,
+    @Request() req: any,
+  ): Promise<SuccessfulUploadResponse[]> {
+    const userId = BigInt(req.user?.id) ?? BigInt(-1);
+    throwBadRequestErrorCheck(
+      !opk || opk == undefined,
+      'Invalid appointment opk. Please, try again after sometime with valid appointment opk.',
+    );
+    throwBadRequestErrorCheck(!files?.length, 'No files uploaded');
+
+    return this.appointmentProposalService.appointmentMessageUploadFile(
+      userId,
+      opk,
+      files,
+    );
   }
 }
