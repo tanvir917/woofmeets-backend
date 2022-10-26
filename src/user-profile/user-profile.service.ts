@@ -134,7 +134,7 @@ export class UserProfileService {
     );
 
     const onboarding =
-      await this.userOnboardingProgressService.getUserOnboardingProgress(
+      await this.userOnboardingProgressService.getUserOnboardingProgressV2(
         user?.id,
       );
 
