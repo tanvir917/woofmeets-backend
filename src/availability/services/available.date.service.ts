@@ -1,11 +1,14 @@
 import { Injectable } from '@nestjs/common';
-import { isSameDay, isBefore } from 'date-fns';
+import { isSameDay, isBefore, isAfter } from 'date-fns';
 import { formatInTimeZone } from 'date-fns-tz';
 import {
   throwBadRequestErrorCheck,
   throwUnauthorizedErrorCheck,
 } from 'src/global/exceptions/error-logic';
-import { extractZoneSpecificDateWithFirstHourTime } from 'src/global/time/time-coverters';
+import {
+  extractZoneSpecificDateWithFirstHourTime,
+  isSameDate,
+} from 'src/global/time/time-coverters';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateAvailableDateDto } from '../dto/create-date.dto';
 
@@ -30,12 +33,20 @@ export class AvailableDateService {
     });
     const { timezone } = user;
 
-    if (to) {
-      throwBadRequestErrorCheck(
-        isBefore(new Date(to), new Date(from)),
-        'Invalid date range!',
-      );
-    }
+    const parsedFromDate = new Date(from);
+    const parsedToDate = new Date(to ?? from);
+    const now = new Date();
+    const isInPast =
+      isBefore(parsedFromDate, now) &&
+      !isSameDate(parsedFromDate, now, 'Etc/UTC');
+
+    const isInvalidRange = isAfter(parsedFromDate, parsedToDate);
+
+    throwBadRequestErrorCheck(isInPast, 'From date cannot be in the past');
+    throwBadRequestErrorCheck(
+      isInvalidRange,
+      'From date cannot be greater than to date',
+    );
 
     if (providerServiceIds.length > 0) {
       const services = await this.prismaService.providerServices.findMany({
@@ -73,12 +84,6 @@ export class AvailableDateService {
       });
       services.map((s) => serviceList.push(s.id));
     }
-
-    throwBadRequestErrorCheck(
-      Intl.DateTimeFormat('en-US').format(new Date(from)) !==
-        Intl.DateTimeFormat('en-US').format(new Date()),
-      'Date already expired.',
-    );
 
     const till = new Date(to ?? from);
     const fromD = new Date(from);

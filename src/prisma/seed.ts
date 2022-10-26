@@ -43,7 +43,7 @@ const addServiceTypes = async () => {
         slug: obj.slug,
       },
       update: {
-        id: obj?.id,
+        // id: obj?.id, 
         name: obj?.name,
         displayName: obj?.displayName,
         description: obj?.description,
