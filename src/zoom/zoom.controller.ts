@@ -88,10 +88,7 @@ export class ZoomController {
     @Request() req: any,
   ) {
     const userId = BigInt(req.user?.id) ?? BigInt(-1);
-    return this.zoomService.saveRefreshToken(
-      userId,
-      createZoomInfoDto?.zoomCode,
-    );
+    return this.zoomService.saveRefreshToken(userId, createZoomInfoDto);
   }
 
   @ApiOperation({

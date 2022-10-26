@@ -11,4 +11,9 @@ export class CreateZoomInfoDto {
   @IsNotEmpty()
   @IsString()
   zoomCode: string;
+
+  @ApiProperty()
+  @IsNotEmpty()
+  @IsString()
+  redirectUri: string;
 }
