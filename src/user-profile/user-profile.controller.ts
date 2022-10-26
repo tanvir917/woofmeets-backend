@@ -262,7 +262,9 @@ export class UserProfileController {
   async getOnboardingProgress(@Req() req) {
     const userId = BigInt(req.user?.id) ?? BigInt(-1);
     return {
-      data: await this.userOnboardingService.getUserOnboardingProgress(userId),
+      data: await this.userOnboardingService.getUserOnboardingProgressV2(
+        userId,
+      ),
     };
   }
 
