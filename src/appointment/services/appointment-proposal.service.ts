@@ -16,10 +16,14 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { ProviderServicesService } from 'src/provider-services/provider-services.service';
 import { SecretService } from 'src/secret/secret.service';
 import { latlongDistanceCalculator } from 'src/utils/tools';
+import { CancelAppointmentDto } from '../dto/cancel-appointment.dto';
 import { CreateAppointmentProposalDto } from '../dto/create-appointment-proposal.dto';
 import { PetsCheckDto } from '../dto/pet-check.dto';
 import { UpdateAppointmentProposalDto } from '../dto/update-appointment-proposal.dto';
-import { AppointmentStatusEnum } from '../helpers/appointment-enum';
+import {
+  AppointmentProposalEnum,
+  AppointmentStatusEnum,
+} from '../helpers/appointment-enum';
 
 @Injectable()
 export class AppointmentProposalService {
@@ -432,6 +436,9 @@ export class AppointmentProposalService {
   async getLatestAppointmentProposal(userId: bigint, opk: string) {
     const user = await this.prismaService.user.findFirst({
       where: { id: userId, deletedAt: null },
+      include: {
+        provider: true,
+      },
     });
 
     throwNotFoundErrorCheck(!user, 'User not found.');
@@ -481,6 +488,7 @@ export class AppointmentProposalService {
                 contact: true,
               },
             },
+            zoomInfo: true,
           },
         },
       },
@@ -526,11 +534,76 @@ export class AppointmentProposalService {
       },
     });
 
+    throwNotFoundErrorCheck(
+      appointment?.userId != userId &&
+        appointment?.providerId != user?.provider?.id,
+      'Provider not found.',
+    );
+
+    const reviewedForId =
+      appointment?.userId == userId
+        ? appointment?.provider?.user?.id
+        : appointment?.userId;
+
+    const reviewStatistics = await this.prismaService.review.aggregate({
+      where: {
+        reviewedForId,
+        deletedAt: null,
+      },
+      _avg: {
+        rating: true,
+      },
+    });
+
+    const review =
+      appointment?.userId != userId
+        ? await this.prismaService.review.findMany({
+            where: {
+              reviewedForId: appointment?.userId,
+              deletedAt: null,
+            },
+            select: {
+              id: true,
+              reviewedById: true,
+              reviewedForId: true,
+              rating: true,
+              comment: true,
+              reviewedByIdUser: {
+                select: {
+                  id: true,
+                  opk: true,
+                  email: true,
+                  emailVerified: true,
+                  firstName: true,
+                  lastName: true,
+                  zipcode: true,
+                  image: true,
+                  timezone: true,
+                  meta: true,
+                  basicInfo: {
+                    include: {
+                      country: true,
+                    },
+                  },
+                },
+              },
+            },
+          })
+        : null;
+
     return {
       message: 'Proposal found successfully',
       data: {
         appointment,
         proposal,
+        zoomAuthorized:
+          appointment?.provider?.zoomInfo?.refreshToken?.length > 0
+            ? true
+            : false,
+        rating: reviewStatistics?._avg?.rating
+          ? Number(reviewStatistics?._avg?.rating?.toFixed(1))
+          : 0,
+        review,
       },
     };
   }
@@ -689,6 +762,7 @@ export class AppointmentProposalService {
         userId,
         providerId,
         providerServiceId,
+        lastStatusChangedBy: AppointmentProposalEnum?.USER,
         status: AppointmentStatusEnum.PROPOSAL,
         providerTimeZone: provider?.user?.timezone,
         appointmentProposal: {
@@ -985,6 +1059,10 @@ export class AppointmentProposalService {
       },
       data: {
         status: 'ACCEPTED',
+        lastStatusChangedBy:
+          appointment?.appointmentProposal[0]?.proposedBy === 'USER'
+            ? appointmentProposalEnum.PROVIDER
+            : appointmentProposalEnum.USER,
       },
     });
 
@@ -1001,17 +1079,117 @@ export class AppointmentProposalService {
     return;
   }
 
-  async cancelAppointment(opk: string) {
+  async cancelAppointment(
+    userId: bigint,
+    opk: string,
+    cancelAppointmentDto: CancelAppointmentDto,
+  ) {
+    const [user, appointment] = await this.prismaService.$transaction([
+      this.prismaService.user.findFirst({
+        where: {
+          id: userId,
+          deletedAt: null,
+        },
+        include: {
+          provider: true,
+        },
+      }),
+      this.prismaService.appointment.findFirst({
+        where: {
+          opk,
+          deletedAt: null,
+        },
+      }),
+    ]);
+
+    throwNotFoundErrorCheck(!user, 'User not found.');
+    throwNotFoundErrorCheck(!appointment, 'Appointment not found.');
+    throwBadRequestErrorCheck(
+      appointment.status !== 'ACCEPTED',
+      'Only accepted appointment can be cancelled.',
+    );
+
+    let lastStatusChangedBy: appointmentProposalEnum;
+    if (user?.id == appointment?.userId) {
+      lastStatusChangedBy = appointmentProposalEnum?.USER;
+    } else {
+      throwBadRequestErrorCheck(
+        user?.provider?.id !== appointment?.providerId,
+        'Provider not found.',
+      );
+      lastStatusChangedBy = appointmentProposalEnum?.PROVIDER;
+    }
+
+    const { cancelReason } = cancelAppointmentDto;
+
+    const updatedAppointment = await this.prismaService.appointment.update({
+      where: {
+        id: appointment?.id,
+      },
+      data: {
+        status: 'CANCELLED',
+        lastStatusChangedBy,
+        cancelReason,
+      },
+    });
+
+    return {
+      message: 'Appointment cancelled successfully.',
+      data: updatedAppointment,
+    };
+  }
+
+  async rejectAppointmentProposal(userId: bigint, opk: string) {
     try {
+      const [user, appointment] = await this.prismaService.$transaction([
+        this.prismaService.user.findFirst({
+          where: {
+            id: userId,
+            deletedAt: null,
+          },
+          include: {
+            provider: true,
+          },
+        }),
+        this.prismaService.appointment.findFirst({
+          where: {
+            opk,
+            deletedAt: null,
+          },
+        }),
+      ]);
+
+      throwNotFoundErrorCheck(!user, 'User not found.');
+      throwNotFoundErrorCheck(!appointment, 'Appointment not found.');
+      throwBadRequestErrorCheck(
+        appointment.status !== 'PROPOSAL',
+        'Only appointment proposal can be rejected.',
+      );
+
+      let lastStatusChangedBy: appointmentProposalEnum;
+      if (user?.id == appointment?.userId) {
+        lastStatusChangedBy = appointmentProposalEnum?.USER;
+      } else {
+        throwBadRequestErrorCheck(
+          user?.provider?.id !== appointment?.providerId,
+          'Provider not found.',
+        );
+        lastStatusChangedBy = appointmentProposalEnum?.PROVIDER;
+      }
+
       const result = await this.prismaService.appointment.update({
         where: {
           opk,
         },
         data: {
-          status: appointmentStatusEnum.CANCELLED,
+          status: appointmentStatusEnum.REJECTED,
+          lastStatusChangedBy,
         },
       });
-      return { message: 'Appointment Canceled Successfully', data: { result } };
+      return {
+        message: 'Appointment proposal rejected successfully',
+        data: { result },
+      };
     } catch (error) {
       if (error instanceof PrismaClientKnownRequestError) {
         throwBadRequestErrorCheck(

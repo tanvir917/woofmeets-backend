@@ -44,6 +44,11 @@ export class CreatePetDto {
   @IsNumber()
   ageMonth: number;
 
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  dob?: string;
+
   @ApiProperty()
   @IsNotEmpty()
   @IsEnum(GenderTypeEnum)

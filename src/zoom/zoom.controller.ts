@@ -104,6 +104,18 @@ export class ZoomController {
   }
 
   @ApiOperation({
+    summary: 'Delete zoom user info.',
+  })
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard)
+  @Delete('/user-deactivate')
+  async deleteZoomRefreshToken(@Request() req: any) {
+    const userId = BigInt(req.user?.id) ?? BigInt(-1);
+
+    return this.zoomService.deleteZoomRefreshToken(userId);
+  }
+
+  @ApiOperation({
     summary: 'Only for backend use. Update a valid zoom link.',
   })
   @ApiBearerAuth('access-token')

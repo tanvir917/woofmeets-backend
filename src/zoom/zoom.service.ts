@@ -362,7 +362,7 @@ export class ZoomService {
       where: {
         providerId: user?.provider?.id,
       },
-      update: { refreshToken: ciphertext },
+      update: { refreshToken: ciphertext, deletedAt: null },
       create: {
         providerId: user?.provider?.id,
         refreshToken: ciphertext,
@@ -389,6 +389,10 @@ export class ZoomService {
     });
 
     throwBadRequestErrorCheck(!user?.provider, 'Provider not found.');
+    throwBadRequestErrorCheck(
+      !user?.provider?.zoomInfo?.refreshToken,
+      'Provider zoom info not found. Need to authorize in zoom app again.',
+    );
 
     try {
       const payload = {
@@ -481,6 +485,40 @@ export class ZoomService {
         data: error?.response?.data,
       };
     }
+  }
+
+  async deleteZoomRefreshToken(userId: bigint) {
+    const user = await this.prismaService.user.findFirst({
+      where: { id: userId, deletedAt: null },
+      include: {
+        provider: {
+          include: {
+            zoomInfo: true,
+          },
+        },
+      },
+    });
+
+    throwBadRequestErrorCheck(!user, 'User not found.');
+    throwBadRequestErrorCheck(
+      !user?.provider?.zoomInfo?.refreshToken,
+      'Provider zoom info already deleted.',
+    );
+
+    const zoomInfo = await this.prismaService.zoomInfo.update({
+      where: {
+        id: user?.provider?.zoomInfo?.id,
+      },
+      data: {
+        refreshToken: '',
+        deletedAt: new Date(),
+      },
+    });
+
+    return {
+      message: 'Zoom info deleted successfully.',
+      data: zoomInfo,
+    };
   }
 
   async updateZoomLink(
