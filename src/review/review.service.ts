@@ -10,7 +10,13 @@ import { CreateReviewDto } from './dto/create-review.dto';
 export class ReviewService {
   constructor(private prismaService: PrismaService) {}
   async create(userId: bigint, createReviewDto: CreateReviewDto) {
-    const { appointmentId, comment, rating } = createReviewDto;
+    const {
+      appointmentId,
+      comment,
+      rating,
+      providerServiceRating,
+      providerServiceComment,
+    } = createReviewDto;
 
     const [user, appointment] = await this.prismaService.$transaction([
       this.prismaService.user.findFirst({
@@ -18,21 +24,31 @@ export class ReviewService {
           id: userId,
           deletedAt: null,
         },
+        include: {
+          provider: true,
+        },
       }),
       this.prismaService.appointment.findFirst({
         where: {
           id: appointmentId,
           deletedAt: null,
         },
+        include: {
+          provider: {
+            include: {
+              user: true,
+            },
+          },
+        },
       }),
     ]);
 
-    throwNotFoundErrorCheck(!user, 'User not found.');
     throwNotFoundErrorCheck(!appointment, 'Appointment not found.');
-    throwBadRequestErrorCheck(userId != appointment?.userId, 'Wrong user id!');
-    throwBadRequestErrorCheck(
-      userId == appointment?.providerId,
-      'Provider can not give review on own appointment.',
+    throwNotFoundErrorCheck(
+      !user ||
+        (appointment?.userId != userId &&
+          appointment?.providerId != user?.provider?.id),
+      'User not found.',
     );
 
     /*
@@ -41,9 +57,13 @@ export class ReviewService {
     * Appointment status check.
     */
 
+    const reviewedById =
+      appointment?.userId == userId ? userId : appointment?.provider?.user?.id;
+
     const pastReviewCheck = await this.prismaService.review.findFirst({
       where: {
         appointmentId,
+        reviewedById,
         deletedAt: null,
       },
     });
@@ -52,11 +72,19 @@ export class ReviewService {
 
     const review = await this.prismaService.review.create({
       data: {
-        userId,
-        providerId: appointment?.providerId,
+        reviewedById: userId,
+        reviewedForId:
+          appointment?.userId == userId
+            ? appointment?.provider?.user?.id
+            : appointment?.userId,
         appointmentId: appointment?.id,
         rating,
         comment,
+        providerServiceId: providerServiceRating
+          ? appointment?.providerServiceId
+          : null,
+        providerServiceRating,
+        providerServiceComment,
       },
     });
 

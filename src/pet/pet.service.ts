@@ -219,6 +219,7 @@ export class PetService {
       weight,
       ageYear,
       ageMonth,
+      dob,
       gender,
       breeds,
       microchipped,
@@ -255,6 +256,7 @@ export class PetService {
         weight,
         ageYear,
         ageMonth,
+        dob,
         gender,
         profile_image: uploadedFile
           ? {

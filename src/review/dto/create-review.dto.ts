@@ -25,4 +25,16 @@ export class CreateReviewDto {
   @IsOptional()
   @IsString()
   comment?: string;
+
+  @ApiProperty()
+  @IsOptional()
+  @IsNumber()
+  @Min(1)
+  @Max(5)
+  providerServiceRating: number;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  providerServiceComment?: string;
 }

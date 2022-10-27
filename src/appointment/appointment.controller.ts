@@ -17,6 +17,7 @@ import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 import { FileUploadBody } from 'src/file/dto/file-upload-body.dto';
 import { SuccessfulUploadResponse } from 'src/file/dto/upload-flie.dto';
 import { throwBadRequestErrorCheck } from 'src/global/exceptions/error-logic';
+import { CancelAppointmentDto } from './dto/cancel-appointment.dto';
 import { CreateAppointmentProposalDto } from './dto/create-appointment-proposal.dto';
 import { PetsCheckDto } from './dto/pet-check.dto';
 import { UpdateAppointmentProposalDto } from './dto/update-appointment-proposal.dto';
@@ -187,15 +188,42 @@ export class AppointmentController {
     );
   }
 
+  // @ApiBearerAuth('access-token')
+  // @UseGuards(JwtAuthGuard)
+  // @Put('/cancel/:opk')
+  // async cancelAppointment(
+  //   @Param('opk') opk: string,
+  //   @Body() cancelAppointmentDto: CancelAppointmentDto,
+  //   @Request() req: any,
+  // ) {
+  //   const userId = BigInt(req.user?.id) ?? BigInt(-1);
+  //   throwBadRequestErrorCheck(
+  //     !opk || opk == undefined,
+  //     'Invalid appointment opk. Please, try again after sometime with valid appointment opk.',
+  //   );
+  //   return this.appointmentProposalService.cancelAppointment(
+  //     userId,
+  //     opk,
+  //     cancelAppointmentDto,
+  //   );
+  // }
+
   @ApiBearerAuth('access-token')
   @UseGuards(JwtAuthGuard)
-  @Put('/cancel/:opk')
-  async cancelAppointment(@Param('opk') opk: string) {
+  @Put('/proposal/reject/:opk')
+  async rejectAppointmentProposal(
+    @Param('opk') opk: string,
+    @Request() req: any,
+  ) {
+    const userId = BigInt(req.user?.id) ?? BigInt(-1);
     throwBadRequestErrorCheck(
       !opk || opk == undefined,
       'Invalid appointment opk. Please, try again after sometime with valid appointment opk.',
     );
-    return this.appointmentProposalService.cancelAppointment(opk);
+    return this.appointmentProposalService.rejectAppointmentProposal(
+      userId,
+      opk,
+    );
   }
 
   @ApiBearerAuth('access-token')

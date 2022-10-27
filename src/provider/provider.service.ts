@@ -63,6 +63,35 @@ export class ProviderService {
                 deletedAt: null,
               },
               include: {
+                providerServiceReview: {
+                  select: {
+                    id: true,
+                    reviewedById: true,
+                    reviewedForId: true,
+                    providerServiceId: true,
+                    providerServiceRating: true,
+                    providerServiceComment: true,
+                    reviewedByIdUser: {
+                      select: {
+                        id: true,
+                        opk: true,
+                        email: true,
+                        emailVerified: true,
+                        firstName: true,
+                        lastName: true,
+                        zipcode: true,
+                        image: true,
+                        timezone: true,
+                        meta: true,
+                        basicInfo: {
+                          include: {
+                            country: true,
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
                 ServiceHasRates: {
                   include: {
                     serviceTypeRate: {
@@ -76,32 +105,6 @@ export class ProviderService {
               },
             },
             ServicePetPreference: true,
-            review: {
-              where: {
-                deletedAt: null,
-              },
-              include: {
-                user: {
-                  select: {
-                    id: true,
-                    opk: true,
-                    email: true,
-                    emailVerified: true,
-                    firstName: true,
-                    lastName: true,
-                    zipcode: true,
-                    image: true,
-                    timezone: true,
-                    meta: true,
-                    basicInfo: {
-                      include: {
-                        country: true,
-                      },
-                    },
-                  },
-                },
-              },
-            },
           },
         },
         Gallery: {
@@ -121,18 +124,52 @@ export class ProviderService {
 
     throwNotFoundErrorCheck(!providerUser, 'Provider not found.');
 
-    const reviewStatistics = await this.prismaService.review.aggregate({
-      where: {
-        providerId: providerUser?.provider?.id,
-        deletedAt: null,
-      },
-      _avg: {
-        rating: true,
-      },
-      _count: {
-        id: true,
-      },
-    });
+    const [reviews, reviewStatistics] = await this.prismaService.$transaction([
+      this.prismaService.review.findMany({
+        where: {
+          reviewedForId: providerUser?.id,
+          deletedAt: null,
+        },
+        select: {
+          id: true,
+          reviewedById: true,
+          reviewedForId: true,
+          rating: true,
+          comment: true,
+          reviewedByIdUser: {
+            select: {
+              id: true,
+              opk: true,
+              email: true,
+              emailVerified: true,
+              firstName: true,
+              lastName: true,
+              zipcode: true,
+              image: true,
+              timezone: true,
+              meta: true,
+              basicInfo: {
+                include: {
+                  country: true,
+                },
+              },
+            },
+          },
+        },
+      }),
+      this.prismaService.review.aggregate({
+        where: {
+          reviewedForId: providerUser?.id,
+          deletedAt: null,
+        },
+        _avg: {
+          rating: true,
+        },
+        _count: {
+          id: true,
+        },
+      }),
+    ]);
 
     return {
       message: 'Provider details found successfully',
@@ -187,7 +224,7 @@ export class ProviderService {
           },
           pastCLients: [],
         },
-        reviews: providerUser?.provider?.review,
+        reviews,
         recomendedSitters: [],
       },
     };

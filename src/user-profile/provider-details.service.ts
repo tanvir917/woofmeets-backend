@@ -43,7 +43,7 @@ export class ProviderDetailsService {
 
     throwBadRequestErrorCheck(
       !!user?.provider?.providerDetails,
-      'User asleady has provider details. Please update instead',
+      'User already has provider details. Please update instead',
     );
 
     const providerDetails = await this.prismaService.providerDetails.create({

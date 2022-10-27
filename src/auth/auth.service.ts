@@ -34,9 +34,14 @@ export class AuthService {
 
   async validateUser(loginDto: LoginDto, res: any) {
     const { email, password } = loginDto;
+
+    const emails = [...new Set([email, email.toLowerCase()])];
+
     const foundUser = await this.prismaService.user.findFirst({
       where: {
-        email,
+        email: {
+          in: emails,
+        },
       },
       include: {
         provider: {
@@ -100,10 +105,14 @@ export class AuthService {
   async signup(userInfo: SignupDto, res: any) {
     const { email, firstName, lastName, zipcode, password } = userInfo;
 
+    const emails = [...new Set([email, email.toLowerCase()])];
+
     //Check unique email
     const emailTaken = await this.prismaService.user.findFirst({
       where: {
-        email: email,
+        email: {
+          in: emails,
+        },
       },
     });
 
@@ -194,10 +203,14 @@ export class AuthService {
   async OAuthSignup(signupDto: SocialAuthDto, res: any) {
     const { email, firstName, lastName, provider, facebookId } = signupDto;
 
+    const emails = [...new Set([email, email.toLowerCase()])];
+
     //Check unique email
     let user = await this.prismaService.user.findFirst({
       where: {
-        email,
+        email: {
+          in: emails,
+        },
       },
       include: {
         provider: {
@@ -236,7 +249,7 @@ export class AuthService {
           opk,
           firstName,
           lastName,
-          email,
+          email: email.toLowerCase(),
           loginProvider: provider,
           google: provider == 'GOOGLE' ? true : null,
           facebook: provider == 'FACEBOOK' ? facebookId ?? null : null,
