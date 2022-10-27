@@ -167,7 +167,9 @@ export class ProviderServicesService {
         include: {
           serviceType: {
             select: {
+              id: true,
               name: true,
+              slug: true,
               displayName: true,
               description: true,
               icon: true,
