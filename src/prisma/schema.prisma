@@ -1130,10 +1130,10 @@ model Review {
   provider               Provider?         @relation(fields: [providerId], references: [id])
   appointmentId          BigInt
   appointment            Appointment       @relation(fields: [appointmentId], references: [id])
-  reviewedById           BigInt
-  reviewedByIdUser       User              @relation(name: "reviewedBy", fields: [reviewedById], references: [id])
-  reviewedForId          BigInt
-  reviewedForIdUser      User              @relation(name: "reviewedFor", fields: [reviewedForId], references: [id])
+  reviewedById           BigInt?
+  reviewedByIdUser       User?             @relation(name: "reviewedBy", fields: [reviewedById], references: [id])
+  reviewedForId          BigInt?
+  reviewedForIdUser      User?             @relation(name: "reviewedFor", fields: [reviewedForId], references: [id])
   rating                 Float?
   comment                String?
   providerServiceId      BigInt?
