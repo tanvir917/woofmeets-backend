@@ -9,7 +9,7 @@ import {
 import { mappedPolicies } from './seeder/policies';
 import { profileSkills } from './seeder/profileSkills';
 import { quizSets } from './seeder/quiz';
-import { rateTypes } from './seeder/rateTypes';
+import { rateTypes, rateHelpText } from './seeder/rateTypes';
 import { ServiceTypesSeeder } from './seeder/services';
 
 const prisma = new PrismaClient();
@@ -43,7 +43,7 @@ const addServiceTypes = async () => {
         slug: obj.slug,
       },
       update: {
-        // id: obj?.id, 
+        // id: obj?.id,
         name: obj?.name,
         displayName: obj?.displayName,
         description: obj?.description,
@@ -56,6 +56,8 @@ const addServiceTypes = async () => {
         end_date_selector_description: obj?.end_date_selector_description,
         appRequired: obj?.appRequired,
         sequence: obj?.sequence,
+        unitlabel: obj?.unitlabel,
+        meta: obj?.meta,
       },
       create: {
         id: obj?.id,
@@ -72,6 +74,8 @@ const addServiceTypes = async () => {
         end_date_selector_description: obj?.end_date_selector_description,
         appRequired: obj?.appRequired,
         sequence: obj?.sequence,
+        unitlabel: obj?.unitlabel,
+        meta: obj?.meta,
       },
     });
   });
@@ -257,6 +261,27 @@ const addHolidays = async () => {
   });
 };
 
+const addHelpTextOnServiceRateTypes = async () => {
+  await rateHelpText.forEach(async (ob) => {
+    let rate = await prisma.serviceRateType.findFirst({
+      where: {
+        slug: ob?.slug,
+        deletedAt: null,
+      },
+    });
+    if (rate) {
+      await prisma.serviceRateType.update({
+        where: {
+          id: rate.id,
+        },
+        data: {
+          helpText: ob?.helpText,
+        },
+      });
+    }
+  });
+};
+
 async function main() {
   const addExtentions = async () => {
     try {
@@ -283,6 +308,7 @@ async function main() {
   addServiceRateTypes();
   addQuizQuestions();
   addHolidays();
+  addHelpTextOnServiceRateTypes();
 
   console.log('✨  Seed Completed ✨');
 }

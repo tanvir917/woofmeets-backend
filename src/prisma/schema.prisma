@@ -247,6 +247,7 @@ model ServiceType {
   location                        String?
   petType                         petTypeEnum           @default(ANY)
   browsable                       Boolean               @default(true)
+  unitlabel                       String?
   start_date_selector_description String?
   end_date_selector_description   String?
   appRequired                     Boolean               @default(false)
