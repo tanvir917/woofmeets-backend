@@ -31,9 +31,8 @@ import {
 } from '../helpers/appointment-enum';
 import {
   checkIfAnyDateHoliday,
-  DateType,
-  formatDatesWithStartEndTimings,
-  TimingType,
+  formatDatesWithTimeZone,
+  generateDatesBetween,
 } from '../helpers/appointment-visits';
 
 @Injectable()
@@ -1286,17 +1285,16 @@ export class AppointmentProposalService {
 
     switch (appointment.providerService.serviceType.slug) {
       case 'doggy-day-care':
-        const timing = {
-          dropOfStartTime:
-            appointment.appointmentProposal?.[0].dropOffStartTime,
-          dropOfEndTime: appointment.appointmentProposal?.[0].dropOffEndTime,
-          pickUpStartTime: appointment.appointmentProposal?.[0].pickUpStartTime,
-          pickUpEndTime: appointment.appointmentProposal?.[0].pickUpEndTime,
-        };
+        // const timing = {
+        //   dropOfStartTime:
+        //     appointment.appointmentProposal?.[0].dropOffStartTime,
+        //   dropOfEndTime: appointment.appointmentProposal?.[0].dropOffEndTime,
+        //   pickUpStartTime: appointment.appointmentProposal?.[0].pickUpStartTime,
+        //   pickUpEndTime: appointment.appointmentProposal?.[0].pickUpEndTime,
+        // };
         return this.calculateDayCarePrice(
           appointment.providerServiceId,
           appointment.appointmentProposal?.[0].petsIds,
-          timing,
           proposalDates,
           appointment.providerTimeZone,
         );
@@ -1308,7 +1306,40 @@ export class AppointmentProposalService {
   async calculateDayCarePrice(
     serviceId: bigint,
     petIds: bigint[],
-    timing: TimingType,
+    dates: string[],
+    timeZone: string,
+  ) {
+    const formatedDatesByZone: string[] = formatDatesWithTimeZone(
+      dates,
+      timeZone,
+    );
+    return this.calculateProposalPrice(
+      serviceId,
+      petIds,
+      formatedDatesByZone,
+      timeZone,
+    );
+  }
+
+  async calculateBoardingAndHouseSittingPrice(
+    serviceId: bigint,
+    petIds: bigint[],
+    proposalStartDate: string,
+    proposalEndDate: string,
+    timeZone: string,
+  ) {
+    const dates: string[] = generateDatesBetween(
+      proposalStartDate,
+      proposalEndDate,
+      timeZone,
+    );
+    return this.calculateProposalPrice(serviceId, petIds, dates, timeZone);
+  }
+
+  // calculate price for Day Care, Boarding and House Sitting
+  async calculateProposalPrice(
+    serviceId: bigint,
+    petIds: bigint[],
     dates: string[],
     timeZone: string,
   ) {
@@ -1328,18 +1359,10 @@ export class AppointmentProposalService {
         },
       },
     });
-    const formatedDatesByZone: DateType[] = formatDatesWithStartEndTimings(
-      dates,
-      timing,
-      timeZone,
-    );
+
     const holidays = await this.prismaService.holidays.findMany({});
 
-    const isThereAnyHolidays = checkIfAnyDateHoliday(
-      formatedDatesByZone,
-      holidays,
-      timeZone,
-    );
+    const isThereAnyHolidays = checkIfAnyDateHoliday(dates, holidays, timeZone);
 
     const petsRates = [];
     const numberOfNights = dates.length;
@@ -1402,7 +1425,7 @@ export class AppointmentProposalService {
     const result = {
       petsRates,
       ratesByServiceType,
-      formatedDatesByZone,
+      formatedDatesByZone: dates,
       subTotal: subTotal.toFixed(2),
       serviceChargeInParcentage: 10,
       total: (subTotal * 1.1).toFixed(2),

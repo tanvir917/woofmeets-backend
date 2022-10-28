@@ -17,7 +17,10 @@ import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 import { FileUploadBody } from 'src/file/dto/file-upload-body.dto';
 import { SuccessfulUploadResponse } from 'src/file/dto/upload-flie.dto';
 import { throwBadRequestErrorCheck } from 'src/global/exceptions/error-logic';
-import { GetModifiedDayCarePriceDTO } from './dto/appointment-pricing.dto';
+import {
+  GetModifiedBoardingHouseSittingPriceDTO,
+  GetModifiedDayCarePriceDTO,
+} from './dto/appointment-pricing.dto';
 import { CreateAppointmentProposalDto } from './dto/create-appointment-proposal.dto';
 import { PetsCheckDto } from './dto/pet-check.dto';
 import { UpdateAppointmentProposalDto } from './dto/update-appointment-proposal.dto';
@@ -273,8 +276,23 @@ export class AppointmentController {
     return await this.appointmentProposalService.calculateDayCarePrice(
       BigInt(body.serviceId),
       body.petIds,
-      body.timing,
       body.dates,
+      body.timeZone,
+    );
+  }
+
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard)
+  @Post('/getModifiedBoardingHouseSittingPrice')
+  async getModifiedBoardingHouseSittingPrice(
+    @Request() req: any,
+    @Body() body: GetModifiedBoardingHouseSittingPriceDTO,
+  ) {
+    return await this.appointmentProposalService.calculateBoardingAndHouseSittingPrice(
+      BigInt(body.serviceId),
+      body.petIds,
+      body.proposalStartDate,
+      body.proposalEndDate,
       body.timeZone,
     );
   }
