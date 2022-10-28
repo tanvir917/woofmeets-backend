@@ -781,7 +781,9 @@ export class AppointmentProposalService {
         providerServiceId,
         lastStatusChangedBy: AppointmentProposalEnum?.USER,
         status: AppointmentStatusEnum.PROPOSAL,
-        providerTimeZone: provider?.user?.timezone,
+        providerTimeZone: provider?.user?.timezone
+          ? provider?.user?.timezone
+          : 'America/New_York',
         appointmentProposal: {
           create: {
             proposedBy: appointmentProposalEnum.USER,

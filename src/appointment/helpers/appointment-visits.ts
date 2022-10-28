@@ -9,6 +9,7 @@ import {
 import { format, toDate, utcToZonedTime } from 'date-fns-tz';
 import { DaysOfWeek } from 'src/global';
 import {
+  convertToZoneSpecificDateTime,
   extractZoneSpecificDateWithFirstHourTime,
   extractZoneSpecificDateWithFixedHourTime,
 } from 'src/global/time/time-coverters';
@@ -137,25 +138,22 @@ export const generateDatesBetween = (
   timeZone: string,
 ) => {
   const dates: string[] = [];
-  const from = extractZoneSpecificDateWithFirstHourTime(
+  const from = convertToZoneSpecificDateTime(
     new Date(proposalStartDate),
     timeZone,
   );
-  dates.push(from);
+  dates.push(format(from, 'yyyy-MM-dd HH:mm:ssxxx', { timeZone }));
 
-  const to = extractZoneSpecificDateWithFirstHourTime(
-    new Date(proposalEndDate),
-    timeZone,
-  );
-  const difference = differenceInDays(new Date(to), new Date(from));
+  const to = convertToZoneSpecificDateTime(new Date(proposalEndDate), timeZone);
+  const difference = differenceInDays(to, from);
   for (
-    let i = 1, current = new Date(from);
-    i < difference && !isSameDay(addDays(current, 1), new Date(from));
+    let i = 1, current = from;
+    i < difference && !isSameDay(addDays(current, 1), from);
     i++
   ) {
     current = addDays(current, 1);
     dates.push(format(current, 'yyyy-MM-dd HH:mm:ssxxx', { timeZone }));
   }
-  dates.push(to);
+  dates.push(format(to, 'yyyy-MM-dd HH:mm:ssxxx', { timeZone }));
   return dates;
 };
