@@ -4,6 +4,7 @@ import {
   Get,
   Patch,
   Post,
+  Put,
   Req,
   Request,
   UploadedFiles,
@@ -32,6 +33,7 @@ import {
 import { CheckHavePetDTo } from './dto/have-pets.dto';
 import { ProfileImageUploadBodyDto } from './dto/profile-image-upload-body.dto';
 import { UpdateProviderDetailsDto } from './dto/update-provider-details.dto';
+import { UpdateTimezoneDTo } from './dto/update-timezone.dto';
 import { UpdateBasicInfoDto } from './dto/update-user-basic-info';
 import { ProviderDetailsService } from './provider-details.service';
 import { UserOnboardingProgressService } from './user-onboarding-progress.service';
@@ -62,6 +64,25 @@ export class UserProfileController {
   get(@Request() req: any) {
     const userId = BigInt(req.user?.id) ?? BigInt(-1);
     return this.userProfileService.getUserProfile(userId);
+  }
+
+  @ApiOperation({
+    summary: 'Update for updating user timezone.',
+  })
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard)
+  @ApiBody({
+    type: UpdateTimezoneDTo,
+  })
+  @Put('add-timezone')
+  async addTimeZone(
+    @Request() req: any,
+    @Body() timezoneDto: UpdateTimezoneDTo,
+  ) {
+    const userId = BigInt(req.user?.id) ?? BigInt(-1);
+    return {
+      data: await this.userContactService.addTimezone(userId, timezoneDto),
+    };
   }
 
   @ApiBearerAuth('access-token')

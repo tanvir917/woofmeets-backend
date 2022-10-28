@@ -9,7 +9,7 @@ import {
 import { mappedPolicies } from './seeder/policies';
 import { profileSkills } from './seeder/profileSkills';
 import { quizSets } from './seeder/quiz';
-import { rateTypes, rateHelpText } from './seeder/rateTypes';
+import { rateHelpText, rateTypes } from './seeder/rateTypes';
 import { ServiceTypesSeeder } from './seeder/services';
 
 const prisma = new PrismaClient();
@@ -263,7 +263,7 @@ const addHolidays = async () => {
 
 const addHelpTextOnServiceRateTypes = async () => {
   await rateHelpText.forEach(async (ob) => {
-    let rate = await prisma.serviceRateType.findFirst({
+    const rate = await prisma.serviceRateType.findFirst({
       where: {
         slug: ob?.slug,
         deletedAt: null,

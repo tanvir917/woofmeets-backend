@@ -3,6 +3,7 @@ import { PinoLogger } from 'nestjs-pino';
 import {
   throwBadRequestErrorCheck,
   throwInternalServerErrorCheck,
+  throwNotFoundErrorCheck,
 } from 'src/global/exceptions/error-logic';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { SecretService } from 'src/secret/secret.service';
@@ -11,8 +12,8 @@ import { capitalizeFirstLetter, sixDigitOtpGenerator } from 'src/utils/tools';
 import {
   CreateEmergencyContactDto,
   CreateUserContactDto,
-  GeneratePhoneOTPDto,
 } from './dto/create-user-contact.dto';
+import { UpdateTimezoneDTo } from './dto/update-timezone.dto';
 @Injectable()
 export class UserProfileContactService {
   constructor(
@@ -22,6 +23,39 @@ export class UserProfileContactService {
     private readonly secretService: SecretService,
   ) {
     this.logger.setContext(UserProfileContactService.name);
+  }
+
+  async addTimezone(userId: bigint, updateTimezoneDto: UpdateTimezoneDTo) {
+    const { timezone } = updateTimezoneDto;
+
+    const user = await this.prismaService.user.findUnique({
+      where: {
+        id: userId,
+      },
+    });
+
+    throwNotFoundErrorCheck(!user, 'User not found.');
+
+    const updateUserTimezone = await this.prismaService.user.update({
+      where: {
+        id: userId,
+      },
+      data: {
+        timezone,
+      },
+    });
+
+    throwBadRequestErrorCheck(
+      !updateUserTimezone,
+      'Timezone can not update now.',
+    );
+
+    const { password: ignoredPassword, ...others } = updateUserTimezone;
+
+    return {
+      message: 'User timezone updated successfully.',
+      data: { ...others },
+    };
   }
 
   async addContactNumber(userId: bigint, contact: CreateUserContactDto) {
