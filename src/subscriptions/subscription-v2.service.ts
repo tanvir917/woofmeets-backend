@@ -297,7 +297,16 @@ export class SubscriptionV2Service {
           { idempotencyKey: idempontencyKey },
         );
       } catch (error) {
-        throwBadRequestErrorCheck(true, error.message);
+        if (error?.code == 'idempotency_key_in_use') {
+          return {
+            statusCode: 409,
+            message: 'Idempotency key already in use',
+            data: {
+              status: 'idempotency_key_in_use',
+            },
+          };
+        }
+        throwBadRequestErrorCheck(true, error?.message);
       }
 
       const prevMiscellaneousPayment =
@@ -821,10 +830,17 @@ export class SubscriptionV2Service {
         // const clientSecret =
         //   subscription['latest_invoice']['payment_intent']['client_secret'];
         latestInvoice = Object(subscription['latest_invoice']);
-
-        console.log(subscription);
       } catch (error) {
-        throwBadRequestErrorCheck(true, error.message);
+        if (error?.code == 'idempotency_key_in_use') {
+          return {
+            statusCode: 409,
+            message: 'Idempotency key already in use',
+            data: {
+              status: 'idempotency_key_in_use',
+            },
+          };
+        }
+        throwBadRequestErrorCheck(true, error?.message);
       }
 
       const prevSubscription =
@@ -952,12 +968,15 @@ export class SubscriptionV2Service {
       },
     });
 
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { src, ...userSubscriptionWithoutSrc } = userSubscription;
+
     return {
       message: 'Subscription created successfully.',
       data: {
         paymentRedirect: false,
         subscriptionInfo: {
-          ...userSubscription,
+          ...userSubscriptionWithoutSrc,
           subscriptionPlan: priceObject,
         },
       },
@@ -975,6 +994,7 @@ export class SubscriptionV2Service {
         deletedAt: null,
       },
       include: {
+        provider: true,
         userSubscriptions: {
           where: {
             status: 'active',
@@ -1009,6 +1029,7 @@ export class SubscriptionV2Service {
     return {
       message: 'User current subscription.',
       data: {
+        subscriptionType: user?.provider?.subscriptionType,
         subscriptionInfo: user?.userSubscriptions[0],
       },
     };
