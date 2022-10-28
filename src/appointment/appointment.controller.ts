@@ -17,7 +17,7 @@ import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 import { FileUploadBody } from 'src/file/dto/file-upload-body.dto';
 import { SuccessfulUploadResponse } from 'src/file/dto/upload-flie.dto';
 import { throwBadRequestErrorCheck } from 'src/global/exceptions/error-logic';
-import { CancelAppointmentDto } from './dto/cancel-appointment.dto';
+import { GetModifiedDayCarePriceDTO } from './dto/appointment-pricing.dto';
 import { CreateAppointmentProposalDto } from './dto/create-appointment-proposal.dto';
 import { PetsCheckDto } from './dto/pet-check.dto';
 import { UpdateAppointmentProposalDto } from './dto/update-appointment-proposal.dto';
@@ -248,6 +248,34 @@ export class AppointmentController {
       userId,
       opk,
       files,
+    );
+  }
+
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard)
+  @Get('/getAppointmentPrice/:opk')
+  async getProposalPrice(@Param('opk') opk: string, @Request() req: any) {
+    // const userId = BigInt(req.user?.id) ?? BigInt(-1);
+    throwBadRequestErrorCheck(
+      !opk || opk == undefined,
+      'Invalid appointment opk. Please, try again after sometime with valid appointment opk.',
+    );
+    return await this.appointmentProposalService.getProposalPrice(opk);
+  }
+
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard)
+  @Post('/getModifiedDayCarePrice')
+  async getModifiedDayCarePrice(
+    @Request() req: any,
+    @Body() body: GetModifiedDayCarePriceDTO,
+  ) {
+    return await this.appointmentProposalService.calculateDayCarePrice(
+      BigInt(body.serviceId),
+      body.petIds,
+      body.timing,
+      body.dates,
+      body.timeZone,
     );
   }
 }
