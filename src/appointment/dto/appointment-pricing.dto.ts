@@ -1,18 +1,21 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty } from 'class-validator';
+import { IsArray, IsNotEmpty, IsNumber } from 'class-validator';
+import { TimingType } from '../helpers/appointment-visits';
 
-export class GetModifiedAppointmentPriceDTO {
+export class GetModifiedDayCarePriceDTO {
   @ApiProperty()
   @IsNotEmpty()
+  @IsNumber()
   serviceId: number;
 
-  @ApiProperty()
+  @ApiProperty({ type: [BigInt] })
   @IsNotEmpty()
-  petIds: any;
+  @IsArray()
+  petIds: bigint[];
 
   @ApiProperty()
   @IsNotEmpty()
-  timing: object;
+  timing: TimingType;
 
   @ApiProperty()
   @IsNotEmpty()

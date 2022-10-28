@@ -18,11 +18,10 @@ import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 import { FileUploadBody } from 'src/file/dto/file-upload-body.dto';
 import { SuccessfulUploadResponse } from 'src/file/dto/upload-flie.dto';
 import { throwBadRequestErrorCheck } from 'src/global/exceptions/error-logic';
-import { GetModifiedAppointmentPriceDTO } from './dto/appointment-pricing.dto';
+import { GetModifiedDayCarePriceDTO } from './dto/appointment-pricing.dto';
 import { CreateAppointmentProposalDto } from './dto/create-appointment-proposal.dto';
 import { PetsCheckDto } from './dto/pet-check.dto';
 import { UpdateAppointmentProposalDto } from './dto/update-appointment-proposal.dto';
-import { TimingType } from './helpers/appointment-visits';
 import { AppointmentProposalService } from './services/appointment-proposal.service';
 import { AppointmentRecurringService } from './services/appointment-recurring.service';
 
@@ -267,15 +266,15 @@ export class AppointmentController {
 
   @ApiBearerAuth('access-token')
   @UseGuards(JwtAuthGuard)
-  @Post('/getModifiedPrice')
-  async getModifiedPrice(
+  @Post('/getModifiedDayCarePrice')
+  async getModifiedDayCarePrice(
     @Request() req: any,
-    @Body() body: GetModifiedAppointmentPriceDTO,
+    @Body() body: GetModifiedDayCarePriceDTO,
   ) {
     return await this.appointmentProposalService.calculateDayCarePrice(
       BigInt(body.serviceId),
       body.petIds as bigint[],
-      body.timing as TimingType,
+      body.timing,
       body.dates as Prisma.JsonValue[],
       body.timeZone,
     );

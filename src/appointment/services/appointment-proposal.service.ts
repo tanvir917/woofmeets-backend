@@ -1288,13 +1288,6 @@ export class AppointmentProposalService {
           pickUpStartTime: appointment.appointmentProposal?.[0].pickUpStartTime,
           pickUpEndTime: appointment.appointmentProposal?.[0].pickUpEndTime,
         };
-        console.log({
-          serviceId: appointment.providerServiceId,
-          petIds: appointment.appointmentProposal?.[0].petsIds,
-          timing,
-          dates: appointment.appointmentProposal?.[0].proposalOtherDate,
-          timeZone: appointment.providerTimeZone,
-        });
         return this.calculateDayCarePrice(
           appointment.providerServiceId,
           appointment.appointmentProposal?.[0].petsIds,
@@ -1406,6 +1399,7 @@ export class AppointmentProposalService {
     const result = {
       petsRates,
       ratesByServiceType,
+      formatedDatesByZone,
       subTotal: subTotal.toFixed(2),
       serviceChargeInParcentage: 10,
       total: (subTotal * 1.1).toFixed(2),
