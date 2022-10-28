@@ -50,14 +50,14 @@ export const formatTimeFromMeridien = (date: string) => {
 };
 
 export const formatDatesWithStartEndTimings = (
-  dates: Prisma.JsonValue[],
+  dates: string[],
   timing: TimingType,
   timeZone: string,
 ) => {
   const dropOfStartTime = formatTimeFromMeridien(timing.dropOfStartTime);
   const pickUpEndTime = formatTimeFromMeridien(timing.pickUpEndTime);
   const formattedDates: DateType[] = [];
-  const startDate = new Date((dates[0] as { date: string }).date.split('T')[0]);
+  const startDate = new Date(dates[0].split('T')[0]);
 
   formattedDates.push({
     date: extractZoneSpecificDateWithFixedHourTime(
@@ -68,17 +68,13 @@ export const formatDatesWithStartEndTimings = (
   });
 
   for (let i = 1; i < dates.length - 1; i++) {
-    const currentDate = new Date(
-      (dates[i] as { date: string }).date.split('T')[0],
-    );
+    const currentDate = new Date(dates[i].split('T')[0]);
     formattedDates.push({
       date: extractZoneSpecificDateWithFirstHourTime(currentDate, timeZone),
     });
   }
 
-  const endDate = new Date(
-    (dates[dates.length - 1] as { date: string }).date.split('T')[0],
-  );
+  const endDate = new Date(dates[dates.length - 1].split('T')[0]);
   formattedDates.push({
     date: extractZoneSpecificDateWithFixedHourTime(
       endDate,

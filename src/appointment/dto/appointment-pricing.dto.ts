@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsNumber, IsString } from 'class-validator';
+import { IsDateString, IsNotEmpty, IsNumber, IsString } from 'class-validator';
 import { TimingType } from '../helpers/appointment-visits';
 
 export class GetModifiedDayCarePriceDTO {
@@ -18,7 +18,8 @@ export class GetModifiedDayCarePriceDTO {
 
   @ApiProperty()
   @IsNotEmpty()
-  dates: object;
+  @IsDateString({}, { each: true })
+  dates: string[];
 
   @ApiProperty()
   @IsNotEmpty()

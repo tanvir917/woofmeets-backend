@@ -13,7 +13,6 @@ import {
 } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { ApiBearerAuth, ApiConsumes, ApiTags } from '@nestjs/swagger';
-import { Prisma } from '@prisma/client';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 import { FileUploadBody } from 'src/file/dto/file-upload-body.dto';
 import { SuccessfulUploadResponse } from 'src/file/dto/upload-flie.dto';
@@ -275,7 +274,7 @@ export class AppointmentController {
       BigInt(body.serviceId),
       body.petIds,
       body.timing,
-      body.dates as Prisma.JsonValue[],
+      body.dates,
       body.timeZone,
     );
   }

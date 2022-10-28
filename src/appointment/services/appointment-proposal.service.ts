@@ -4,7 +4,6 @@ import {
   appointmentProposalEnum,
   appointmentStatusEnum,
   petTypeEnum,
-  Prisma,
 } from '@prisma/client';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime';
 import axios from 'axios';
@@ -1279,6 +1278,12 @@ export class AppointmentProposalService {
         appointmentProposal: true,
       },
     });
+
+    const proposalDates =
+      appointment.appointmentProposal?.[0].proposalOtherDate.map((item) => {
+        return (item as { date: string }).date;
+      });
+
     switch (appointment.providerService.serviceType.slug) {
       case 'doggy-day-care':
         const timing = {
@@ -1292,7 +1297,7 @@ export class AppointmentProposalService {
           appointment.providerServiceId,
           appointment.appointmentProposal?.[0].petsIds,
           timing,
-          appointment.appointmentProposal?.[0].proposalOtherDate,
+          proposalDates,
           appointment.providerTimeZone,
         );
       default:
@@ -1304,7 +1309,7 @@ export class AppointmentProposalService {
     serviceId: bigint,
     petIds: bigint[],
     timing: TimingType,
-    dates: Prisma.JsonValue[],
+    dates: string[],
     timeZone: string,
   ) {
     const rates = await this.serviceRatesService.findOne(serviceId);
@@ -1323,13 +1328,11 @@ export class AppointmentProposalService {
         },
       },
     });
-
     const formatedDatesByZone: DateType[] = formatDatesWithStartEndTimings(
       dates,
       timing,
       timeZone,
     );
-
     const holidays = await this.prismaService.holidays.findMany({});
 
     const isThereAnyHolidays = checkIfAnyDateHoliday(
