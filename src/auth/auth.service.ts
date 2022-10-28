@@ -328,8 +328,21 @@ export class AuthService {
       'User not found with the specific indentifier.',
     );
 
+    const zoomInfo = await this.prismaService.zoomInfo.findFirst({
+      where: {
+        providerId: user?.provider?.id,
+        deletedAt: null,
+      },
+    });
+
     const { password: ignoredPassword, ...others } = user;
 
-    return { message: 'User info found successfully.', data: others };
+    return {
+      message: 'User info found successfully.',
+      data: {
+        ...others,
+        zoomAuthorized: zoomInfo?.refreshToken?.length > 0 ? true : false,
+      },
+    };
   }
 }

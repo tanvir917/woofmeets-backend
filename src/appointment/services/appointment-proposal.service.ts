@@ -323,6 +323,9 @@ export class AppointmentProposalService {
           },
         },
       },
+      orderBy: {
+        createdAt: 'desc',
+      },
     });
 
     throwNotFoundErrorCheck(
@@ -432,6 +435,9 @@ export class AppointmentProposalService {
             deletedAt: null,
           },
         },
+      },
+      orderBy: {
+        createdAt: 'desc',
       },
     });
 
@@ -921,6 +927,11 @@ export class AppointmentProposalService {
     throwNotFoundErrorCheck(!user, 'User not found');
 
     throwNotFoundErrorCheck(!appointment, 'Appointment not found.');
+
+    throwBadRequestErrorCheck(
+      appointment?.status !== 'PROPOSAL',
+      'Apointment is not in proposal state.',
+    );
 
     /**
      * Update Proposal

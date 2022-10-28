@@ -11,11 +11,14 @@ import {
   Patch,
   Delete,
   Query,
+  Version,
+  Headers,
 } from '@nestjs/common';
 import { SubscriptionsService } from './subscriptions.service';
 import {
   ApiBearerAuth,
   ApiConsumes,
+  ApiHeader,
   ApiOperation,
   ApiTags,
 } from '@nestjs/swagger';
@@ -141,6 +144,31 @@ export class SubscriptionsController {
     return this.subscriptionV2Service.payBasicPayment(userId, BigInt(cardId));
   }
 
+  @Version('2')
+  @ApiOperation({
+    summary: 'Pay the basic verification payment V2 with idempotency key.',
+  })
+  @ApiBearerAuth('access-token')
+  @ApiHeader({
+    name: 'Idempontency-Key',
+    required: true,
+    schema: { type: 'string' },
+  })
+  @UseGuards(JwtAuthGuard)
+  @Post('pay-basic-verification-payment')
+  async payBasicVerificationPaymentV2(
+    @Request() req: any,
+    @Query('cardId') cardId: string,
+    @Headers('Idempontency-Key') idempontencyKey: any,
+  ) {
+    const userId = BigInt(req.user?.id) ?? BigInt(-1);
+    return this.subscriptionV2Service.payBasicPaymentV2(
+      userId,
+      BigInt(cardId),
+      idempontencyKey,
+    );
+  }
+
   @ApiBearerAuth('access-token')
   @UseGuards(JwtAuthGuard)
   @Post('subscribe')
@@ -150,6 +178,31 @@ export class SubscriptionsController {
   ) {
     const userId = BigInt(req.user?.id) ?? BigInt(-1);
     return this.subscriptionV2Service.createSubscriptionV2(userId, query);
+  }
+
+  @ApiOperation({
+    summary: 'Create user subscription v3 with idempotency key.',
+  })
+  @Version('3')
+  @ApiBearerAuth('access-token')
+  @ApiHeader({
+    name: 'Idempontency-Key',
+    required: true,
+    schema: { type: 'string' },
+  })
+  @UseGuards(JwtAuthGuard)
+  @Post('subscribe')
+  subscribeToPlanV3(
+    @Request() req: any,
+    @Query() query: CreateSubscriptionQueryDto,
+    @Headers('Idempontency-Key') idempontencyKey: any,
+  ) {
+    const userId = BigInt(req.user?.id) ?? BigInt(-1);
+    return this.subscriptionV2Service.createSubscriptionV3(
+      userId,
+      query,
+      idempontencyKey,
+    );
   }
 
   @ApiBearerAuth('access-token')
