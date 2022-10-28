@@ -69,14 +69,16 @@ export const formatDatesWithStartEndTimings = (
 
   for (let i = 1; i < dates.length - 1; i++) {
     const currentDate = new Date(
-      (dates[0] as { date: string }).date.split('T')[0],
+      (dates[i] as { date: string }).date.split('T')[0],
     );
     formattedDates.push({
       date: extractZoneSpecificDateWithFirstHourTime(currentDate, timeZone),
     });
   }
 
-  const endDate = new Date((dates[0] as { date: string }).date.split('T')[0]);
+  const endDate = new Date(
+    (dates[dates.length - 1] as { date: string }).date.split('T')[0],
+  );
   formattedDates.push({
     date: extractZoneSpecificDateWithFixedHourTime(
       endDate,

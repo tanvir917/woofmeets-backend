@@ -273,7 +273,7 @@ export class AppointmentController {
   ) {
     return await this.appointmentProposalService.calculateDayCarePrice(
       BigInt(body.serviceId),
-      body.petIds as bigint[],
+      body.petIds,
       body.timing,
       body.dates as Prisma.JsonValue[],
       body.timeZone,
