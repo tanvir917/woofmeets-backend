@@ -4,6 +4,7 @@ import { throwBadRequestErrorCheck } from '../global/exceptions/error-logic';
 import { PrismaService } from '../prisma/prisma.service';
 import { SecretService } from '../secret/secret.service';
 import {
+  ProviderBackgourndCheckEnum,
   SubscriptionPlanSlugs,
   SubscriptionStatusEnum,
 } from '../subscriptions/entities/subscription.entity';
@@ -24,6 +25,9 @@ export class StripeWebhooksService {
       this.secretService.getStripeCreds().webhookSecret;
   }
 
+  /**
+   * Deprecated
+   */
   async stripeInvoiceCreated(invoiceData: Stripe.Invoice) {
     try {
       const user = await this.prismaService.user.findFirst({
@@ -92,26 +96,7 @@ export class StripeWebhooksService {
 
   async stripeInvoiceAlteration(invoiceData: Stripe.Invoice) {
     try {
-      const user = await this.prismaService.user.findFirst({
-        where: { email: invoiceData.customer_email, deletedAt: null },
-        include: {
-          userStripeCustomerAccount: true,
-        },
-      });
-
-      throwBadRequestErrorCheck(!user, 'User not found');
-
-      throwBadRequestErrorCheck(
-        user?.userStripeCustomerAccount?.stripeCustomerId !=
-          invoiceData.customer,
-        'Customer not found',
-      );
-
       let tempSubId: string;
-
-      /**
-       * TODO: Check if invoice finalize doesn't have subscription id
-       */
 
       if (typeof invoiceData.subscription == 'string') {
         tempSubId = invoiceData.subscription;
@@ -124,6 +109,21 @@ export class StripeWebhooksService {
           where: { stripeSubscriptionId: tempSubId },
         });
       throwBadRequestErrorCheck(!subscription, 'Subscription not found');
+
+      const user = await this.prismaService.user.findFirst({
+        where: { id: subscription?.userId, deletedAt: null },
+        include: {
+          userStripeCustomerAccount: true,
+        },
+      });
+
+      throwBadRequestErrorCheck(!user, 'User not found');
+
+      throwBadRequestErrorCheck(
+        user?.userStripeCustomerAccount?.stripeCustomerId !=
+          invoiceData.customer,
+        'Customer not found',
+      );
 
       const invoice = await this.prismaService.userSubscriptionInvoices.update({
         where: { stripeInvoiceId: invoiceData?.id },
@@ -250,6 +250,7 @@ export class StripeWebhooksService {
 
       const userSubs = await this.prismaService.userSubscriptions.findFirst({
         where: {
+          userId: customerSubs?.userId,
           membershipPlanPriceId: priceObject?.id,
           status: SubscriptionStatusEnum.active,
         },
@@ -308,6 +309,18 @@ export class StripeWebhooksService {
           deletedAt: null,
         },
       });
+
+      if (payment_intent?.status == 'succeeded') {
+        await this.prismaService.provider.update({
+          where: {
+            id: provider?.id,
+          },
+          data: {
+            backGroundCheck: ProviderBackgourndCheckEnum.BASIC,
+          },
+        });
+      }
+
       const userMiscellenous =
         await this.prismaService.miscellaneousPayments.findFirst({
           where: {
@@ -346,6 +359,60 @@ export class StripeWebhooksService {
     }
   }
 
+  async chargeFailed(charge: Stripe.Charge) {
+    const {
+      id,
+      payment_intent,
+      paid,
+      status,
+      payment_method_details,
+      metadata,
+      outcome,
+    } = Object(charge);
+
+    const { type, userId } = metadata;
+
+    if (type == 'default_verification') {
+      const userMiscellenous =
+        await this.prismaService.miscellaneousPayments.findFirst({
+          where: {
+            userId: BigInt(userId),
+            type: 'DEFAULT_VERIFICATION',
+            piId: payment_intent,
+          },
+        });
+
+      const updateUserMiscellenous =
+        await this.prismaService.miscellaneousPayments.update({
+          where: {
+            id: userMiscellenous?.id,
+          },
+          data: {
+            chargeId: id,
+            status: status,
+            paid: paid,
+            src: payment_method_details,
+            billingDate: new Date(),
+            deletedAt: new Date(),
+            meta: outcome,
+          },
+        });
+
+      throwBadRequestErrorCheck(
+        !updateUserMiscellenous,
+        'Miscellenous payment can not be updated.',
+      );
+
+      return {
+        message: 'Charge Failed',
+      };
+    } else {
+      return {
+        message: 'Charge failed for other methods',
+      };
+    }
+  }
+
   async stripeWebhook(stripeSignature: any, body: any) {
     let event: any;
     try {
@@ -365,6 +432,9 @@ export class StripeWebhooksService {
       case 'charge.succeeded':
         console.log('Charge Succeeded');
         return await this.chargeSucceeded(event.data.object);
+      case 'charge.failed':
+        console.log('Charge Failed');
+        return await this.chargeFailed(event.data.object);
       case 'customer.subscription.updated':
         console.log('Customer Subscription Updated');
         return await this.customerSubscriptionUpdated(event.data.object);
