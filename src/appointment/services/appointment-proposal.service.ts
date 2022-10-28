@@ -1,6 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { appointmentProposalEnum, appointmentStatusEnum } from '@prisma/client';
+import {
+  appointmentProposalEnum,
+  appointmentStatusEnum,
+  petTypeEnum,
+} from '@prisma/client';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime';
 import axios from 'axios';
 import { PinoLogger } from 'nestjs-pino';
@@ -15,6 +19,7 @@ import { MessagingProxyService } from 'src/messaging/messaging.service';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { ProviderServicesService } from 'src/provider-services/provider-services.service';
 import { SecretService } from 'src/secret/secret.service';
+import { ServiceRatesService } from 'src/service-rates/service-rates.service';
 import { latlongDistanceCalculator } from 'src/utils/tools';
 import { CancelAppointmentDto } from '../dto/cancel-appointment.dto';
 import { CreateAppointmentProposalDto } from '../dto/create-appointment-proposal.dto';
@@ -24,6 +29,12 @@ import {
   AppointmentProposalEnum,
   AppointmentStatusEnum,
 } from '../helpers/appointment-enum';
+import {
+  checkIfAnyDateHoliday,
+  DateType,
+  formatDatesWithStartEndTimings,
+  TimingType,
+} from '../helpers/appointment-visits';
 
 @Injectable()
 export class AppointmentProposalService {
@@ -36,6 +47,7 @@ export class AppointmentProposalService {
     private readonly multerFileUploadService: MulterFileUploadService,
     private readonly configService: ConfigService,
     private readonly logger: PinoLogger,
+    private readonly serviceRatesService: ServiceRatesService,
   ) {
     this.logger.setContext(AppointmentProposalService.name);
   }
@@ -777,7 +789,7 @@ export class AppointmentProposalService {
             original: true,
             appointmentserviceType,
             length,
-            petQuantity: petsId?.length,
+            petsIds: petsId,
             additionalLengthPrice,
             regularPrice,
             additionalCharge,
@@ -954,7 +966,7 @@ export class AppointmentProposalService {
         countered: true,
         appointmentserviceType,
         length,
-        petQuantity: petsId?.length,
+        petsIds: petsId,
         additionalLengthPrice,
         regularPrice,
         additionalCharge,
@@ -1245,5 +1257,157 @@ export class AppointmentProposalService {
     //   message: 'Appointment message file upload successfullfy',
     //   data: uploadedFiles,
     // };
+  }
+
+  async getProposalPrice(opk: string) {
+    const appointment = await this.prismaService.appointment.findFirst({
+      where: {
+        opk,
+      },
+      include: {
+        providerService: {
+          select: {
+            serviceType: {
+              select: {
+                id: true,
+                slug: true,
+              },
+            },
+          },
+        },
+        appointmentProposal: true,
+      },
+    });
+
+    const proposalDates =
+      appointment.appointmentProposal?.[0].proposalOtherDate.map((item) => {
+        return (item as { date: string }).date;
+      });
+
+    switch (appointment.providerService.serviceType.slug) {
+      case 'doggy-day-care':
+        const timing = {
+          dropOfStartTime:
+            appointment.appointmentProposal?.[0].dropOffStartTime,
+          dropOfEndTime: appointment.appointmentProposal?.[0].dropOffEndTime,
+          pickUpStartTime: appointment.appointmentProposal?.[0].pickUpStartTime,
+          pickUpEndTime: appointment.appointmentProposal?.[0].pickUpEndTime,
+        };
+        return this.calculateDayCarePrice(
+          appointment.providerServiceId,
+          appointment.appointmentProposal?.[0].petsIds,
+          timing,
+          proposalDates,
+          appointment.providerTimeZone,
+        );
+      default:
+        return appointment;
+    }
+  }
+
+  async calculateDayCarePrice(
+    serviceId: bigint,
+    petIds: bigint[],
+    timing: TimingType,
+    dates: string[],
+    timeZone: string,
+  ) {
+    const rates = await this.serviceRatesService.findOne(serviceId);
+    const ratesByServiceType = {};
+    rates.data.forEach((rate) => {
+      ratesByServiceType[rate.serviceTypeRate.serviceRateType.slug] = {
+        name: rate.serviceTypeRate.serviceRateType.name,
+        amount: rate.amount,
+      };
+    });
+
+    const pets = await this.prismaService.pet.findMany({
+      where: {
+        id: {
+          in: petIds,
+        },
+      },
+    });
+    const formatedDatesByZone: DateType[] = formatDatesWithStartEndTimings(
+      dates,
+      timing,
+      timeZone,
+    );
+    const holidays = await this.prismaService.holidays.findMany({});
+
+    const isThereAnyHolidays = checkIfAnyDateHoliday(
+      formatedDatesByZone,
+      holidays,
+      timeZone,
+    );
+
+    const petsRates = [];
+    const numberOfNights = dates.length;
+    let subTotal = 0.0;
+    if (isThereAnyHolidays) {
+      pets.forEach((pet) => {
+        petsRates.push({
+          id: pet.id,
+          name: pet.name,
+          rate: ratesByServiceType['holiday-rate'],
+          count: numberOfNights,
+          isHoliday: true,
+          isAdditional: false,
+        });
+        subTotal += ratesByServiceType['holiday-rate'].amount * numberOfNights;
+      });
+    } else {
+      let dogCountForBaseRate = 0;
+      let catCountForBaseRate = 0;
+      pets.forEach((pet) => {
+        let isAdditional = false;
+        let rate: { name: string; amount: number } = { name: '', amount: 0 };
+        if (pet.type === petTypeEnum.DOG && dogCountForBaseRate >= 1) {
+          rate = ratesByServiceType['additional-dog'];
+          isAdditional = true;
+          dogCountForBaseRate++;
+        } else if (pet.type === petTypeEnum.CAT && catCountForBaseRate >= 1) {
+          rate = ratesByServiceType['additional-cat'];
+          isAdditional = true;
+          catCountForBaseRate++;
+        }
+
+        if (
+          !isAdditional &&
+          pet.type === petTypeEnum.DOG &&
+          pet.ageYear === 0 &&
+          pet.ageMonth < 12
+        ) {
+          rate = ratesByServiceType['puppy-rate'];
+          dogCountForBaseRate++;
+        } else if (!isAdditional) {
+          rate = ratesByServiceType['base-rate'];
+          dogCountForBaseRate += pet.type === petTypeEnum.DOG ? 1 : 0;
+          catCountForBaseRate += pet.type === petTypeEnum.CAT ? 1 : 0;
+        }
+
+        petsRates.push({
+          id: pet.id,
+          name: pet.name,
+          rate,
+          count: numberOfNights,
+          isHoliday: false,
+          isAdditional,
+        });
+
+        subTotal += rate.amount * numberOfNights;
+      });
+    }
+
+    const result = {
+      petsRates,
+      ratesByServiceType,
+      formatedDatesByZone,
+      subTotal: subTotal.toFixed(2),
+      serviceChargeInParcentage: 10,
+      total: (subTotal * 1.1).toFixed(2),
+    };
+
+    return result;
   }
 }
