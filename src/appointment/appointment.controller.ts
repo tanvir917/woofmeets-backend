@@ -13,14 +13,16 @@ import {
 } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { ApiBearerAuth, ApiConsumes, ApiTags } from '@nestjs/swagger';
+import { Prisma } from '@prisma/client';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 import { FileUploadBody } from 'src/file/dto/file-upload-body.dto';
 import { SuccessfulUploadResponse } from 'src/file/dto/upload-flie.dto';
 import { throwBadRequestErrorCheck } from 'src/global/exceptions/error-logic';
-import { CancelAppointmentDto } from './dto/cancel-appointment.dto';
+import { GetModifiedAppointmentPriceDTO } from './dto/appointment-pricing.dto';
 import { CreateAppointmentProposalDto } from './dto/create-appointment-proposal.dto';
 import { PetsCheckDto } from './dto/pet-check.dto';
 import { UpdateAppointmentProposalDto } from './dto/update-appointment-proposal.dto';
+import { TimingType } from './helpers/appointment-visits';
 import { AppointmentProposalService } from './services/appointment-proposal.service';
 import { AppointmentRecurringService } from './services/appointment-recurring.service';
 
@@ -248,6 +250,34 @@ export class AppointmentController {
       userId,
       opk,
       files,
+    );
+  }
+
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard)
+  @Get('/getAppointmentPrice/:opk')
+  async getProposalPrice(@Param('opk') opk: string, @Request() req: any) {
+    // const userId = BigInt(req.user?.id) ?? BigInt(-1);
+    throwBadRequestErrorCheck(
+      !opk || opk == undefined,
+      'Invalid appointment opk. Please, try again after sometime with valid appointment opk.',
+    );
+    return await this.appointmentProposalService.getProposalPrice(opk);
+  }
+
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard)
+  @Post('/getModifiedPrice')
+  async getModifiedPrice(
+    @Request() req: any,
+    @Body() body: GetModifiedAppointmentPriceDTO,
+  ) {
+    return await this.appointmentProposalService.calculateDayCarePrice(
+      BigInt(body.serviceId),
+      body.petIds as bigint[],
+      body.timing as TimingType,
+      body.dates as Prisma.JsonValue[],
+      body.timeZone,
     );
   }
 }

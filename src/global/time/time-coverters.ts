@@ -12,24 +12,7 @@ export const timeFormatHelper = (
 export const extractZoneSpecificDate = (date: Date, zone: string) =>
   timeFormatHelper(date, 'yyyy-MM-dd', zone);
 
-export const extractZoneSpecificDateWithFirstHourTime = (
-  date: Date,
-  zone: string,
-) => {
-  const formattedDateTime = timeFormatHelper(date, 'yyyy-MM-dd', zone).concat(
-    'T00:00:00',
-  );
-
-  const parsedDate = toDate(formattedDateTime, {
-    timeZone: zone,
-  });
-
-  const countryDate = utcToZonedTime(parsedDate, zone);
-
-  return format(countryDate, 'yyyy-MM-dd HH:mm:ssxxx', { timeZone: zone });
-};
-
-export const extractZoneSpecificDateWithFixedHourTime = (
+export const convertToZoneSpecificDateTime = (
   date: Date,
   zone: string,
   time = 'T00:00:00',
@@ -43,6 +26,24 @@ export const extractZoneSpecificDateWithFixedHourTime = (
   });
 
   const countryDate = utcToZonedTime(parsedDate, zone);
+  return countryDate;
+};
+
+export const extractZoneSpecificDateWithFirstHourTime = (
+  date: Date,
+  zone: string,
+) => {
+  const countryDate = convertToZoneSpecificDateTime(date, zone);
+
+  return format(countryDate, 'yyyy-MM-dd HH:mm:ssxxx', { timeZone: zone });
+};
+
+export const extractZoneSpecificDateWithFixedHourTime = (
+  date: Date,
+  zone: string,
+  time = 'T00:00:00',
+) => {
+  const countryDate = convertToZoneSpecificDateTime(date, zone, time);
 
   return format(countryDate, 'yyyy-MM-dd HH:mm:ssxxx', { timeZone: zone });
 };

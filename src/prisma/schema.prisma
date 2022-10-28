@@ -955,7 +955,7 @@ model AppointmentProposal {
   appointmentserviceType   appointmentLengthTypeEnum
   length                   Float?
   additionalLengthPrice    Float?
-  petQuantity              Float?
+  petsIds                  BigInt[]
   regularPrice             Float?
   additionalCharge         Json?
   providerExtraFee         Float?
@@ -1005,8 +1005,8 @@ model AppointmentDates {
 model Holidays {
   id        BigInt    @id @default(autoincrement())
   title     String
-  startDate DateTime  @db.Timestamptz(3)
-  endDate   DateTime  @db.Timestamptz(3)
+  startDate String
+  endDate   String
   timeZone  String
   meta      Json?
   createdAt DateTime  @default(now()) @db.Timestamptz(3)

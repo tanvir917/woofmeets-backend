@@ -126,7 +126,16 @@ export class ServiceRatesService {
       },
       include: {
         service: true,
-        serviceTypeRate: true,
+        serviceTypeRate: {
+          include: {
+            serviceRateType: {
+              select: {
+                name: true,
+                slug: true,
+              },
+            },
+          },
+        },
       },
     });
 
