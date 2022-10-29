@@ -7,6 +7,7 @@ import {
   Param,
   Request,
   UseGuards,
+  Query,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
@@ -15,6 +16,8 @@ import { CreateAvailabilityDto } from './dto/create-availability.dto';
 import { UpdateAvailabilityDto } from './dto/update-availability.dto';
 import { AvailableDateService } from './services/available.date.service';
 import { CreateAvailableDateDto } from './dto/create-date.dto';
+import { GetAvailableCalenderDto } from 'src/provider/dto/get.available.dto';
+import { AvailabilityGetServcie } from './services/availability.get.service';
 
 @ApiTags('availability')
 @Controller('availability')
@@ -22,6 +25,7 @@ export class AvailabilityController {
   constructor(
     private readonly availabilityService: AvailabilityService,
     private readonly availableDateService: AvailableDateService,
+    private readonly availableGetService: AvailabilityGetServcie,
   ) {}
 
   @ApiBearerAuth('access-token')
@@ -36,6 +40,32 @@ export class AvailabilityController {
   ) {
     const userId = BigInt(req.user?.id) ?? BigInt(-1);
     return this.availabilityService.create(userId, createAvailabilityDto);
+  }
+
+  @ApiOperation({
+    summary: 'Get all available services.',
+  })
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard)
+  @Get('/all-service')
+  getAllAvailableService(
+    @Request() req: any,
+    @Query() query: GetAvailableCalenderDto,
+  ) {
+    const userId = BigInt(req.user?.id) ?? BigInt(-1);
+    return this.availableGetService.getAllServiceAvailability(userId, query);
+  }
+
+  @ApiOperation({
+    summary:
+      'Get available day for a provider services.',
+  })
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard)
+  @Get('/all-service/days')
+  findForAllServices(@Request() req: any) {
+    const userId = BigInt(req.user?.id) ?? BigInt(-1);
+    return this.availabilityService.findDaysForAllServices(userId);
   }
 
   @ApiOperation({

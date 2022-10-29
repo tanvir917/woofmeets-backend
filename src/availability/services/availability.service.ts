@@ -79,7 +79,7 @@ export class AvailabilityService {
   async findOne(id: bigint) {
     const days = await this.prismaService.availableDay.findFirst({
       where: {
-        id,
+        providerServiceId: id,
         deletedAt: null,
       },
       include: {
@@ -92,6 +92,41 @@ export class AvailabilityService {
       },
     });
     throwNotFoundErrorCheck(!days, 'Availabile day not found.');
+    return {
+      message: 'Available day found successfully.',
+      data: days,
+    };
+  }
+
+  async findDaysForAllServices(userId: bigint) {
+    const services = await this.prismaService.providerServices.findMany({
+      where: {
+        provider: {
+          userId,
+        },
+        deletedAt: null,
+      },
+    });
+    const serviceId = [];
+    services.map((service) => serviceId.push(service.id));
+
+    const days = await this.prismaService.availableDay.findMany({
+      where: {
+        providerServiceId: {
+          in: serviceId,
+        },
+        deletedAt: null,
+      },
+      include: {
+        service: {
+          include: {
+            serviceType: true,
+            provider: true,
+          },
+        },
+      },
+    });
+
     return {
       message: 'Available day found successfully.',
       data: days,
@@ -153,7 +188,10 @@ export class AvailabilityService {
     };
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} availability`;
+  async getAllAvailableServices(userId: bigint) {
+    return {
+      message: 'All available services',
+      userId,
+    };
   }
 }
