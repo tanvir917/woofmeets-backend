@@ -943,6 +943,7 @@ model Appointment {
   AppointmentDates    AppointmentDates[]
   couponTrack         CouponTrack[]
   review              Review[]
+  billing             Billing[]
 }
 
 model AppointmentProposal {
@@ -1146,4 +1147,21 @@ model Review {
   createdAt              DateTime          @default(now()) @db.Timestamptz(3)
   updatedAt              DateTime?         @updatedAt @db.Timestamptz(3)
   deletedAt              DateTime?         @db.Timestamptz(3)
+}
+
+model Billing {
+  id                      BigInt      @id @default(autoincrement())
+  appointmentId           BigInt
+  appointment             Appointment @relation(fields: [appointmentId], references: [id])
+  totalDayCount           Int?
+  subtotal                Float?
+  serviceCharge           Float?
+  serviceChargePercentage Float?
+  total                   Float?
+  paid                    Boolean     @default(false)
+  paymentStatus           String      @default("unpaid")
+  meta                    Json?
+  createdAt               DateTime    @default(now()) @db.Timestamptz(3)
+  updatedAt               DateTime?   @updatedAt @db.Timestamptz(3)
+  deletedAt               DateTime?   @db.Timestamptz(3)
 }
