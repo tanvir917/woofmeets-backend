@@ -1,8 +1,15 @@
 import { Holidays, Prisma } from '@prisma/client';
-import { isAfter, isBefore, isSameDay } from 'date-fns';
-import { toDate, utcToZonedTime } from 'date-fns-tz';
+import {
+  addDays,
+  differenceInDays,
+  isAfter,
+  isBefore,
+  isSameDay,
+} from 'date-fns';
+import { format, toDate, utcToZonedTime } from 'date-fns-tz';
 import { DaysOfWeek } from 'src/global';
 import {
+  convertToZoneSpecificDateTime,
   extractZoneSpecificDateWithFirstHourTime,
   extractZoneSpecificDateWithFixedHourTime,
 } from 'src/global/time/time-coverters';
@@ -49,6 +56,17 @@ export const formatTimeFromMeridien = (date: string) => {
   }${minute}:00`;
 };
 
+export const formatDatesWithTimeZone = (dates: string[], timeZone: string) => {
+  const result: string[] = [];
+  for (let i = 0; i < dates.length; i++) {
+    const currentDate = new Date(dates[i].split('T')[0]);
+    result.push(
+      extractZoneSpecificDateWithFirstHourTime(currentDate, timeZone),
+    );
+  }
+  return result;
+};
+
 export const formatDatesWithStartEndTimings = (
   dates: string[],
   timing: TimingType,
@@ -87,7 +105,7 @@ export const formatDatesWithStartEndTimings = (
 };
 
 export const checkIfAnyDateHoliday = (
-  dates: DateType[],
+  dates: string[],
   holidays: Holidays[],
   timeZone: string,
 ) => {
@@ -101,7 +119,7 @@ export const checkIfAnyDateHoliday = (
         toDate(holidays[j].endDate, { timeZone }),
         timeZone,
       );
-      const currentDate = new Date(dates[i].date);
+      const currentDate = new Date(dates[i]);
       if (
         (isAfter(startDate, currentDate) && isBefore(endDate, currentDate)) ||
         isSameDay(startDate, currentDate) ||
@@ -112,4 +130,30 @@ export const checkIfAnyDateHoliday = (
     }
   }
   return false;
+};
+
+export const generateDatesBetween = (
+  proposalStartDate: string,
+  proposalEndDate: string,
+  timeZone: string,
+) => {
+  const dates: string[] = [];
+  const from = convertToZoneSpecificDateTime(
+    new Date(proposalStartDate),
+    timeZone,
+  );
+  dates.push(format(from, 'yyyy-MM-dd HH:mm:ssxxx', { timeZone }));
+
+  const to = convertToZoneSpecificDateTime(new Date(proposalEndDate), timeZone);
+  const difference = differenceInDays(to, from);
+  for (
+    let i = 1, current = from;
+    i < difference && !isSameDay(addDays(current, 1), from);
+    i++
+  ) {
+    current = addDays(current, 1);
+    dates.push(format(current, 'yyyy-MM-dd HH:mm:ssxxx', { timeZone }));
+  }
+  dates.push(format(to, 'yyyy-MM-dd HH:mm:ssxxx', { timeZone }));
+  return dates;
 };
