@@ -1,6 +1,6 @@
 import { Holidays, Prisma } from '@prisma/client';
 import { addDays, addMinutes, isAfter, isBefore, isSameDay } from 'date-fns';
-import { utcToZonedTime } from 'date-fns-tz';
+import { toDate, utcToZonedTime } from 'date-fns-tz';
 import {
   extractZoneSpecificDateWithFixedHourTime,
   getZoneTimeString,
@@ -124,19 +124,35 @@ export function generateDays(
 export function checkIfHoliday(
   date: Date,
   holidays: Holidays[],
-  timezone: string,
+  timeZone: string,
 ) {
   let isHoliday = false;
   const holidayNames: string[] = [];
+  const newDate = utcToZonedTime(
+    toDate(date, {
+      timeZone,
+    }),
+    timeZone,
+  );
+
   for (let i = 0; i < holidays.length; i++) {
-    if (holidays[i].timeZone !== timezone && holidays[i].timeZone !== '*')
+    if (holidays[i].timeZone !== timeZone && holidays[i].timeZone !== '*')
       continue;
-    const newDate = utcToZonedTime(date, timezone);
-    const holidayFrom = utcToZonedTime(holidays[i].startDate, timezone);
-    const holidayTo = utcToZonedTime(holidays[i].endDate, timezone);
+    const holidayFrom = utcToZonedTime(
+      toDate(holidays[i].startDate, {
+        timeZone,
+      }),
+      timeZone,
+    );
+    const holidayTo = utcToZonedTime(
+      toDate(holidays[i].endDate, {
+        timeZone,
+      }),
+      timeZone,
+    );
 
     const isDaysSame =
-      isSameDay(newDate, holidayFrom) && isSameDay(newDate, holidayTo);
+      isSameDay(newDate, holidayFrom) || isSameDay(newDate, holidayTo);
     if (!isDaysSame) {
       const isAfterHoliday = isAfter(newDate, holidayFrom);
       const isBeforeHoliday = isBefore(newDate, holidayTo);
@@ -146,7 +162,7 @@ export function checkIfHoliday(
     }
     if (isHoliday) {
       holidayNames.push(holidays[i].title);
-      break;
+      // break;
     }
   }
   return { isHoliday, holidayNames };

@@ -31,9 +31,8 @@ import {
 } from '../helpers/appointment-enum';
 import {
   checkIfAnyDateHoliday,
-  DateType,
-  formatDatesWithStartEndTimings,
-  TimingType,
+  formatDatesWithTimeZone,
+  generateDatesBetween,
 } from '../helpers/appointment-visits';
 
 @Injectable()
@@ -782,7 +781,9 @@ export class AppointmentProposalService {
         providerServiceId,
         lastStatusChangedBy: AppointmentProposalEnum?.USER,
         status: AppointmentStatusEnum.PROPOSAL,
-        providerTimeZone: provider?.user?.timezone,
+        providerTimeZone: provider?.user?.timezone
+          ? provider?.user?.timezone
+          : 'America/New_York',
         appointmentProposal: {
           create: {
             proposedBy: appointmentProposalEnum.USER,
@@ -1275,7 +1276,11 @@ export class AppointmentProposalService {
             },
           },
         },
-        appointmentProposal: true,
+        appointmentProposal: {
+          orderBy: {
+            createdAt: 'desc',
+          },
+        },
       },
     });
 
@@ -1283,32 +1288,72 @@ export class AppointmentProposalService {
       appointment.appointmentProposal?.[0].proposalOtherDate.map((item) => {
         return (item as { date: string }).date;
       });
-
-    switch (appointment.providerService.serviceType.slug) {
-      case 'doggy-day-care':
-        const timing = {
-          dropOfStartTime:
-            appointment.appointmentProposal?.[0].dropOffStartTime,
-          dropOfEndTime: appointment.appointmentProposal?.[0].dropOffEndTime,
-          pickUpStartTime: appointment.appointmentProposal?.[0].pickUpStartTime,
-          pickUpEndTime: appointment.appointmentProposal?.[0].pickUpEndTime,
-        };
-        return this.calculateDayCarePrice(
-          appointment.providerServiceId,
-          appointment.appointmentProposal?.[0].petsIds,
-          timing,
-          proposalDates,
-          appointment.providerTimeZone,
-        );
-      default:
-        return appointment;
+    const providerService = appointment.providerService.serviceType.slug;
+    const timing = {
+      dropOfStartTime: appointment.appointmentProposal?.[0].dropOffStartTime,
+      dropOfEndTime: appointment.appointmentProposal?.[0].dropOffEndTime,
+      pickUpStartTime: appointment.appointmentProposal?.[0].pickUpStartTime,
+      pickUpEndTime: appointment.appointmentProposal?.[0].pickUpEndTime,
+    };
+    if (providerService === 'doggy-day-care') {
+      return this.calculateDayCarePrice(
+        appointment.providerServiceId,
+        appointment.appointmentProposal?.[0].petsIds,
+        proposalDates,
+        appointment.providerTimeZone,
+      );
+    } else if (
+      providerService === 'house-sitting' ||
+      providerService === 'boarding'
+    ) {
+      return this.calculateBoardingAndHouseSittingPrice(
+        appointment.providerServiceId,
+        appointment.appointmentProposal?.[0].petsIds,
+        appointment.appointmentProposal?.[0].proposalStartDate,
+        appointment.appointmentProposal?.[0].proposalEndDate,
+        appointment.providerTimeZone,
+      );
     }
+    return {};
   }
 
   async calculateDayCarePrice(
     serviceId: bigint,
     petIds: bigint[],
-    timing: TimingType,
+    dates: string[],
+    timeZone: string,
+  ) {
+    const formatedDatesByZone: string[] = formatDatesWithTimeZone(
+      dates,
+      timeZone,
+    );
+    return this.calculateProposalPrice(
+      serviceId,
+      petIds,
+      formatedDatesByZone,
+      timeZone,
+    );
+  }
+
+  async calculateBoardingAndHouseSittingPrice(
+    serviceId: bigint,
+    petIds: bigint[],
+    proposalStartDate: string,
+    proposalEndDate: string,
+    timeZone: string,
+  ) {
+    const dates: string[] = generateDatesBetween(
+      proposalStartDate,
+      proposalEndDate,
+      timeZone,
+    );
+    return this.calculateProposalPrice(serviceId, petIds, dates, timeZone);
+  }
+
+  // calculate price for Day Care, Boarding and House Sitting
+  async calculateProposalPrice(
+    serviceId: bigint,
+    petIds: bigint[],
     dates: string[],
     timeZone: string,
   ) {
@@ -1328,23 +1373,16 @@ export class AppointmentProposalService {
         },
       },
     });
-    const formatedDatesByZone: DateType[] = formatDatesWithStartEndTimings(
-      dates,
-      timing,
-      timeZone,
-    );
+
     const holidays = await this.prismaService.holidays.findMany({});
 
-    const isThereAnyHolidays = checkIfAnyDateHoliday(
-      formatedDatesByZone,
-      holidays,
-      timeZone,
-    );
+    const { isThereAnyHoliday, formattedDatesWithHolidays } =
+      checkIfAnyDateHoliday(dates, holidays, timeZone);
 
     const petsRates = [];
     const numberOfNights = dates.length;
     let subTotal = 0.0;
-    if (isThereAnyHolidays) {
+    if (isThereAnyHoliday) {
       pets.forEach((pet) => {
         petsRates.push({
           id: pet.id,
@@ -1381,7 +1419,10 @@ export class AppointmentProposalService {
           rate = ratesByServiceType['puppy-rate'];
           dogCountForBaseRate++;
         } else if (!isAdditional) {
-          rate = ratesByServiceType['base-rate'];
+          rate =
+            pet?.type === petTypeEnum.DOG
+              ? ratesByServiceType['base-rate']
+              : ratesByServiceType['cat-care'];
           dogCountForBaseRate += pet.type === petTypeEnum.DOG ? 1 : 0;
           catCountForBaseRate += pet.type === petTypeEnum.CAT ? 1 : 0;
         }
@@ -1398,11 +1439,10 @@ export class AppointmentProposalService {
         subTotal += rate.amount * numberOfNights;
       });
     }
-
     const result = {
       petsRates,
       ratesByServiceType,
-      formatedDatesByZone,
+      formatedDatesByZone: formattedDatesWithHolidays,
       subTotal: subTotal.toFixed(2),
       serviceChargeInParcentage: 10,
       total: (subTotal * 1.1).toFixed(2),

@@ -1,8 +1,9 @@
 import { Holidays, Prisma } from '@prisma/client';
-import { isAfter, isBefore, isSameDay } from 'date-fns';
-import { toDate, utcToZonedTime } from 'date-fns-tz';
-import { DaysOfWeek } from 'src/global';
+import { addDays, differenceInDays, isSameDay } from 'date-fns';
+import { format } from 'date-fns-tz';
+import { checkIfHoliday, DaysOfWeek, extractDay } from 'src/global';
 import {
+  convertToZoneSpecificDateTime,
   extractZoneSpecificDateWithFirstHourTime,
   extractZoneSpecificDateWithFixedHourTime,
 } from 'src/global/time/time-coverters';
@@ -49,6 +50,17 @@ export const formatTimeFromMeridien = (date: string) => {
   }${minute}:00`;
 };
 
+export const formatDatesWithTimeZone = (dates: string[], timeZone: string) => {
+  const result: string[] = [];
+  for (let i = 0; i < dates.length; i++) {
+    const currentDate = new Date(dates[i].split('T')[0]);
+    result.push(
+      extractZoneSpecificDateWithFirstHourTime(currentDate, timeZone),
+    );
+  }
+  return result;
+};
+
 export const formatDatesWithStartEndTimings = (
   dates: string[],
   timing: TimingType,
@@ -87,29 +99,73 @@ export const formatDatesWithStartEndTimings = (
 };
 
 export const checkIfAnyDateHoliday = (
-  dates: DateType[],
+  dates: string[],
   holidays: Holidays[],
   timeZone: string,
 ) => {
+  let isThereAnyHoliday = false;
+  const formattedDatesWithHolidays = [];
   for (let i = 0; i < dates.length; i++) {
-    for (let j = 0; j < holidays.length; j++) {
-      const startDate = utcToZonedTime(
-        toDate(holidays[j].startDate, { timeZone }),
-        timeZone,
-      );
-      const endDate = utcToZonedTime(
-        toDate(holidays[j].endDate, { timeZone }),
-        timeZone,
-      );
-      const currentDate = new Date(dates[i].date);
-      if (
-        (isAfter(startDate, currentDate) && isBefore(endDate, currentDate)) ||
-        isSameDay(startDate, currentDate) ||
-        isSameDay(endDate, currentDate)
-      ) {
-        return true;
-      }
-    }
+    const currentDate = new Date(dates[i]);
+    const { isHoliday, holidayNames } = checkIfHoliday(
+      currentDate,
+      holidays,
+      timeZone,
+    );
+
+    const formatedDate = {
+      date: dates[i],
+      isHoliday,
+      holidayNames,
+      day: extractDay(new Date(dates[i]), timeZone),
+    };
+
+    isThereAnyHoliday = isThereAnyHoliday || isHoliday;
+    // for (let j = 0; j < holidays.length; j++) {
+    //   const startDate = utcToZonedTime(
+    //     toDate(holidays[j].startDate, { timeZone }),
+    //     timeZone,
+    //   );
+    //   const endDate = utcToZonedTime(
+    //     toDate(holidays[j].endDate, { timeZone }),
+    //     timeZone,
+    //   );
+    //   if (
+    //     (isAfter(startDate, currentDate) && isBefore(endDate, currentDate)) ||
+    //     isSameDay(startDate, currentDate) ||
+    //     isSameDay(endDate, currentDate)
+    //   ) {
+    //     isThereAnyHoliday = true;
+    //     formatedDate.holidayNames.push(holidays[j].title);
+    //   }
+    // }
+    formattedDatesWithHolidays.push(formatedDate);
   }
-  return false;
+  return { isThereAnyHoliday, formattedDatesWithHolidays };
+};
+
+export const generateDatesBetween = (
+  proposalStartDate: string,
+  proposalEndDate: string,
+  timeZone: string,
+) => {
+  const dates: string[] = [];
+  const from = convertToZoneSpecificDateTime(
+    new Date(proposalStartDate),
+    timeZone,
+  );
+  dates.push(format(from, 'yyyy-MM-dd HH:mm:ssxxx', { timeZone }));
+
+  const to = convertToZoneSpecificDateTime(new Date(proposalEndDate), timeZone);
+  const difference = differenceInDays(to, from);
+  for (
+    let i = 1, current = from;
+    i < difference && !isSameDay(addDays(current, 1), from);
+    i++
+  ) {
+    current = addDays(current, 1);
+    dates.push(format(current, 'yyyy-MM-dd HH:mm:ssxxx', { timeZone }));
+  }
+  dates.push(format(to, 'yyyy-MM-dd HH:mm:ssxxx', { timeZone }));
+  return dates;
 };
