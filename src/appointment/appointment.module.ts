@@ -7,6 +7,7 @@ import { ProviderServicesModule } from 'src/provider-services/provider-services.
 import { SecretModule } from 'src/secret/secret.module';
 import { ServiceRatesModule } from 'src/service-rates/service-rates.module';
 import { AppointmentController } from './appointment.controller';
+import { AppointmentPaymentService } from './services/appointment-payment.service';
 import { AppointmentProposalService } from './services/appointment-proposal.service';
 import { AppointmentRecurringService } from './services/appointment-recurring.service';
 
@@ -20,7 +21,11 @@ import { AppointmentRecurringService } from './services/appointment-recurring.se
     FileModule,
     ServiceRatesModule,
   ],
-  providers: [AppointmentProposalService, AppointmentRecurringService],
+  providers: [
+    AppointmentProposalService,
+    AppointmentRecurringService,
+    AppointmentPaymentService,
+  ],
   controllers: [AppointmentController],
 })
 export class AppointmentModule {}

@@ -125,6 +125,7 @@ enum appointmentStatusEnum {
   PROPOSAL
   REJECTED
   CANCELLED
+  PAID
 }
 
 enum appointmentLengthTypeEnum {
@@ -154,48 +155,49 @@ enum adminRoleEnum {
 }
 
 model User {
-  id                        BigInt                     @id @default(autoincrement())
-  opk                       String                     @unique
-  email                     String                     @unique
-  emailVerified             Boolean?                   @default(true)
-  firstName                 String
-  lastName                  String
-  password                  String?
-  zipcode                   String?
-  image                     Json?
-  loginProvider             loginProvider
-  timezone                  String?
-  facebook                  String?
-  google                    Boolean?
-  meta                      Json?
-  contact                   UserContact?
-  emergencyContact          UserEmergencyContact?
-  createdAt                 DateTime                   @default(now()) @db.Timestamptz(3)
-  updatedAt                 DateTime?                  @updatedAt @db.Timestamptz(3)
-  deletedAt                 DateTime?                  @db.Timestamptz(3)
-  provider                  Provider?
-  basicInfo                 BasicInfo?
-  userEmergencyContactId    Int?
-  Otp                       Otp[]
-  Gallery                   Gallery[]
-  pet                       Pet[]
-  userStripeCustomerAccount UserStripeCustomerAccount?
-  userStripeCard            UserStripeCard[]
-  userSubscriptions         UserSubscriptions[]
-  userSubscriptionInvoices  UserSubscriptionInvoices[]
-  Unavailability            Unavailability[]
-  AvailableDate             AvailableDate[]
-  userBasicVerification     UserBasicVerification?
-  miscellaneousPayments     MiscellaneousPayments[]
-  appointment               Appointment[]
-  admin                     Admin?
-  userStripeConnectAccount  UserStripeConnectAccount?
-  coupons                   Coupons[]
-  couponUsers               CouponUsers[]
-  couponTrack               CouponTrack[]
-  review                    Review[]
-  reviewedByUser            Review[]                   @relation("reviewedBy")
-  reviewedForUser           Review[]                   @relation("reviewedFor")
+  id                         BigInt                       @id @default(autoincrement())
+  opk                        String                       @unique
+  email                      String                       @unique
+  emailVerified              Boolean?                     @default(true)
+  firstName                  String
+  lastName                   String
+  password                   String?
+  zipcode                    String?
+  image                      Json?
+  loginProvider              loginProvider
+  timezone                   String?
+  facebook                   String?
+  google                     Boolean?
+  meta                       Json?
+  contact                    UserContact?
+  emergencyContact           UserEmergencyContact?
+  createdAt                  DateTime                     @default(now()) @db.Timestamptz(3)
+  updatedAt                  DateTime?                    @updatedAt @db.Timestamptz(3)
+  deletedAt                  DateTime?                    @db.Timestamptz(3)
+  provider                   Provider?
+  basicInfo                  BasicInfo?
+  userEmergencyContactId     Int?
+  Otp                        Otp[]
+  Gallery                    Gallery[]
+  pet                        Pet[]
+  userStripeCustomerAccount  UserStripeCustomerAccount?
+  userStripeCard             UserStripeCard[]
+  userSubscriptions          UserSubscriptions[]
+  userSubscriptionInvoices   UserSubscriptionInvoices[]
+  Unavailability             Unavailability[]
+  AvailableDate              AvailableDate[]
+  userBasicVerification      UserBasicVerification?
+  miscellaneousPayments      MiscellaneousPayments[]
+  appointment                Appointment[]
+  admin                      Admin?
+  userStripeConnectAccount   UserStripeConnectAccount?
+  coupons                    Coupons[]
+  couponUsers                CouponUsers[]
+  couponTrack                CouponTrack[]
+  review                     Review[]
+  reviewedByUser             Review[]                     @relation("reviewedBy")
+  reviewedForUser            Review[]                     @relation("reviewedFor")
+  appointmentBillingPayments AppointmentBillingPayments[]
 }
 
 model UserContact {
@@ -263,37 +265,38 @@ model ServiceType {
 }
 
 model Provider {
-  id                      BigInt                   @id @default(autoincrement())
-  userId                  BigInt                   @unique
-  user                    User                     @relation(fields: [userId], references: [id])
-  slug                    String                   @unique
-  isApproved              Boolean                  @default(false)
-  havePets                havePetsEnum             @default(NOT_SELECTED)
-  subscriptionType        subscriptionTypeEnum     @default(NONE)
-  quizPassed              Boolean                  @default(false)
-  photoSubmitted          Boolean                  @default(false)
-  backGroundCheck         backGroundCheckEnum      @default(NONE)
-  latitude                Float?
-  longitude               Float?
-  homeType                homeTypeEnum             @default(NOT_SELECTED)
-  yardType                yardTypeEnum             @default(NOT_SELECTED)
-  cancellationPolicyId    Int?
-  cancellationPolicy      CancellationPolicy?      @relation(fields: [cancellationPolicyId], references: [id])
-  profileSubmitted        Boolean                  @default(false)
-  meta                    Json?
-  createdAt               DateTime                 @default(now()) @db.Timestamptz(3)
-  updatedAt               DateTime?                @updatedAt @db.Timestamptz(3)
-  deletedAt               DateTime?                @db.Timestamptz(3)
-  providerServices        ProviderServices[]
-  providerDetails         ProviderDetails?
-  ServicePetPreference    ServicePetPreference?
-  HomeAttributes          HomeAttributes[]
-  providerSkills          ProviderSkills[]
-  providerCheckrCandidate ProviderCheckrCandidate?
-  zoomInfo                ZoomInfo?
-  appointment             Appointment[]
-  backgroundCheck         BackgroundCheck[]
-  review                  Review[]
+  id                             BigInt                           @id @default(autoincrement())
+  userId                         BigInt                           @unique
+  user                           User                             @relation(fields: [userId], references: [id])
+  slug                           String                           @unique
+  isApproved                     Boolean                          @default(false)
+  havePets                       havePetsEnum                     @default(NOT_SELECTED)
+  subscriptionType               subscriptionTypeEnum             @default(NONE)
+  quizPassed                     Boolean                          @default(false)
+  photoSubmitted                 Boolean                          @default(false)
+  backGroundCheck                backGroundCheckEnum              @default(NONE)
+  latitude                       Float?
+  longitude                      Float?
+  homeType                       homeTypeEnum                     @default(NOT_SELECTED)
+  yardType                       yardTypeEnum                     @default(NOT_SELECTED)
+  cancellationPolicyId           Int?
+  cancellationPolicy             CancellationPolicy?              @relation(fields: [cancellationPolicyId], references: [id])
+  profileSubmitted               Boolean                          @default(false)
+  meta                           Json?
+  createdAt                      DateTime                         @default(now()) @db.Timestamptz(3)
+  updatedAt                      DateTime?                        @updatedAt @db.Timestamptz(3)
+  deletedAt                      DateTime?                        @db.Timestamptz(3)
+  providerServices               ProviderServices[]
+  providerDetails                ProviderDetails?
+  ServicePetPreference           ServicePetPreference?
+  HomeAttributes                 HomeAttributes[]
+  providerSkills                 ProviderSkills[]
+  providerCheckrCandidate        ProviderCheckrCandidate?
+  zoomInfo                       ZoomInfo?
+  appointment                    Appointment[]
+  backgroundCheck                BackgroundCheck[]
+  review                         Review[]
+  appointmentBillingTransactions AppointmentBillingTransactions[]
 }
 
 model ProviderServices {
@@ -1150,18 +1153,60 @@ model Review {
 }
 
 model Billing {
-  id                      BigInt      @id @default(autoincrement())
-  appointmentId           BigInt
-  appointment             Appointment @relation(fields: [appointmentId], references: [id])
-  totalDayCount           Int?
-  subtotal                Float?
-  serviceCharge           Float?
-  serviceChargePercentage Float?
-  total                   Float?
-  paid                    Boolean     @default(false)
-  paymentStatus           String      @default("unpaid")
-  meta                    Json?
-  createdAt               DateTime    @default(now()) @db.Timestamptz(3)
-  updatedAt               DateTime?   @updatedAt @db.Timestamptz(3)
-  deletedAt               DateTime?   @db.Timestamptz(3)
+  id                             BigInt                           @id @default(autoincrement())
+  appointmentId                  BigInt
+  appointment                    Appointment                      @relation(fields: [appointmentId], references: [id])
+  totalDayCount                  Int?
+  subtotal                       Float?
+  serviceCharge                  Float?
+  serviceChargePercentage        Float?
+  total                          Float?
+  paid                           Boolean                          @default(false)
+  paymentStatus                  String                           @default("unpaid")
+  meta                           Json?
+  createdAt                      DateTime                         @default(now()) @db.Timestamptz(3)
+  updatedAt                      DateTime?                        @updatedAt @db.Timestamptz(3)
+  deletedAt                      DateTime?                        @db.Timestamptz(3)
+  appointmentBillingPayments     AppointmentBillingPayments[]
+  appointmentBillingTransactions AppointmentBillingTransactions[]
+}
+
+model AppointmentBillingPayments {
+  id           BigInt    @id @default(autoincrement())
+  billingId    BigInt
+  billing      Billing   @relation(fields: [billingId], references: [id])
+  paidByUserId BigInt
+  paidByUser   User      @relation(fields: [paidByUserId], references: [id])
+  piId         String    @unique
+  chargeId     String?
+  amount       Float?
+  status       String?
+  billingDate  DateTime? @db.Timestamptz(3)
+  payerEmail   String?
+  currency     String?
+  src          Json?
+  meta         Json?
+  createdAt    DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt    DateTime? @updatedAt @db.Timestamptz(3)
+  deletedAt    DateTime? @db.Timestamptz(3)
+}
+
+model AppointmentBillingTransactions {
+  id                 BigInt    @id @default(autoincrement())
+  billingId          BigInt
+  billing            Billing   @relation(fields: [billingId], references: [id])
+  providerId         BigInt
+  provider           Provider  @relation(fields: [providerId], references: [id])
+  paidAmount         Float
+  currency           String?   @default("usd")
+  providerSubsStatus String?
+  providerPercentage Float?
+  providerAmount     Float?
+  releaseDate        DateTime? @db.Timestamptz(3)
+  releaseStatus      Boolean   @default(false)
+  precessingId       String?
+  meta               Json?
+  createdAt          DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt          DateTime? @updatedAt @db.Timestamptz(3)
+  deletedAt          DateTime? @db.Timestamptz(3)
 }
