@@ -112,6 +112,7 @@ export class AvailabilityGetServcie {
             },
           },
         },
+        serviceType: true,
       },
     });
 
@@ -144,6 +145,7 @@ export class AvailabilityGetServcie {
                 },
               },
             },
+            serviceType: true,
           },
         },
       },
