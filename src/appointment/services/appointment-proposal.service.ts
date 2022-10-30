@@ -471,6 +471,7 @@ export class AppointmentProposalService {
             serviceType: true,
           },
         },
+        billing: true,
         user: {
           select: {
             id: true,
@@ -1077,18 +1078,58 @@ export class AppointmentProposalService {
       'Proposal giver can not accept own proposal.',
     );
 
-    const updatedAppointment = await this.prismaService.appointment.update({
-      where: {
-        id: appointment?.id,
-      },
-      data: {
-        status: 'ACCEPTED',
-        lastStatusChangedBy:
-          appointment?.appointmentProposal[0]?.proposedBy === 'USER'
-            ? appointmentProposalEnum.PROVIDER
-            : appointmentProposalEnum.USER,
-      },
-    });
+    // const updatedAppointment = await this.prismaService.appointment.update({
+    //   where: {
+    //     id: appointment?.id,
+    //   },
+    //   data: {
+    //     status: 'ACCEPTED',
+    //     lastStatusChangedBy:
+    //       appointment?.appointmentProposal[0]?.proposedBy === 'USER'
+    //         ? appointmentProposalEnum.PROVIDER
+    //         : appointmentProposalEnum.USER,
+    //   },
+    // });
+
+    /* 
+      Billing Table Generation
+      Appointment Dates Generation
+    */
+    const priceCalculation = await this.getProposalPrice(appointment?.opk);
+
+    const [billing, updatedAppointment] = await this.prismaService.$transaction(
+      [
+        this.prismaService.billing.create({
+          data: {
+            appointmentId: appointment?.id,
+            totalDayCount: priceCalculation?.formatedDatesByZone?.length,
+            subtotal: Number(priceCalculation?.subTotal),
+            serviceCharge: Number(
+              (
+                (Number(priceCalculation?.subTotal) *
+                  priceCalculation?.serviceChargeInParcentage) /
+                100
+              ).toFixed(2),
+            ),
+            serviceChargePercentage:
+              priceCalculation?.serviceChargeInParcentage,
+            total: Number(priceCalculation?.total),
+          },
+        }),
+        this.prismaService.appointment.update({
+          where: {
+            id: appointment?.id,
+          },
+          data: {
+            status: 'ACCEPTED',
+            lastStatusChangedBy:
+              appointment?.appointmentProposal[0]?.proposedBy === 'USER'
+                ? appointmentProposalEnum.PROVIDER
+                : appointmentProposalEnum.USER,
+          },
+        }),
+      ],
+    );
 
     return {
       message: 'Appointment accepted successfully.',
@@ -1314,7 +1355,14 @@ export class AppointmentProposalService {
         appointment.providerTimeZone,
       );
     }
-    return {};
+    return {
+      petsRates: null,
+      ratesByServiceType: null,
+      formatedDatesByZone: null,
+      subTotal: null,
+      serviceChargeInParcentage: null,
+      total: null,
+    };
   }
 
   async calculateDayCarePrice(
