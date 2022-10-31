@@ -7,6 +7,8 @@ import {
 } from '@prisma/client';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime';
 import axios from 'axios';
+import { differenceInDays } from 'date-fns';
+import { toDate, utcToZonedTime } from 'date-fns-tz';
 import { PinoLogger } from 'nestjs-pino';
 import { CommonService } from 'src/common/common.service';
 import { SuccessfulUploadResponse } from 'src/file/dto/upload-flie.dto';
@@ -244,8 +246,8 @@ export class AppointmentProposalService {
 
     if (status == 'PROPOSAL') {
       statusArray.push(AppointmentStatusEnum.ACCEPTED);
-    } else if (status == 'CANCELLED') {
-      statusArray.push(AppointmentStatusEnum.REJECTED);
+    } else if (status == 'REJECTED') {
+      statusArray.push(AppointmentStatusEnum.CANCELLED);
     }
 
     const appointments = await this.prismaService.appointment.findMany({
@@ -357,8 +359,8 @@ export class AppointmentProposalService {
 
     if (status == 'PROPOSAL') {
       statusArray.push(AppointmentStatusEnum.ACCEPTED);
-    } else if (status == 'CANCELLED') {
-      statusArray.push(AppointmentStatusEnum.REJECTED);
+    } else if (status == 'REJECTED') {
+      statusArray.push(AppointmentStatusEnum.CANCELLED);
     }
 
     const appointments = await this.prismaService.appointment.findMany({
@@ -471,6 +473,7 @@ export class AppointmentProposalService {
             serviceType: true,
           },
         },
+        billing: true,
         user: {
           select: {
             id: true,
@@ -874,15 +877,29 @@ export class AppointmentProposalService {
     );
     await Promise.allSettled(messagePromises);
 
-    const updatedAppointment = await this.prismaService.appointment.update({
-      where: {
-        id: appointment?.id,
-      },
-      data: {
-        lastProposalId: appointment?.appointmentProposal[0]?.id,
-        messageGroupId: messageRoom?.data?._id,
-      },
-    });
+    const priceCalculationDetails = await this.getProposalPrice(
+      appointment?.opk,
+    );
+
+    const [updatedAppointment] = await this.prismaService.$transaction([
+      this.prismaService.appointment.update({
+        where: {
+          id: appointment?.id,
+        },
+        data: {
+          lastProposalId: appointment?.appointmentProposal[0]?.id,
+          messageGroupId: messageRoom?.data?._id,
+        },
+      }),
+      this.prismaService.appointmentProposal.update({
+        where: {
+          id: appointment?.appointmentProposal[0]?.id,
+        },
+        data: {
+          priceCalculationDetails,
+        },
+      }),
+    ]);
 
     // TODO: Price calculation
     // TODO: Unavailability check
@@ -1011,15 +1028,28 @@ export class AppointmentProposalService {
     }
 
     await Promise.allSettled(promises);
+    const priceCalculationDetails = await this.getProposalPrice(
+      appointment?.opk,
+    );
 
-    await this.prismaService.appointment.update({
-      where: {
-        id: appointment?.id,
-      },
-      data: {
-        lastProposalId: proposal?.id,
-      },
-    });
+    await this.prismaService.$transaction([
+      this.prismaService.appointment.update({
+        where: {
+          id: appointment?.id,
+        },
+        data: {
+          lastProposalId: proposal?.id,
+        },
+      }),
+      this.prismaService.appointmentProposal.update({
+        where: {
+          id: proposal?.id,
+        },
+        data: {
+          priceCalculationDetails,
+        },
+      }),
+    ]);
 
     return {
       message: 'Appointment proposal updated successfully',
@@ -1081,58 +1111,41 @@ export class AppointmentProposalService {
       Billing Table Generation
       Appointment Dates Generation
     */
-    // const priceCalculation = await this.getProposalPrice(appointment?.opk);
-    // "subTotal": "189.00",
-    // "serviceChargeInParcentage": 10,
-    // "total": "207.90"
-    // const billing = await this.prismaService.billing.create({
-    //   data: {
-    //     appointmentId: appointment?.id,
-    //     totalDayCount: priceCalculation?.formattedDates?.length,
-    //     subTotal: priceCalculation?.subTotal,
-    //     serviceCharge: ( priceCalculation?.subTotal * priceCalculation?.serviceChargeInParcentage / 100).toFixed(2) ,
-    //     serviceChargeParcentage: priceCalculation?.serviceChargeInParcentage,
-    //     total: priceCalculation?.total,
-    //     paid: false,
-    //     paymentStatus: UNPAID,
-    //   }
-    // })
+    const priceCalculation = await this.getProposalPrice(appointment?.opk);
 
-    // let promises[];
-
-    // for(let i = 0; i < priceCalculation?.formattedDates?.length; i++){
-    //   promises.push(await this.prismaService.appointmentDates.create({
-    //     data: {
-    //       date: priceCalculation?.formattedDates?.date,                   
-    // appointmentId: appointment?.id,                    
-    // appointmentProposalId: appointment?.appointmentProposal[0]?.id,  
-    // day:   priceCalculation?.formattedDates?.day,                 
-    // isHoliday: priceCalculation?.formattedDates?.isHoliday,
-    // holidayNames: priceCalculation?.formattedDates?.holidayNames,
-    // visitStartTimeString   String
-    // visitStartInDateTime   DateTime            @db.Timestamptz(3)
-    // visitEndTimeString     String
-    // visitEndTimeInDateTime DateTime            @db.Timestamptz(3)
-    // durationInMinutes: appointment?.appointmentProposal[0]?.length,
-    // billingId: biiling?.id
-    //     }
-    //   }));
-    // }
-
-    await Promise.allSettled(promises);
-
-    const updatedAppointment = await this.prismaService.appointment.update({
-      where: {
-        id: appointment?.id,
-      },
-      data: {
-        status: 'ACCEPTED',
-        lastStatusChangedBy:
-          appointment?.appointmentProposal[0]?.proposedBy === 'USER'
-            ? appointmentProposalEnum.PROVIDER
-            : appointmentProposalEnum.USER,
-      },
-    });
+    const [billing, updatedAppointment] = await this.prismaService.$transaction(
+      [
+        this.prismaService.billing.create({
+          data: {
+            appointmentId: appointment?.id,
+            totalDayCount: priceCalculation?.formatedDatesByZone?.length,
+            subtotal: Number(priceCalculation?.subTotal),
+            serviceCharge: Number(
+              (
+                (Number(priceCalculation?.subTotal) *
+                  priceCalculation?.serviceChargeInParcentage) /
+                100
+              ).toFixed(2),
+            ),
+            serviceChargePercentage:
+              priceCalculation?.serviceChargeInParcentage,
+            total: Number(priceCalculation?.total),
+          },
+        }),
+        this.prismaService.appointment.update({
+          where: {
+            id: appointment?.id,
+          },
+          data: {
+            status: 'ACCEPTED',
+            lastStatusChangedBy:
+              appointment?.appointmentProposal[0]?.proposedBy === 'USER'
+                ? appointmentProposalEnum.PROVIDER
+                : appointmentProposalEnum.USER,
+          },
+        }),
+      ],
+    );
 
     return {
       message: 'Appointment accepted successfully.',
@@ -1167,6 +1180,14 @@ export class AppointmentProposalService {
           opk,
           deletedAt: null,
         },
+        include: {
+          billing: true,
+          provider: {
+            select: {
+              cancellationPolicy: true,
+            },
+          },
+        },
       }),
     ]);
 
@@ -1190,6 +1211,88 @@ export class AppointmentProposalService {
 
     const { cancelReason } = cancelAppointmentDto;
 
+    console.log({
+      policy: appointment?.provider?.cancellationPolicy,
+      billing: appointment?.billing,
+    });
+
+    const priceCalculationDetails = await this.getProposalPrice(
+      appointment?.opk,
+    );
+
+    const serverProviderZoneTime = utcToZonedTime(
+      toDate(new Date(), {
+        timeZone: appointment?.providerTimeZone,
+      }),
+      appointment?.providerTimeZone,
+    );
+
+    const diffDays = differenceInDays(
+      new Date(priceCalculationDetails?.formatedDatesByZone[0]?.date),
+      serverProviderZoneTime,
+    );
+
+    let fullRefund = true;
+    let cancellationPolicyId;
+    let userRefundAmount = 0;
+    let providerRemainingAppointmentVisits;
+
+    if (lastStatusChangedBy === 'USER') {
+      if (appointment?.provider?.cancellationPolicy?.slug == 'seven_day') {
+        cancellationPolicyId = appointment?.provider?.cancellationPolicy?.id;
+        fullRefund = diffDays >= 7 ? true : false;
+      } else if (
+        appointment?.provider?.cancellationPolicy?.slug == 'three_day'
+      ) {
+        cancellationPolicyId = appointment?.provider?.cancellationPolicy?.id;
+        fullRefund = diffDays >= 3 ? true : false;
+      } else if (appointment?.provider?.cancellationPolicy?.slug == 'one_day') {
+        cancellationPolicyId = appointment?.provider?.cancellationPolicy?.id;
+        fullRefund = diffDays >= 1 ? true : false;
+      } else if (
+        appointment?.provider?.cancellationPolicy?.slug == 'same_day'
+      ) {
+        cancellationPolicyId = appointment?.provider?.cancellationPolicy?.id;
+        fullRefund = diffDays >= 0 ? true : false;
+      }
+
+      userRefundAmount = fullRefund
+        ? appointment?.billing[0]?.total
+        : Number(
+            (
+              appointment?.billing[0]?.total *
+              this.secretService.getAppointmentCreds().refundPercentage
+            ).toFixed(2),
+          );
+    } else {
+      let totalDayCountDone = 0;
+
+      for (
+        let i = 0;
+        i <= priceCalculationDetails?.formatedDatesByZone?.length;
+        i++
+      ) {
+        if (
+          serverProviderZoneTime >
+          new Date(priceCalculationDetails?.formatedDatesByZone[i]?.date)
+        ) {
+          break;
+        }
+        totalDayCountDone++;
+      }
+
+      providerRemainingAppointmentVisits =
+        appointment?.billing[0]?.totalDayCount - totalDayCountDone;
+
+      userRefundAmount = Number(
+        (
+          providerRemainingAppointmentVisits *
+          (appointment?.billing[0]?.total /
+            appointment?.billing[0]?.totalDayCount)
+        ).toFixed(2),
+      );
+    }
+
     const updatedAppointment = await this.prismaService.appointment.update({
       where: {
         id: appointment?.id,
@@ -1198,6 +1301,18 @@ export class AppointmentProposalService {
         status: 'CANCELLED',
         lastStatusChangedBy,
         cancelReason,
+        cancelAppointment: {
+          create: {
+            cancellationPolicyId,
+            cancelledBy: lastStatusChangedBy,
+            paidTo: 'USER',
+            dayRemainingBeforeAppointment: diffDays,
+            userRefundAmount,
+            userRefundPercentage:
+              this.secretService.getAppointmentCreds().refundPercentage,
+            providerRemainingAppointmentVisits: 1,
+          },
+        },
       },
     });
 
@@ -1230,8 +1345,9 @@ export class AppointmentProposalService {
       throwNotFoundErrorCheck(!user, 'User not found.');
       throwNotFoundErrorCheck(!appointment, 'Appointment not found.');
       throwBadRequestErrorCheck(
-        appointment.status !== 'PROPOSAL',
-        'Only appointment proposal can be rejected.',
+        appointment?.status !== 'PROPOSAL' &&
+          appointment?.status !== 'ACCEPTED',
+        'Apointment is not in rejected state',
       );
 
       let lastStatusChangedBy: appointmentProposalEnum;
@@ -1255,7 +1371,7 @@ export class AppointmentProposalService {
         },
       });
       return {
-        message: 'Appointment proposal rejected successfully',
+        message: 'Appointment rejected successfully',
         data: { result },
       };
     } catch (error) {
@@ -1332,25 +1448,41 @@ export class AppointmentProposalService {
       appointment.appointmentProposal?.[0].proposalOtherDate.map((item) => {
         return (item as { date: string }).date;
       });
-
-    switch (appointment.providerService.serviceType.slug) {
-      case 'doggy-day-care':
-        // const timing = {
-        //   dropOfStartTime:
-        //     appointment.appointmentProposal?.[0].dropOffStartTime,
-        //   dropOfEndTime: appointment.appointmentProposal?.[0].dropOffEndTime,
-        //   pickUpStartTime: appointment.appointmentProposal?.[0].pickUpStartTime,
-        //   pickUpEndTime: appointment.appointmentProposal?.[0].pickUpEndTime,
-        // };
-        return this.calculateDayCarePrice(
-          appointment.providerServiceId,
-          appointment.appointmentProposal?.[0].petsIds,
-          proposalDates,
-          appointment.providerTimeZone,
-        );
-      default:
-        return appointment;
+    const providerService = appointment.providerService.serviceType.slug;
+    const timing = {
+      dropOfStartTime: appointment.appointmentProposal?.[0].dropOffStartTime,
+      dropOfEndTime: appointment.appointmentProposal?.[0].dropOffEndTime,
+      pickUpStartTime: appointment.appointmentProposal?.[0].pickUpStartTime,
+      pickUpEndTime: appointment.appointmentProposal?.[0].pickUpEndTime,
+    };
+    if (providerService === 'doggy-day-care') {
+      return this.calculateDayCarePrice(
+        appointment.providerServiceId,
+        appointment.appointmentProposal?.[0].petsIds,
+        proposalDates,
+        appointment.providerTimeZone,
+      );
+    } else if (
+      providerService === 'house-sitting' ||
+      providerService === 'boarding'
+    ) {
+      return this.calculateBoardingAndHouseSittingPrice(
+        appointment.providerServiceId,
+        appointment.appointmentProposal?.[0].petsIds,
+        appointment.appointmentProposal?.[0].proposalStartDate,
+        appointment.appointmentProposal?.[0].proposalEndDate,
+        appointment.providerTimeZone,
+      );
     }
+
+    return {
+      petsRates: null,
+      ratesByServiceType: null,
+      formatedDatesByZone: null,
+      subTotal: null,
+      serviceChargeInParcentage: null,
+      total: null,
+    };
   }
 
   async calculateDayCarePrice(
@@ -1412,12 +1544,13 @@ export class AppointmentProposalService {
 
     const holidays = await this.prismaService.holidays.findMany({});
 
-    const isThereAnyHolidays = checkIfAnyDateHoliday(dates, holidays, timeZone);
+    const { isThereAnyHoliday, formattedDatesWithHolidays } =
+      checkIfAnyDateHoliday(dates, holidays, timeZone);
 
     const petsRates = [];
     const numberOfNights = dates.length;
     let subTotal = 0.0;
-    if (isThereAnyHolidays) {
+    if (isThereAnyHoliday) {
       pets.forEach((pet) => {
         petsRates.push({
           id: pet.id,
@@ -1458,7 +1591,6 @@ export class AppointmentProposalService {
             pet?.type === petTypeEnum.DOG
               ? ratesByServiceType['base-rate']
               : ratesByServiceType['cat-care'];
-
           dogCountForBaseRate += pet.type === petTypeEnum.DOG ? 1 : 0;
           catCountForBaseRate += pet.type === petTypeEnum.CAT ? 1 : 0;
         }
@@ -1475,11 +1607,10 @@ export class AppointmentProposalService {
         subTotal += rate.amount * numberOfNights;
       });
     }
-
     const result = {
       petsRates,
       ratesByServiceType,
-      formatedDatesByZone: dates,
+      formatedDatesByZone: formattedDatesWithHolidays,
       subTotal: subTotal.toFixed(2),
       serviceChargeInParcentage: 10,
       total: (subTotal * 1.1).toFixed(2),

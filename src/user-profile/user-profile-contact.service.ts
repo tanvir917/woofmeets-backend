@@ -13,6 +13,7 @@ import {
   CreateEmergencyContactDto,
   CreateUserContactDto,
 } from './dto/create-user-contact.dto';
+import { UpdateProfileDTo } from './dto/update-profile.dto';
 import { UpdateTimezoneDTo } from './dto/update-timezone.dto';
 @Injectable()
 export class UserProfileContactService {
@@ -55,6 +56,57 @@ export class UserProfileContactService {
     return {
       message: 'User timezone updated successfully.',
       data: { ...others },
+    };
+  }
+
+  async updateUserProfile(userId: bigint, updateProfileDTo: UpdateProfileDTo) {
+    const user = await this.prismaService.user.findUnique({
+      where: {
+        id: userId,
+      },
+      include: {
+        basicInfo: true,
+      },
+    });
+
+    throwNotFoundErrorCheck(!user, 'User not found.');
+
+    const { firstName, lastName, timezone, zipcode, latitude, longitude } =
+      updateProfileDTo;
+
+    const updateUser = await this.prismaService.user.update({
+      where: {
+        id: userId,
+      },
+      data: {
+        firstName,
+        lastName,
+        timezone,
+        zipcode,
+      },
+    });
+
+    let updateBasicInfo;
+    if (user?.basicInfo) {
+      updateBasicInfo = await this.prismaService.basicInfo.update({
+        where: {
+          id: user?.basicInfo?.id,
+        },
+        data: {
+          zipCode: zipcode,
+          latitude,
+          longitude,
+        },
+      });
+    }
+
+    throwBadRequestErrorCheck(!updateUser, 'User provfile can not update now.');
+
+    const { password: ignoredPassword, ...others } = updateUser;
+
+    return {
+      message: 'User profile updated successfully.',
+      data: { ...others, updateBasicInfo },
     };
   }
 

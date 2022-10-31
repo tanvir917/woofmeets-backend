@@ -1,13 +1,7 @@
 import { Holidays, Prisma } from '@prisma/client';
-import {
-  addDays,
-  differenceInDays,
-  isAfter,
-  isBefore,
-  isSameDay,
-} from 'date-fns';
-import { format, toDate, utcToZonedTime } from 'date-fns-tz';
-import { DaysOfWeek } from 'src/global';
+import { addDays, differenceInDays, isSameDay } from 'date-fns';
+import { format } from 'date-fns-tz';
+import { checkIfHoliday, DaysOfWeek, extractDay } from 'src/global';
 import {
   convertToZoneSpecificDateTime,
   extractZoneSpecificDateWithFirstHourTime,
@@ -109,27 +103,45 @@ export const checkIfAnyDateHoliday = (
   holidays: Holidays[],
   timeZone: string,
 ) => {
+  let isThereAnyHoliday = false;
+  const formattedDatesWithHolidays = [];
   for (let i = 0; i < dates.length; i++) {
-    for (let j = 0; j < holidays.length; j++) {
-      const startDate = utcToZonedTime(
-        toDate(holidays[j].startDate, { timeZone }),
-        timeZone,
-      );
-      const endDate = utcToZonedTime(
-        toDate(holidays[j].endDate, { timeZone }),
-        timeZone,
-      );
-      const currentDate = new Date(dates[i]);
-      if (
-        (isAfter(startDate, currentDate) && isBefore(endDate, currentDate)) ||
-        isSameDay(startDate, currentDate) ||
-        isSameDay(endDate, currentDate)
-      ) {
-        return true;
-      }
-    }
+    const currentDate = new Date(dates[i]);
+    const { isHoliday, holidayNames } = checkIfHoliday(
+      currentDate,
+      holidays,
+      timeZone,
+    );
+
+    const formatedDate = {
+      date: dates[i],
+      isHoliday,
+      holidayNames,
+      day: extractDay(new Date(dates[i]), timeZone),
+    };
+
+    isThereAnyHoliday = isThereAnyHoliday || isHoliday;
+    // for (let j = 0; j < holidays.length; j++) {
+    //   const startDate = utcToZonedTime(
+    //     toDate(holidays[j].startDate, { timeZone }),
+    //     timeZone,
+    //   );
+    //   const endDate = utcToZonedTime(
+    //     toDate(holidays[j].endDate, { timeZone }),
+    //     timeZone,
+    //   );
+    //   if (
+    //     (isAfter(startDate, currentDate) && isBefore(endDate, currentDate)) ||
+    //     isSameDay(startDate, currentDate) ||
+    //     isSameDay(endDate, currentDate)
+    //   ) {
+    //     isThereAnyHoliday = true;
+    //     formatedDate.holidayNames.push(holidays[j].title);
+    //   }
+    // }
+    formattedDatesWithHolidays.push(formatedDate);
   }
-  return false;
+  return { isThereAnyHoliday, formattedDatesWithHolidays };
 };
 
 export const generateDatesBetween = (

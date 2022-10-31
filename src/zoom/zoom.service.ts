@@ -313,6 +313,7 @@ export class ZoomService {
         provider: {
           select: {
             id: true,
+            zoomInfo: true,
           },
         },
       },
@@ -390,7 +391,8 @@ export class ZoomService {
 
     throwBadRequestErrorCheck(!user?.provider, 'Provider not found.');
     throwBadRequestErrorCheck(
-      !user?.provider?.zoomInfo?.refreshToken,
+      !user?.provider?.zoomInfo?.refreshToken ||
+        user?.provider?.zoomInfo?.refreshToken?.length <= 0,
       'Provider zoom info not found. Need to authorize in zoom app again.',
     );
 

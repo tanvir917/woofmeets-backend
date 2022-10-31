@@ -32,6 +32,7 @@ import {
 } from './dto/create-user-contact.dto';
 import { CheckHavePetDTo } from './dto/have-pets.dto';
 import { ProfileImageUploadBodyDto } from './dto/profile-image-upload-body.dto';
+import { UpdateProfileDTo } from './dto/update-profile.dto';
 import { UpdateProviderDetailsDto } from './dto/update-provider-details.dto';
 import { UpdateTimezoneDTo } from './dto/update-timezone.dto';
 import { UpdateBasicInfoDto } from './dto/update-user-basic-info';
@@ -67,7 +68,7 @@ export class UserProfileController {
   }
 
   @ApiOperation({
-    summary: 'Update for updating user timezone.',
+    summary: 'Updating for user timezone.',
   })
   @ApiBearerAuth('access-token')
   @UseGuards(JwtAuthGuard)
@@ -82,6 +83,28 @@ export class UserProfileController {
     const userId = BigInt(req.user?.id) ?? BigInt(-1);
     return {
       data: await this.userContactService.addTimezone(userId, timezoneDto),
+    };
+  }
+
+  @ApiOperation({
+    summary: 'Updating for user profile.',
+  })
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard)
+  @ApiBody({
+    type: UpdateProfileDTo,
+  })
+  @Put('/update/profile')
+  async updateUserProvile(
+    @Request() req: any,
+    @Body() updateProfileDTo: UpdateProfileDTo,
+  ) {
+    const userId = BigInt(req.user?.id) ?? BigInt(-1);
+    return {
+      data: await this.userContactService.updateUserProfile(
+        userId,
+        updateProfileDTo,
+      ),
     };
   }
 

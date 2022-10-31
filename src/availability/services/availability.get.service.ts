@@ -17,6 +17,7 @@ export class AvailabilityGetServcie {
     opk: string,
     serviceId: bigint,
     query: GetAvailableCalenderDto,
+    isMultiple: boolean = false,
   ) {
     /**
      * take start_date and get range from end of the month or get range from FE
@@ -40,9 +41,90 @@ export class AvailabilityGetServcie {
 
     const initDates = [];
     const filtered = [];
-    const timezoned = [];
-    const unavailableDates = [];
 
+    const { days, tz } = await this.findAvailable(serviceId);
+
+    if (!isMultiple) {
+      throwNotFoundErrorCheck(
+        !days,
+        'Availability not found with specific service id.',
+      );
+
+      throwBadRequestErrorCheck(
+        opk !== days?.service?.provider?.user?.opk,
+        'Service not found with specific identifier!',
+      );
+    }
+
+    for (let day = from; day <= to; day.setDate(day.getDate() + 1)) {
+      initDates.push(
+        new Date(extractZoneSpecificDateWithFirstHourTime(day, tz)),
+      );
+    }
+
+    initDates?.map((date) => {
+      const getDay = DAYS[new Date(date).getDay()];
+      if (days && days[getDay]) {
+        filtered.push(date);
+      }
+    });
+
+    const toDate = initDates[initDates.length - 1];
+
+    const { availability, unavailablilty } =
+      await this.availableAndUnavailableDates(serviceId, startDate, toDate, tz);
+
+    const dates = await this.availableDates(
+      filtered,
+      availability,
+      unavailablilty,
+      tz,
+    );
+
+    return {
+      message: 'Calendar found successfully.',
+      data: {
+        timezone: tz,
+        dates,
+      },
+    };
+  }
+
+  async getAllServiceAvailability(
+    userId: bigint,
+    query: GetAvailableCalenderDto,
+  ) {
+    const services = await this.prismaService.providerServices.findMany({
+      where: {
+        provider: {
+          userId,
+        },
+        deletedAt: null,
+      },
+      include: {
+        provider: {
+          include: {
+            user: {
+              select: {
+                opk: true,
+                id: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    for(let service of services) {
+      const opk = service?.provider?.user?.opk;
+      let { data } = await this.getAvailability(opk, service.id, query, true);
+      service['availability'] = data;
+    }
+
+    return { data: services };
+  }
+
+  async findAvailable(serviceId: bigint) {
     const days = await this.prismaService.availableDay.findFirst({
       where: {
         providerServiceId: serviceId,
@@ -66,33 +148,13 @@ export class AvailabilityGetServcie {
         },
       },
     });
-    // console.log(days);
-    throwNotFoundErrorCheck(
-      !days,
-      'Availability not found with specific service id.',
-    );
 
-    const tz = days.service?.provider?.user?.timezone ?? 'America/New_York';
+    const tz = days?.service?.provider?.user?.timezone ?? 'America/New_York';
 
-    throwBadRequestErrorCheck(
-      opk !== days.service?.provider?.user?.opk,
-      'Service not found with specific identifier!',
-    );
+    return { days, tz };
+  }
 
-    for (let day = from; day <= to; day.setDate(day.getDate() + 1)) {
-      initDates.push(
-        new Date(extractZoneSpecificDateWithFirstHourTime(day, tz)),
-      );
-    }
-
-    initDates.map((date) => {
-      const getDay = DAYS[new Date(date).getDay()];
-      if (days[getDay]) {
-        filtered.push(date);
-      }
-    });
-    const toDate = initDates[initDates.length - 1];
-
+  async availableAndUnavailableDates(serviceId: bigint, startDate, toDate, tz) {
     const availability = await this.prismaService.availableDate.findMany({
       where: {
         serviceId,
@@ -107,11 +169,11 @@ export class AvailabilityGetServcie {
         },
       },
     });
-    availability.map((a) => {
-      filtered.push(a.date);
-    });
+    // availability.map((a) => {
+    //   filtered.push(a.date);
+    // });
 
-    const unavailable = await this.prismaService.unavailability.findMany({
+    const unavailablilty = await this.prismaService.unavailability.findMany({
       where: {
         serviceId,
         deletedAt: null,
@@ -126,9 +188,21 @@ export class AvailabilityGetServcie {
       },
     });
 
-    filtered.map((date) => {
+    return { availability, unavailablilty };
+  }
+
+  async availableDates(prevDate, availability, unavailablilty, tz) {
+    const dates = prevDate;
+    const timezoned = [];
+    const unavailableDates = [];
+
+    availability.map((a) => {
+      dates.push(a.date);
+    });
+
+    dates.map((date) => {
       const availableTime = formatInTimeZone(date, tz, 'yyyy-MM-dd');
-      unavailable.map((un) => {
+      unavailablilty.map((un) => {
         const ud = formatInTimeZone(un.date, tz, 'yyyy-MM-dd');
         if (ud === availableTime) {
           unavailableDates.push(ud);
@@ -137,13 +211,6 @@ export class AvailabilityGetServcie {
       timezoned.push(availableTime);
     });
     const final = timezoned.filter((t) => !unavailableDates.includes(t));
-
-    return {
-      message: 'Calendar found successfully.',
-      data: {
-        timezone: tz,
-        dates: final,
-      },
-    };
+    return final;
   }
 }

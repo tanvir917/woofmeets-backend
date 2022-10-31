@@ -205,6 +205,14 @@ export class EnvironmentVariable {
   APPOINTMENT_INVOICE_NUMBER_LENGTH: number;
 
   @IsNotEmpty()
+  @IsNumber()
+  APPOINTMENT_SERVICE_CHARGE_PERCENTAGE: number;
+
+  @IsNotEmpty()
+  @IsNumber()
+  APPOINTMENT_REFUND_PERCENTAGE: number;
+
+  @IsNotEmpty()
   @IsString()
   STRIPE_ONBOARD_RETURN_URL: string;
 
