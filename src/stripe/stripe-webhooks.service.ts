@@ -389,8 +389,9 @@ export class StripeWebhooksService {
         ((billing?.subtotal * providerPercentage) / 100)?.toFixed(2),
       );
 
-      const releaseDate: Date =
-        date?.formatedDatesByZone?.[date.formatedDatesByZone.length - 1]?.date;
+      const releaseDate: Date = new Date(
+        date?.formatedDatesByZone?.[date.formatedDatesByZone.length - 1]?.date,
+      );
       releaseDate.setDate(releaseDate.getDate() + 3);
 
       const appointmentBillingTransactions =
