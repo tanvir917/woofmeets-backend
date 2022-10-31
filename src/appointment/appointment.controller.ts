@@ -40,7 +40,6 @@ import { AppointmentRecurringService } from './services/appointment-recurring.se
 
 @ApiTags('Appointment')
 @Controller('appointment')
-@UseInterceptors(TransformInterceptor)
 export class AppointmentController {
   constructor(
     private readonly appointmentProposalService: AppointmentProposalService,
