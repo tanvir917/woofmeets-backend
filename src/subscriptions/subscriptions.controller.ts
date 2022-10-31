@@ -32,7 +32,10 @@ import { UpdateMembershipPlanDto } from './dto/update-membership-plan-dto';
 import { MembershipPlanPricesService } from './membership-plan-prices-service';
 import { CreateMembershipPlanPricesDto } from './dto/create-membership-plan-prices.dto';
 import { SubscriptionV2Service } from './subscription-v2.service';
-import { SubscriptionListsQueryParamsDto } from './dto/subscription-list-query-params.dto';
+import {
+  SubscriptionListsForUserQueryParamsDto,
+  SubscriptionListsQueryParamsDto,
+} from './dto/subscription-list-query-params.dto';
 import { CreateSubscriptionQueryDto } from './dto/create-subscription.dto';
 
 @ApiTags('Subscriptions')
@@ -259,6 +262,9 @@ export class SubscriptionsController {
     return await this.subscriptionsService.getUserBasicVerificationInfo(userId);
   }
 
+  /**
+   * admin Route
+   */
   @ApiBearerAuth('access-token')
   @UseGuards(JwtAuthGuard)
   @Get('user-subscription-lists')
@@ -268,5 +274,25 @@ export class SubscriptionsController {
   ) {
     const userId = BigInt(req.user?.id) ?? BigInt(-1);
     return await this.subscriptionV2Service.getSubscriptionLists(userId, query);
+  }
+
+  /**
+   * User Route
+   */
+  @ApiOperation({
+    summary: 'Get user subscription lists with pagination. FOR PROVIDER.',
+  })
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard)
+  @Get('all-subscriptions')
+  async getSubscriptionListsOfUser(
+    @Request() req: any,
+    @Query() query: SubscriptionListsForUserQueryParamsDto,
+  ) {
+    const userId = BigInt(req.user?.id) ?? BigInt(-1);
+    return await this.subscriptionV2Service.getUserSubscriptionLists(
+      userId,
+      query,
+    );
   }
 }

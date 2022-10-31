@@ -13,7 +13,10 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { SecretService } from '../secret/secret.service';
 import { CreateSubscriptionQueryDto } from './dto/create-subscription.dto';
-import { SubscriptionListsQueryParamsDto } from './dto/subscription-list-query-params.dto';
+import {
+  SubscriptionListsForUserQueryParamsDto,
+  SubscriptionListsQueryParamsDto,
+} from './dto/subscription-list-query-params.dto';
 import {
   ProviderBackgourndCheckEnum,
   ProviderSubscriptionTypeEnum,
@@ -1256,6 +1259,138 @@ export class SubscriptionV2Service {
       message: 'Subscription lists.',
       data: subscriptions,
       meta: { total: count.length, currentPage: page, limit },
+    };
+  }
+
+  async getUserSubscriptionLists(
+    userId: bigint,
+    query: SubscriptionListsForUserQueryParamsDto,
+  ) {
+    let { page, limit, sortBy, sortOrder } = query;
+    const orderbyObj = {};
+
+    if (!page || page < 1) page = 1;
+    if (!limit) limit = 20;
+    if (!sortOrder && sortOrder != 'asc' && sortOrder != 'desc')
+      sortOrder = 'desc';
+    if (!sortBy) sortBy = 'createdAt';
+
+    orderbyObj[sortBy] = sortOrder;
+
+    const [count, subscriptions] = await this.prismaService.$transaction([
+      this.prismaService.userSubscriptions.findMany({
+        where: {
+          userId: userId,
+          paymentStatus: 'paid',
+        },
+        select: {
+          id: true,
+          currentPeriodStart: true,
+          currentPeriodEnd: true,
+          currency: true,
+          status: true,
+          paymentStatus: true,
+          membershipPlanPrice: {
+            include: {
+              membershipPlan: true,
+            },
+          },
+          card: {
+            select: {
+              id: true,
+              brand: true,
+              last4: true,
+              expMonth: true,
+              expYear: true,
+            },
+          },
+          userSubscriptionInvoices: {
+            where: {
+              paid: true,
+            },
+            select: {
+              id: true,
+              userId: true,
+              userSubscriptionId: true,
+              customerName: true,
+              total: true,
+              subTotal: true,
+              amountDue: true,
+              amountPaid: true,
+              amountRemaining: true,
+              currency: true,
+              status: true,
+              billingDate: true,
+              meta: true,
+            },
+          },
+        },
+        orderBy: orderbyObj,
+      }),
+      this.prismaService.userSubscriptions.findMany({
+        where: {
+          userId: userId,
+          paymentStatus: 'paid',
+        },
+        select: {
+          id: true,
+          currentPeriodStart: true,
+          currentPeriodEnd: true,
+          currency: true,
+          status: true,
+          paymentStatus: true,
+          membershipPlanPrice: {
+            include: {
+              membershipPlan: true,
+            },
+          },
+          card: {
+            select: {
+              id: true,
+              brand: true,
+              last4: true,
+              expMonth: true,
+              expYear: true,
+            },
+          },
+          userSubscriptionInvoices: {
+            where: {
+              paid: true,
+            },
+            select: {
+              id: true,
+              userId: true,
+              stripeInvoiceId: true,
+              userSubscriptionId: true,
+              customerName: true,
+              total: true,
+              subTotal: true,
+              amountDue: true,
+              amountPaid: true,
+              amountRemaining: true,
+              currency: true,
+              status: true,
+              billingDate: true,
+              meta: true,
+            },
+          },
+        },
+        skip: (page - 1) * limit,
+        take: limit,
+        orderBy: orderbyObj,
+      }),
+    ]);
+
+    throwBadRequestErrorCheck(!subscriptions.length, 'No subscription found.');
+
+    return {
+      message: 'Subscription lists.',
+      data: subscriptions,
+      meta: {
+        total: count.length,
+        currentPage: page,
+        limit,
+      },
     };
   }
 }

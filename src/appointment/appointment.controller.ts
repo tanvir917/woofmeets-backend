@@ -24,6 +24,7 @@ import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 import { FileUploadBody } from 'src/file/dto/file-upload-body.dto';
 import { SuccessfulUploadResponse } from 'src/file/dto/upload-flie.dto';
 import { throwBadRequestErrorCheck } from 'src/global/exceptions/error-logic';
+import { TransformInterceptor } from '../transform.interceptor';
 import {
   GetModifiedBoardingHouseSittingPriceDTO,
   GetModifiedDayCarePriceDTO,
@@ -38,6 +39,7 @@ import { AppointmentRecurringService } from './services/appointment-recurring.se
 
 @ApiTags('Appointment')
 @Controller('appointment')
+@UseInterceptors(TransformInterceptor)
 export class AppointmentController {
   constructor(
     private readonly appointmentProposalService: AppointmentProposalService,
