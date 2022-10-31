@@ -65,6 +65,7 @@ export class UserProfileContactService {
         id: userId,
       },
       include: {
+        provider: true,
         basicInfo: true,
       },
     });
@@ -87,7 +88,7 @@ export class UserProfileContactService {
     });
 
     let updateBasicInfo;
-    if (user?.basicInfo) {
+    if (user?.basicInfo && user?.provider) {
       updateBasicInfo = await this.prismaService.basicInfo.update({
         where: {
           id: user?.basicInfo?.id,

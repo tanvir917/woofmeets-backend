@@ -29,6 +29,7 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { ProviderServicesService } from 'src/provider-services/provider-services.service';
 import { SecretService } from 'src/secret/secret.service';
 import { ServiceRatesService } from 'src/service-rates/service-rates.service';
+import { StripeDispatcherService } from 'src/stripe/stripe.dispatcher.service';
 import { latlongDistanceCalculator } from 'src/utils/tools';
 import { CancelAppointmentDto } from '../dto/cancel-appointment.dto';
 import { CreateAppointmentProposalDto } from '../dto/create-appointment-proposal.dto';
@@ -59,6 +60,7 @@ export class AppointmentProposalService {
     private readonly configService: ConfigService,
     private readonly logger: PinoLogger,
     private readonly serviceRatesService: ServiceRatesService,
+    private readonly stripeService: StripeDispatcherService,
   ) {
     this.logger.setContext(AppointmentProposalService.name);
   }
@@ -1202,7 +1204,36 @@ export class AppointmentProposalService {
           deletedAt: null,
         },
         include: {
-          billing: true,
+          appointmentProposal: {
+            orderBy: {
+              createdAt: 'desc',
+            },
+          },
+          billing: {
+            orderBy: {
+              createdAt: 'desc',
+            },
+            include: {
+              appointmentBillingPayments: {
+                where: {
+                  status: 'succeeded',
+                  deletedAt: null,
+                },
+                orderBy: {
+                  createdAt: 'desc',
+                },
+              },
+              appointmentBillingTransactions: {
+                where: {
+                  releaseStatus: false,
+                  deletedAt: null,
+                },
+                orderBy: {
+                  createdAt: 'desc',
+                },
+              },
+            },
+          },
           provider: {
             select: {
               cancellationPolicy: true,
@@ -1215,8 +1246,8 @@ export class AppointmentProposalService {
     throwNotFoundErrorCheck(!user, 'User not found.');
     throwNotFoundErrorCheck(!appointment, 'Appointment not found.');
     throwBadRequestErrorCheck(
-      appointment.status !== 'ACCEPTED',
-      'Only accepted appointment can be cancelled.',
+      appointment.status !== 'PAID',
+      'Only paid appointment can be cancelled.',
     );
 
     let lastStatusChangedBy: appointmentProposalEnum;
@@ -1255,12 +1286,29 @@ export class AppointmentProposalService {
       serverProviderZoneTime,
     );
 
-    let fullRefund = true;
+    let fullRefund = false;
     let cancellationPolicyId;
     let userRefundAmount = 0;
-    let providerRemainingAppointmentVisits;
 
-    if (lastStatusChangedBy === 'USER') {
+    const appointmentDates = await this.prismaService.appointmentDates.findMany(
+      {
+        where: {
+          date: {
+            gte: serverProviderZoneTime,
+          },
+          appointmentId: appointment?.id,
+          deletedAt: null,
+        },
+      },
+    );
+
+    const providerRemainingAppointmentVisits = appointmentDates?.length;
+
+    const appoinntmentDatesId = appointmentDates.map((item) => {
+      return item?.id;
+    });
+
+    if (lastStatusChangedBy === 'USER' && diffDays >= 0) {
       if (appointment?.provider?.cancellationPolicy?.slug == 'seven_day') {
         cancellationPolicyId = appointment?.provider?.cancellationPolicy?.id;
         fullRefund = diffDays >= 7 ? true : false;
@@ -1280,33 +1328,14 @@ export class AppointmentProposalService {
       }
 
       userRefundAmount = fullRefund
-        ? appointment?.billing[0]?.total
+        ? appointment?.billing[0]?.subtotal
         : Number(
             (
               appointment?.billing[0]?.subtotal *
-              this.secretService.getAppointmentCreds().refundPercentage
+              (this.secretService.getAppointmentCreds().refundPercentage / 100)
             ).toFixed(2),
           );
     } else {
-      let totalDayCountDone = 0;
-
-      for (
-        let i = 0;
-        i <= priceCalculationDetails?.formatedDatesByZone?.length;
-        i++
-      ) {
-        if (
-          serverProviderZoneTime >
-          new Date(priceCalculationDetails?.formatedDatesByZone[i]?.date)
-        ) {
-          break;
-        }
-        totalDayCountDone++;
-      }
-
-      providerRemainingAppointmentVisits =
-        appointment?.billing[0]?.totalDayCount - totalDayCountDone;
-
       userRefundAmount = Number(
         (
           providerRemainingAppointmentVisits *
@@ -1316,36 +1345,132 @@ export class AppointmentProposalService {
       );
     }
 
-    const updatedAppointment = await this.prismaService.appointment.update({
-      where: {
-        id: appointment?.id,
-      },
-      data: {
-        status: 'CANCELLED',
-        lastStatusChangedBy,
-        cancelReason,
-        cancelAppointment: {
-          create: {
-            cancellationPolicyId,
-            cancelledBy: lastStatusChangedBy,
-            paidTo: 'USER',
-            dayRemainingBeforeAppointment: diffDays,
-            userRefundAmount,
-            userRefundPercentage:
-              this.secretService.getAppointmentCreds().refundPercentage,
-            providerRemainingAppointmentVisits,
-          },
-        },
-      },
-      include: {
-        cancelAppointment: true,
+    const refundPay = await this.stripeService.refundDispatcher({
+      amountInDollars: userRefundAmount,
+      chargeId:
+        appointment?.billing?.[0]?.appointmentBillingPayments?.[0]?.chargeId,
+      cancellation_reason: 'requested_by_customer',
+      metadata: {
+        type: 'appointment_refund',
+        userId: user?.id.toString(),
+        appointmentId: appointment?.id.toString(),
       },
     });
 
-    return {
-      message: 'Appointment cancelled successfully.',
-      data: updatedAppointment,
-    };
+    if (refundPay?.success) {
+      const [updatedAppointment] = await this.prismaService.$transaction([
+        this.prismaService.appointment.update({
+          where: {
+            id: appointment?.id,
+          },
+          data: {
+            status: 'CANCELLED',
+            lastStatusChangedBy,
+            cancelReason,
+            cancelAppointment: {
+              create: {
+                cancellationPolicyId,
+                cancelledBy: lastStatusChangedBy,
+                paidTo: 'USER',
+                dayRemainingBeforeAppointment: diffDays,
+                userRefundAmount,
+                refundStatus: 'REFUND',
+                userRefundPercentage:
+                  lastStatusChangedBy === 'USER' && diffDays >= 0
+                    ? fullRefund
+                      ? 100
+                      : this.secretService.getAppointmentCreds()
+                          .refundPercentage
+                    : null,
+                providerRemainingAppointmentVisits,
+                meta: {
+                  stripeResult: Object(refundPay),
+                },
+              },
+            },
+          },
+          include: {
+            cancelAppointment: true,
+          },
+        }),
+        this.prismaService.appointmentDates.updateMany({
+          where: {
+            id: {
+              in: appoinntmentDatesId,
+            },
+          },
+          data: {
+            paymentStatus: 'REFUND',
+          },
+        }),
+      ]);
+
+      if (!fullRefund) {
+        await this.prismaService.appointmentBillingTransactions.update({
+          where: {
+            id: appointment?.billing[0]?.appointmentBillingTransactions[0]?.id,
+          },
+          data: {
+            providerAmount: Number(
+              (
+                appointment?.billing[0]?.appointmentBillingTransactions[0]
+                  ?.providerAmount - userRefundAmount
+              ).toFixed(2),
+            ),
+            meta: Object({
+              type: 'appointment_refund',
+              appointmentId: appointment?.id,
+              cancelledBy: lastStatusChangedBy,
+              date: new Date(),
+            }),
+          },
+        });
+      } else {
+        await this.prismaService.appointmentBillingTransactions.update({
+          where: {
+            id: appointment?.billing[0]?.appointmentBillingTransactions[0]?.id,
+          },
+          data: {
+            deletedAt: new Date(),
+            meta: Object({
+              type: 'appointment_refund',
+              appointmentId: appointment?.id,
+              cancelledBy: lastStatusChangedBy,
+              date: new Date(),
+            }),
+          },
+        });
+      }
+      return {
+        message: 'Appointment cancelled successfully.',
+        data: updatedAppointment,
+      };
+    } else {
+      await this.prismaService.cancelAppointment.create({
+        data: {
+          appointmentId: appointment?.id,
+          cancellationPolicyId,
+          cancelledBy: lastStatusChangedBy,
+          paidTo: 'USER',
+          dayRemainingBeforeAppointment: diffDays,
+          userRefundAmount,
+          refundStatus: 'REFUND_FAILED',
+          userRefundPercentage:
+            lastStatusChangedBy === 'USER' &&
+            !appointment?.appointmentProposal[0]?.isRecurring
+              ? this.secretService.getAppointmentCreds().refundPercentage
+              : null,
+          providerRemainingAppointmentVisits,
+          meta: {
+            stripeResult: Object(refundPay),
+          },
+        },
+      });
+      return {
+        message:
+          'Appointment can not cancelled now. Please try again after sometime or contact support team.',
+      };
+    }
   }
 
   async rejectAppointmentProposal(userId: bigint, opk: string) {

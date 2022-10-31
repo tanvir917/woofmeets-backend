@@ -162,6 +162,7 @@ enum cancelledByAppointmentEnum {
 enum refundStatusEnum {
   PENDING
   REFUND
+  REFUND_FAILED
 }
 
 model User {
