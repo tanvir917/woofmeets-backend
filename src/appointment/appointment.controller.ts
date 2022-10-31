@@ -29,6 +29,7 @@ import {
   GetModifiedBoardingHouseSittingPriceDTO,
   GetModifiedDayCarePriceDTO,
 } from './dto/appointment-pricing.dto';
+import { AppointmentListsQueryParamsDto } from './dto/appointment-query.dto';
 import { CancelAppointmentDto } from './dto/cancel-appointment.dto';
 import { CreateAppointmentProposalDto } from './dto/create-appointment-proposal.dto';
 import { PetsCheckDto } from './dto/pet-check.dto';
@@ -334,6 +335,21 @@ export class AppointmentController {
       BigInt(billingId),
       BigInt(cardId),
       idempontencyKey,
+    );
+  }
+
+  @ApiOperation({ summary: "All appointment's lists with payments" })
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard)
+  @Get('/all-appointments-lists')
+  async getAllAppointmentsLists(
+    @Request() req: any,
+    @Query() query: AppointmentListsQueryParamsDto,
+  ) {
+    const userId = BigInt(req.user?.id) ?? BigInt(-1);
+    return await this.appointmentPaymentService.getAppointmentListsWithPaymentsForUser(
+      userId,
+      query,
     );
   }
 }

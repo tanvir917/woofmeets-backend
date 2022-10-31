@@ -133,10 +133,15 @@ export class SubscriptionV2Service {
         },
       };
     } else {
+      const basicPayment = await this.prismaService.basicPayments.findFirst({
+        where: { active: true },
+        orderBy: { createdAt: 'desc' },
+      });
       return {
         message: 'User needs to pay the one time fee.',
         data: {
           needPayment: true,
+          amount: basicPayment?.amount,
         },
       };
     }
@@ -189,8 +194,15 @@ export class SubscriptionV2Service {
 
       let paymentIntent: Stripe.PaymentIntent;
       try {
+        const basicPayment = await this.prismaService.basicPayments.findFirst({
+          where: { active: true },
+          orderBy: { createdAt: 'desc' },
+        });
+
+        const amount = basicPayment?.amount ?? 35;
+
         paymentIntent = await this.stripe.paymentIntents.create({
-          amount: 35 * 100,
+          amount: Math.round(amount * 100),
           currency: 'usd',
           payment_method: user?.userStripeCard[0].stripeCardId,
           customer: user?.userStripeCustomerAccount?.stripeCustomerId,
@@ -286,9 +298,15 @@ export class SubscriptionV2Service {
 
       let paymentIntent: Stripe.PaymentIntent;
       try {
+        const basicPayment = await this.prismaService.basicPayments.findFirst({
+          where: { active: true },
+          orderBy: { createdAt: 'desc' },
+        });
+        const amount = basicPayment?.amount ?? 35;
+
         paymentIntent = await this.stripe.paymentIntents.create(
           {
-            amount: 35 * 100,
+            amount: Math.round(amount * 100),
             currency: 'usd',
             payment_method: user?.userStripeCard[0].stripeCardId,
             customer: user?.userStripeCustomerAccount?.stripeCustomerId,

@@ -1242,3 +1242,13 @@ model CancelAppointment {
   updatedAt                          DateTime?                  @updatedAt @db.Timestamptz(3)
   deletedAt                          DateTime?                  @db.Timestamptz(3)
 }
+
+model BasicPayments {
+  id        BigInt    @id @default(autoincrement())
+  amount    Float
+  active    Boolean   @default(true)
+  meta      Json?
+  createdAt DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime? @updatedAt @db.Timestamptz(3)
+  deletedAt DateTime? @db.Timestamptz(3)
+}
