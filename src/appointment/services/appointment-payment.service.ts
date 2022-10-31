@@ -6,6 +6,7 @@ import {
 } from '../../global/exceptions/error-logic';
 import { PrismaService } from '../../prisma/prisma.service';
 import { SecretService } from '../../secret/secret.service';
+import { AppointmentListsQueryParamsDto } from '../dto/appointment-query.dto';
 
 @Injectable()
 export class AppointmentPaymentService {
@@ -148,5 +149,97 @@ export class AppointmentPaymentService {
     }
 
     throwBadRequestErrorCheck(true, 'Payment failed.');
+  }
+
+  async getAppointmentListsWithPaymentsForUser(
+    userId: bigint,
+    query: AppointmentListsQueryParamsDto,
+  ) {
+    let { page, limit, sortBy, sortOrder } = query;
+    const orderbyObj = {};
+
+    if (!page || page < 1) page = 1;
+    if (!limit) limit = 20;
+    if (!sortOrder && sortOrder != 'asc' && sortOrder != 'desc')
+      sortOrder = 'desc';
+    if (!sortBy) sortBy = 'createdAt';
+
+    orderbyObj[sortBy] = sortOrder;
+
+    const user = await this.prismaService.user.findFirst({
+      where: {
+        id: userId,
+        deletedAt: null,
+      },
+    });
+
+    throwBadRequestErrorCheck(!user, 'User not found');
+
+    const [count, appointments] = await this.prismaService.$transaction([
+      this.prismaService.appointment.findMany({
+        where: {
+          userId: userId,
+        },
+        orderBy: orderbyObj,
+        include: {
+          billing: {
+            include: {
+              appointmentBillingPayments: {
+                where: {
+                  status: 'succeeded',
+                },
+                select: {
+                  id: true,
+                  amount: true,
+                  currency: true,
+                  status: true,
+                  payerEmail: true,
+                  billingDate: true,
+                },
+              },
+            },
+          },
+        },
+      }),
+      this.prismaService.appointment.findMany({
+        where: {
+          userId: userId,
+        },
+        skip: (page - 1) * limit,
+        take: limit,
+        orderBy: orderbyObj,
+        include: {
+          billing: {
+            include: {
+              appointmentBillingPayments: {
+                where: {
+                  status: 'succeeded',
+                },
+                select: {
+                  id: true,
+                  amount: true,
+                  currency: true,
+                  status: true,
+                  payerEmail: true,
+                  billingDate: true,
+                },
+              },
+            },
+          },
+        },
+      }),
+    ]);
+
+    return {
+      message: 'Appointment lists with payments',
+      data: {
+        appointments: appointments,
+      },
+      meta: {
+        total: count.length,
+        page: page,
+        limit: limit,
+      },
+    };
   }
 }
