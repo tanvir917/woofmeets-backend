@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { HttpStatus, Injectable } from '@nestjs/common';
 import Stripe from 'stripe';
 import {
   throwBadRequestErrorCheck,
@@ -98,7 +98,7 @@ export class AppointmentPaymentService {
     } catch (error) {
       if (error?.code == 'idempotency_key_in_use') {
         return {
-          statusCode: 409,
+          statusCode: HttpStatus.CONFLICT,
           message: 'Idempotency key already in use',
           data: {
             status: 'idempotency_key_in_use',
