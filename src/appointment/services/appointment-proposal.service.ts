@@ -3,7 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import {
   appointmentProposalEnum,
   appointmentStatusEnum,
-  petTypeEnum
+  petTypeEnum,
 } from '@prisma/client';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime';
 import axios from 'axios';
@@ -15,7 +15,7 @@ import { SuccessfulUploadResponse } from 'src/file/dto/upload-flie.dto';
 import { MulterFileUploadService } from 'src/file/multer-file-upload-service';
 import {
   throwBadRequestErrorCheck,
-  throwNotFoundErrorCheck
+  throwNotFoundErrorCheck,
 } from 'src/global/exceptions/error-logic';
 import { MessagingProxyService } from 'src/messaging/messaging.service';
 import { PrismaService } from 'src/prisma/prisma.service';
@@ -29,12 +29,12 @@ import { PetsCheckDto } from '../dto/pet-check.dto';
 import { UpdateAppointmentProposalDto } from '../dto/update-appointment-proposal.dto';
 import {
   AppointmentProposalEnum,
-  AppointmentStatusEnum
+  AppointmentStatusEnum,
 } from '../helpers/appointment-enum';
 import {
   checkIfAnyDateHoliday,
   formatDatesWithTimeZone,
-  generateDatesBetween
+  generateDatesBetween,
 } from '../helpers/appointment-visits';
 
 @Injectable()
@@ -1315,6 +1315,9 @@ export class AppointmentProposalService {
             providerRemainingAppointmentVisits: 1,
           },
         },
+      },
+      include: {
+        cancelAppointment: true,
       },
     });
 
