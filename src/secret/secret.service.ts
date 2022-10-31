@@ -122,6 +122,12 @@ export class SecretService {
       APPOINTMENT_INVOICE_NUMBER_LENGTH: this.configService.get<number>(
         'APPOINTMENT_INVOICE_NUMBER_LENGTH',
       ),
+      APPOINTMENT_SERVICE_CHARGE_PERCENTAGE: this.configService.get<number>(
+        'APPOINTMENT_SERVICE_CHARGE_PERCENTAGE',
+      ),
+      APPOINTMENT_REFUND_PERCENTAGE: this.configService.get<number>(
+        'APPOINTMENT_REFUND_PERCENTAGE',
+      ),
 
       /**
        * Encryption variable
@@ -248,6 +254,9 @@ export class SecretService {
     return {
       distanceLimit: this.#environment.APPOINTMENT_DISTANCE_LIMIT,
       invoiceNumberLength: this.#environment.APPOINTMENT_INVOICE_NUMBER_LENGTH,
+      serviceChargePercentage:
+        this.#environment.APPOINTMENT_SERVICE_CHARGE_PERCENTAGE,
+      refundPercentage: this.#environment.APPOINTMENT_REFUND_PERCENTAGE,
     };
   }
 

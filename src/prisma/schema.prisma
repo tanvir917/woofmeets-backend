@@ -154,6 +154,16 @@ enum adminRoleEnum {
   ADMIN
 }
 
+enum cancelledByAppointmentEnum {
+  PROVIDER
+  USER
+}
+
+enum refundStatusEnum {
+  PENDING
+  REFUND
+}
+
 model User {
   id                         BigInt                       @id @default(autoincrement())
   opk                        String                       @unique
@@ -461,17 +471,18 @@ model ServicePetPreference {
 }
 
 model CancellationPolicy {
-  id         Int        @id @default(autoincrement())
-  slug       String     @unique
-  title      String
-  time       Int        @default(0)
-  percentage Float      @default(0)
-  sequence   Int?
-  details    String
-  createdAt  DateTime   @default(now()) @db.Timestamptz(3)
-  updatedAt  DateTime?  @updatedAt @db.Timestamptz(3)
-  deletedAt  DateTime?  @db.Timestamptz(3)
-  Provider   Provider[]
+  id                Int                 @id @default(autoincrement())
+  slug              String              @unique
+  title             String
+  time              Int                 @default(0)
+  percentage        Float               @default(0)
+  sequence          Int?
+  details           String
+  createdAt         DateTime            @default(now()) @db.Timestamptz(3)
+  updatedAt         DateTime?           @updatedAt @db.Timestamptz(3)
+  deletedAt         DateTime?           @db.Timestamptz(3)
+  Provider          Provider[]
+  cancelAppointment CancelAppointment[]
 }
 
 model Breeds {
@@ -947,6 +958,7 @@ model Appointment {
   couponTrack         CouponTrack[]
   review              Review[]
   billing             Billing[]
+  cancelAppointment   CancelAppointment[]
 }
 
 model AppointmentProposal {
@@ -964,6 +976,7 @@ model AppointmentProposal {
   additionalCharge         Json?
   providerExtraFee         Float?
   totalPrice               Float?
+  priceCalculationDetails  Json?
   firstMessage             String?
   isRecivedPhotos          Boolean?
   dropOffStartTime         String?
@@ -1209,4 +1222,23 @@ model AppointmentBillingTransactions {
   createdAt          DateTime  @default(now()) @db.Timestamptz(3)
   updatedAt          DateTime? @updatedAt @db.Timestamptz(3)
   deletedAt          DateTime? @db.Timestamptz(3)
+}
+
+model CancelAppointment {
+  id                                 BigInt                     @id @default(autoincrement())
+  appointmentId                      BigInt
+  appointment                        Appointment                @relation(fields: [appointmentId], references: [id])
+  cancellationPolicyId               Int?
+  cancellationPolicy                 CancellationPolicy?        @relation(fields: [cancellationPolicyId], references: [id])
+  refundStatus                       refundStatusEnum           @default(PENDING)
+  cancelledBy                        cancelledByAppointmentEnum
+  paidTo                             appointmentProposalEnum
+  dayRemainingBeforeAppointment      Int?
+  userRefundAmount                   Float?
+  userRefundPercentage               Float?
+  providerRemainingAppointmentVisits Int?
+  meta                               Json?
+  createdAt                          DateTime                   @default(now()) @db.Timestamptz(3)
+  updatedAt                          DateTime?                  @updatedAt @db.Timestamptz(3)
+  deletedAt                          DateTime?                  @db.Timestamptz(3)
 }
