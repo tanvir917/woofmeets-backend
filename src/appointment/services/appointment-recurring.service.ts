@@ -3,10 +3,13 @@ import { Prisma } from '@prisma/client';
 import { isBefore, nextSunday } from 'date-fns';
 import { utcToZonedTime } from 'date-fns-tz';
 import { PinoLogger } from 'nestjs-pino';
-import { DaysOfWeek, generateRecurringDates } from 'src/global';
+import { DaysOfWeek } from 'src/global';
 import { throwBadRequestErrorCheck } from 'src/global/exceptions/error-logic';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { formatVisitsByDay } from '../helpers/appointment-visits';
+import {
+  formatVisitsByDay,
+  generateRecurringDates,
+} from '../helpers/appointment-visits';
 
 @Injectable()
 export class AppointmentRecurringService {

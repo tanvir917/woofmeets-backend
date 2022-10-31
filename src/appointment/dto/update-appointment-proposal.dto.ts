@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEnum, IsNotEmpty, IsOptional } from 'class-validator';
+import { IsDateString, IsEnum, IsNotEmpty, IsOptional } from 'class-validator';
 import {
   AppointmentLengthTypeEnum,
   AppointmentProposalEnum,
@@ -68,7 +68,12 @@ export class UpdateAppointmentProposalDto {
 
   @ApiProperty()
   @IsOptional()
-  proposalOtherDate: any;
+  @IsDateString({}, { each: true })
+  proposalOtherDate: string[];
+
+  @ApiProperty()
+  @IsOptional()
+  proposalVisits?: any;
 
   @ApiProperty()
   @IsOptional()

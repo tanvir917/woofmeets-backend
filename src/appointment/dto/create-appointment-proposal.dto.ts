@@ -4,7 +4,7 @@
 // TODO: CANCEL_APPOINTMENT_PROPOSAL_DTO
 
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEnum, IsNotEmpty, IsOptional } from 'class-validator';
+import { IsDateString, IsEnum, IsNotEmpty, IsOptional } from 'class-validator';
 import { AppointmentLengthTypeEnum } from '../helpers/appointment-enum';
 
 export class CreateAppointmentProposalDto {
@@ -82,7 +82,12 @@ export class CreateAppointmentProposalDto {
 
   @ApiProperty()
   @IsOptional()
-  proposalOtherDate: any;
+  @IsDateString({}, { each: true })
+  proposalOtherDate: string[];
+
+  @ApiProperty()
+  @IsOptional()
+  proposalVisits?: any;
 
   @ApiProperty()
   @IsOptional()
@@ -90,11 +95,12 @@ export class CreateAppointmentProposalDto {
 
   @ApiProperty()
   @IsOptional()
+  @IsDateString()
   recurringStartDate?: string;
 
   @ApiProperty()
   @IsOptional()
-  recurringSelectedDay?: any;
+  recurringSelectedDay?: string[];
 
   @ApiProperty()
   @IsOptional()

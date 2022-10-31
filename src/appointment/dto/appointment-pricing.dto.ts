@@ -1,5 +1,13 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsDateString, IsNotEmpty, IsNumber, IsString } from 'class-validator';
+import {
+  IsBoolean,
+  IsDateString,
+  IsNotEmpty,
+  IsNumber,
+  IsOptional,
+  IsString,
+} from 'class-validator';
+import { TimingType } from '../helpers/appointment-visits';
 
 export class GetModifiedDayCarePriceDTO {
   @ApiProperty()
@@ -12,14 +20,32 @@ export class GetModifiedDayCarePriceDTO {
   petIds: any;
 
   @ApiProperty()
-  @IsNotEmpty()
+  @IsOptional()
   @IsDateString({}, { each: true })
   dates: string[];
+
+  @ApiProperty()
+  @IsBoolean()
+  isRecurring: boolean;
+
+  @ApiProperty()
+  @IsOptional()
+  @IsDateString()
+  recurringStartDate: string;
+
+  @ApiProperty()
+  @IsOptional()
+  @IsString({ each: true })
+  recurringSelectedDays: string[];
 
   @ApiProperty()
   @IsNotEmpty()
   @IsString()
   timeZone: string;
+
+  @ApiProperty()
+  @IsNotEmpty()
+  timing: TimingType;
 }
 
 export class GetModifiedBoardingHouseSittingPriceDTO {
@@ -41,6 +67,44 @@ export class GetModifiedBoardingHouseSittingPriceDTO {
   @IsNotEmpty()
   @IsDateString()
   proposalEndDate: string;
+
+  @ApiProperty()
+  @IsNotEmpty()
+  @IsString()
+  timeZone: string;
+
+  @ApiProperty()
+  @IsNotEmpty()
+  timing: TimingType;
+}
+
+export class GetModifiedVisitWalkPriceDTO {
+  @ApiProperty()
+  @IsNotEmpty()
+  @IsNumber()
+  serviceId: number;
+
+  @ApiProperty()
+  @IsNotEmpty()
+  petIds: any;
+
+  @ApiProperty()
+  @IsBoolean()
+  @IsNotEmpty()
+  isRecurring: boolean;
+
+  @ApiProperty()
+  @IsNotEmpty()
+  length: number;
+
+  @ApiProperty()
+  @IsOptional()
+  @IsDateString()
+  recurringStartDate: string;
+
+  @ApiProperty()
+  @IsNotEmpty()
+  proposalVisits: any;
 
   @ApiProperty()
   @IsNotEmpty()

@@ -28,6 +28,7 @@ import { TransformInterceptor } from '../transform.interceptor';
 import {
   GetModifiedBoardingHouseSittingPriceDTO,
   GetModifiedDayCarePriceDTO,
+  GetModifiedVisitWalkPriceDTO,
 } from './dto/appointment-pricing.dto';
 import { AppointmentListsQueryParamsDto } from './dto/appointment-query.dto';
 import { CancelAppointmentDto } from './dto/cancel-appointment.dto';
@@ -268,7 +269,7 @@ export class AppointmentController {
 
   @ApiBearerAuth('access-token')
   @UseGuards(JwtAuthGuard)
-  @Get('/getAppointmentPrice/:opk')
+  @Get('/get-price/:opk')
   async getProposalPrice(@Param('opk') opk: string, @Request() req: any) {
     // const userId = BigInt(req.user?.id) ?? BigInt(-1);
     throwBadRequestErrorCheck(
@@ -280,22 +281,40 @@ export class AppointmentController {
 
   @ApiBearerAuth('access-token')
   @UseGuards(JwtAuthGuard)
-  @Post('/getModifiedDayCarePrice')
+  @Post('/daycare/get-modified-price')
   async getModifiedDayCarePrice(
     @Request() req: any,
     @Body() body: GetModifiedDayCarePriceDTO,
   ) {
+    if (body?.isRecurring) {
+      throwBadRequestErrorCheck(
+        !(
+          body?.recurringStartDate && body?.recurringSelectedDays?.length !== 0
+        ),
+        'Invalid Request! recurringStartDate and recurringSelectedDays required if isRecurring true',
+      );
+    } else {
+      throwBadRequestErrorCheck(
+        body?.dates?.length === 0,
+        'Invalid Request! dates are required if isRecurring is false',
+      );
+    }
+
     return await this.appointmentProposalService.calculateDayCarePrice(
       BigInt(body.serviceId),
       body.petIds,
       body.dates,
       body.timeZone,
+      body.timing,
+      body.isRecurring,
+      body.recurringStartDate,
+      body.recurringSelectedDays,
     );
   }
 
   @ApiBearerAuth('access-token')
   @UseGuards(JwtAuthGuard)
-  @Post('/getModifiedBoardingHouseSittingPrice')
+  @Post('/boarding-housesitting/get-modified-price')
   async getModifiedBoardingHouseSittingPrice(
     @Request() req: any,
     @Body() body: GetModifiedBoardingHouseSittingPriceDTO,
@@ -306,6 +325,25 @@ export class AppointmentController {
       body.proposalStartDate,
       body.proposalEndDate,
       body.timeZone,
+      body.timing,
+    );
+  }
+
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard)
+  @Post('/visit-walk/get-modified-price')
+  async getModifiedVisitWalkPrice(
+    @Request() req: any,
+    @Body() body: GetModifiedVisitWalkPriceDTO,
+  ) {
+    return await this.appointmentProposalService.calculateVisitWalkPrice(
+      BigInt(body.serviceId),
+      body.petIds,
+      body.isRecurring,
+      body.recurringStartDate,
+      body.proposalVisits,
+      body.timeZone,
+      BigInt(body.length),
     );
   }
 

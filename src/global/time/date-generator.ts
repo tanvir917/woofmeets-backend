@@ -1,10 +1,4 @@
-import { Holidays, Prisma } from '@prisma/client';
-import { addDays, addMinutes, isAfter, isBefore, isSameDay } from 'date-fns';
-import { toDate, utcToZonedTime } from 'date-fns-tz';
-import {
-  extractZoneSpecificDateWithFixedHourTime,
-  getZoneTimeString,
-} from './time-coverters';
+import { addDays } from 'date-fns';
 
 export type DaysOfWeek = 'Sun' | 'Mon' | 'Tue' | 'Wed' | 'Thu' | 'Fri' | 'Sat';
 
@@ -34,7 +28,7 @@ export const extractDay = (date: Date, timezone: string) =>
 export function generateRemainingDaysInWeek(
   offset: Date,
   timeZone: string,
-  until: DaysOfWeek = 'Sun',
+  until: DaysOfWeek = 'Mon',
 ): Date[] {
   const dates: Date[] = [];
 
@@ -42,7 +36,7 @@ export function generateRemainingDaysInWeek(
 
   let counter = 0;
 
-  const limit = cursorDay == 'Sun' ? 1 : 0;
+  const limit = cursorDay == 'Mon' ? 1 : 0;
 
   while (cursorDay != until || counter < limit) {
     dates.push(cursorDate);
@@ -85,6 +79,7 @@ export function getMatchedDays(
 export function generateDays(
   opts: DateGeneratorOpts,
   generateFor: DaysOfWeek[],
+  until: DaysOfWeek = 'Mon',
 ): Date[] {
   const { offset, skipOffset, timezone } = opts;
 
@@ -96,7 +91,7 @@ export function generateDays(
   const datesRemainingInCW: Date[] = generateRemainingDaysInWeek(
     cursorDate,
     timezone,
-    'Sun',
+    until,
   );
 
   // dates for which the days are included in the generateFor array
@@ -114,123 +109,9 @@ export function generateDays(
   const nextWeek = generateRemainingDaysInWeek(
     addDays(datesRemainingInCW[datesRemainingInCW.length - 1], 1),
     timezone,
-    'Sun',
+    until,
   );
 
   // return dates in next week for all the matched days
   return getMatchedDays(nextWeek, daysSet, timezone);
-}
-
-export function checkIfHoliday(
-  date: Date,
-  holidays: Holidays[],
-  timeZone: string,
-) {
-  let isHoliday = false;
-  const holidayNames: string[] = [];
-  const newDate = utcToZonedTime(
-    toDate(date, {
-      timeZone,
-    }),
-    timeZone,
-  );
-
-  for (let i = 0; i < holidays.length; i++) {
-    if (holidays[i].timeZone !== timeZone && holidays[i].timeZone !== '*')
-      continue;
-    const holidayFrom = utcToZonedTime(
-      toDate(holidays[i].startDate, {
-        timeZone,
-      }),
-      timeZone,
-    );
-    const holidayTo = utcToZonedTime(
-      toDate(holidays[i].endDate, {
-        timeZone,
-      }),
-      timeZone,
-    );
-
-    const isDaysSame =
-      isSameDay(newDate, holidayFrom) || isSameDay(newDate, holidayTo);
-    if (!isDaysSame) {
-      const isAfterHoliday = isAfter(newDate, holidayFrom);
-      const isBeforeHoliday = isBefore(newDate, holidayTo);
-      isHoliday = isAfterHoliday && isBeforeHoliday;
-    } else {
-      isHoliday = isDaysSame;
-    }
-    if (isHoliday) {
-      holidayNames.push(holidays[i].title);
-      // break;
-    }
-  }
-  return { isHoliday, holidayNames };
-}
-
-export function generateRecurringDates(
-  recurringStartDate: Date,
-  timezone: string,
-  recurringDays: DaysOfWeek[],
-  holidays: Holidays[],
-  visitsByDay: Map<DaysOfWeek, Prisma.JsonObject[]>,
-  durationInMinutes: number,
-  skipOffset: boolean,
-) {
-  const generatedDates = generateDays(
-    {
-      offset: recurringStartDate,
-      skipOffset,
-      timezone,
-    },
-    recurringDays,
-  );
-
-  const result = [];
-
-  generatedDates.forEach((date) => {
-    const day = extractDay(date, timezone);
-    const { isHoliday, holidayNames } = checkIfHoliday(
-      date,
-      holidays,
-      timezone,
-    );
-    visitsByDay.get(day).forEach((visit) => {
-      const time: string = visit.time as string;
-      const [startingTime, meridien] = time.split(' ');
-      const [hour, minute] = startingTime.split(':');
-      const startingHour = parseInt(hour) + (meridien === 'PM' ? 12 : 0);
-      const startingDateTimeWithFixedHour =
-        extractZoneSpecificDateWithFixedHourTime(
-          new Date(date),
-          timezone,
-          `T${startingHour >= 10 ? '' : '0'}${startingHour}:${
-            minute.length === 1 ? '0' : ''
-          }${minute}:00`,
-        );
-
-      const endingDateTimeWithFixedHour = addMinutes(
-        new Date(startingDateTimeWithFixedHour),
-        durationInMinutes,
-      );
-      result.push({
-        date,
-        day,
-        isHoliday,
-        holidayNames,
-        visitStartTimeString: getZoneTimeString(
-          new Date(startingDateTimeWithFixedHour),
-          timezone,
-        ),
-        visitEndTimeString: getZoneTimeString(
-          new Date(endingDateTimeWithFixedHour),
-          timezone,
-        ),
-        visitStartInDateTime: new Date(startingDateTimeWithFixedHour),
-        visitEndTimeInDateTime: new Date(endingDateTimeWithFixedHour),
-        durationInMinutes,
-      });
-    });
-  });
-  return result;
 }
