@@ -7,7 +7,6 @@ export class CustomStripeRefundParams {
   amountInDollars: number;
   chargeId: string;
   // customerKey: string;
-  currency: 'usd' = 'usd';
   cancellation_reason: Stripe.RefundCreateParams.Reason =
     'requested_by_customer';
   metadata?: any;
@@ -40,7 +39,6 @@ export class StripeDispatcherService {
       const refund: Stripe.Refund = await this.stripe.refunds.create({
         amount: Math.round(data?.amountInDollars * 100),
         charge: data?.chargeId,
-        currency: data?.currency,
         reason: data?.cancellation_reason,
         metadata: data?.metadata,
       });

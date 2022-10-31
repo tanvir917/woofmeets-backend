@@ -6,6 +6,8 @@ import { PrismaModule } from 'src/prisma/prisma.module';
 import { ProviderServicesModule } from 'src/provider-services/provider-services.module';
 import { SecretModule } from 'src/secret/secret.module';
 import { ServiceRatesModule } from 'src/service-rates/service-rates.module';
+import { StripeModule } from 'src/stripe/stripe.module';
+import { StripeDispatcherService } from '../stripe/stripe.dispatcher.service';
 import { AppointmentController } from './appointment.controller';
 import { AppointmentPaymentService } from './services/appointment-payment.service';
 import { AppointmentProposalService } from './services/appointment-proposal.service';
@@ -20,11 +22,13 @@ import { AppointmentRecurringService } from './services/appointment-recurring.se
     MessagingModule,
     FileModule,
     ServiceRatesModule,
+    // StripeModule,
   ],
   providers: [
     AppointmentProposalService,
     AppointmentRecurringService,
     AppointmentPaymentService,
+    StripeDispatcherService,
   ],
   controllers: [AppointmentController],
   exports: [AppointmentProposalService],
