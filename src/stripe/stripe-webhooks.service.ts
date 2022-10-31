@@ -371,6 +371,10 @@ export class StripeWebhooksService {
         }),
       ]);
 
+      const date = await this.appointmentProposalService.getProposalPrice(
+        billing?.appointment?.opk,
+      );
+
       let providerPercentage = 0;
 
       if (provider?.subscriptionType === 'BASIC') {
@@ -385,7 +389,8 @@ export class StripeWebhooksService {
         ((billing?.subtotal * providerPercentage) / 100)?.toFixed(2),
       );
 
-      const releaseDate = new Date();
+      const releaseDate: Date =
+        date?.formatedDatesByZone?.[date.formatedDatesByZone.length - 1]?.date;
       releaseDate.setDate(releaseDate.getDate() + 3);
 
       const appointmentBillingTransactions =
@@ -398,17 +403,13 @@ export class StripeWebhooksService {
             providerSubsStatus: provider?.subscriptionType,
             providerPercentage: providerPercentage,
             providerAmount: providerAmount,
-            releaseDate: releaseDate,
+            releaseDate: new Date(releaseDate),
           },
         });
 
       throwBadRequestErrorCheck(
         !appointmentBillingTransactions,
         'Could not create transaction',
-      );
-
-      const date = await this.appointmentProposalService.getProposalPrice(
-        billing?.appointment?.opk,
       );
 
       const dateDatas = date.formatedDatesByZone.map((item) => {

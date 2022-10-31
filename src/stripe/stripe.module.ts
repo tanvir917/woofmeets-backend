@@ -7,6 +7,7 @@ import { CheckrModule } from '../checkr/checkr.module';
 import { StripeConnectWebhooksService } from './stripe-connect-webhooks.service';
 import { StripeService } from './stripe.service';
 import { AppointmentModule } from '../appointment/appointment.module';
+import { StripeDispatcherService } from './stripe.dispatcher.service';
 
 @Module({
   imports: [PrismaModule, SecretModule, CheckrModule, AppointmentModule],
@@ -16,5 +17,6 @@ import { AppointmentModule } from '../appointment/appointment.module';
     StripeConnectWebhooksService,
     StripeService,
   ],
+  exports: [StripeDispatcherService],
 })
 export class StripeModule {}
