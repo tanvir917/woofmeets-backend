@@ -1,4 +1,5 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
+import { nextSunday } from 'date-fns';
 import Stripe from 'stripe';
 import { AppointmentProposalService } from '../appointment/services/appointment-proposal.service';
 import { throwBadRequestErrorCheck } from '../global/exceptions/error-logic';
@@ -374,6 +375,17 @@ export class StripeWebhooksService {
       const date = await this.appointmentProposalService.getProposalPrice(
         billing?.appointment?.opk,
       );
+
+      if (billing?.appointment?.appointmentProposal[0]?.isRecurring) {
+        await this.prismaService.appointmentProposal.update({
+          where: { id: billing?.appointment?.appointmentProposal[0]?.id },
+          data: {
+            recurringStartDate: nextSunday(
+              billing?.appointment?.appointmentProposal[0]?.recurringStartDate,
+            ),
+          },
+        });
+      }
 
       let providerPercentage = 0;
 
