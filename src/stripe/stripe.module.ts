@@ -6,9 +6,10 @@ import { StripeWebhooksService } from './stripe-webhooks.service';
 import { CheckrModule } from '../checkr/checkr.module';
 import { StripeConnectWebhooksService } from './stripe-connect-webhooks.service';
 import { StripeService } from './stripe.service';
+import { AppointmentModule } from '../appointment/appointment.module';
 
 @Module({
-  imports: [PrismaModule, SecretModule, CheckrModule],
+  imports: [PrismaModule, SecretModule, CheckrModule, AppointmentModule],
   controllers: [StripeController],
   providers: [
     StripeWebhooksService,

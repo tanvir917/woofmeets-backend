@@ -1,5 +1,6 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
 import Stripe from 'stripe';
+import { AppointmentProposalService } from '../appointment/services/appointment-proposal.service';
 import { throwBadRequestErrorCheck } from '../global/exceptions/error-logic';
 import { PrismaService } from '../prisma/prisma.service';
 import { SecretService } from '../secret/secret.service';
@@ -16,6 +17,7 @@ export class StripeWebhooksService {
   constructor(
     private prismaService: PrismaService,
     private secretService: SecretService,
+    private appointmentProposalService: AppointmentProposalService,
   ) {
     this.stripe = new Stripe(this.secretService.getStripeCreds().secretKey, {
       apiVersion: this.secretService.getStripeCreds().apiVersion,
@@ -329,7 +331,19 @@ export class StripeWebhooksService {
         where: {
           id: BigInt(billingId),
         },
+        include: {
+          appointment: {
+            include: {
+              appointmentProposal: {
+                orderBy: {
+                  createdAt: 'desc',
+                },
+              },
+            },
+          },
+        },
       });
+
       throwBadRequestErrorCheck(!billing, 'Billing not found');
 
       await this.prismaService.$transaction([
@@ -392,6 +406,28 @@ export class StripeWebhooksService {
         !appointmentBillingTransactions,
         'Could not create transaction',
       );
+
+      const date = await this.appointmentProposalService.getProposalPrice(
+        billing?.appointment?.opk,
+      );
+
+      const dateDatas = date.formatedDatesByZone.map((item) => {
+        return {
+          date: new Date(item?.date),
+          appointmentId: billing?.appointment?.id,
+          appointmentProposalId:
+            billing?.appointment?.appointmentProposal[0]?.id,
+          day: item?.day,
+          isHoliday: item?.isHoliday,
+          holidayNames: item?.holidayNames,
+          durationInMinutes:
+            billing?.appointment?.appointmentProposal[0]?.length ?? null,
+        };
+      });
+
+      await this.prismaService.appointmentDates.createMany({
+        data: dateDatas,
+      });
 
       return {
         message: 'Charge Succeeded',
