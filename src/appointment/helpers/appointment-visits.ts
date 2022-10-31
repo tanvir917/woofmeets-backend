@@ -1,11 +1,19 @@
 import { Holidays, Prisma } from '@prisma/client';
-import { addDays, differenceInDays, isSameDay } from 'date-fns';
-import { format } from 'date-fns-tz';
-import { checkIfHoliday, DaysOfWeek, extractDay } from 'src/global';
+import {
+  addDays,
+  addMinutes,
+  differenceInDays,
+  isAfter,
+  isBefore,
+  isSameDay,
+} from 'date-fns';
+import { format, toDate, utcToZonedTime } from 'date-fns-tz';
+import { DaysOfWeek, extractDay, generateDays } from 'src/global';
 import {
   convertToZoneSpecificDateTime,
   extractZoneSpecificDateWithFirstHourTime,
   extractZoneSpecificDateWithFixedHourTime,
+  getZoneTimeString,
 } from 'src/global/time/time-coverters';
 
 export class DateType {
@@ -13,10 +21,30 @@ export class DateType {
 }
 
 export class TimingType {
-  dropOfStartTime: string;
-  dropOfEndTime: string;
+  dropOffStartTime: string;
+  dropOffEndTime: string;
   pickUpStartTime: string;
   pickUpEndTime: string;
+}
+
+export class VisitType {
+  day?: string;
+  date?: string;
+  visits?: string[];
+}
+
+export class VisitsType {
+  id: number;
+  time: string;
+}
+
+export class ProposalVisits {
+  id: number;
+  date?: string;
+  name: string;
+  selected?: boolean;
+  startDate?: boolean;
+  visits: VisitsType[];
 }
 
 export const formatVisitsByDay = (recurringSelectedDays: Prisma.JsonArray) => {
@@ -41,8 +69,8 @@ export const formatVisitsByDay = (recurringSelectedDays: Prisma.JsonArray) => {
 
   return { recurringDays, visitsByDay };
 };
-export const formatTimeFromMeridien = (date: string) => {
-  const [startingTime, meridien] = date.split(' ');
+export const formatTimeFromMeridien = (time: string) => {
+  const [startingTime, meridien] = time.split(' ');
   const [hour, minute] = startingTime.split(':');
   const startingHour = parseInt(hour) + (meridien === 'PM' ? 12 : 0);
   return `T${startingHour >= 10 ? '' : '0'}${startingHour}:${
@@ -66,7 +94,7 @@ export const formatDatesWithStartEndTimings = (
   timing: TimingType,
   timeZone: string,
 ) => {
-  const dropOfStartTime = formatTimeFromMeridien(timing.dropOfStartTime);
+  const dropOffStartTime = formatTimeFromMeridien(timing.dropOffStartTime);
   const pickUpEndTime = formatTimeFromMeridien(timing.pickUpEndTime);
   const formattedDates: DateType[] = [];
   const startDate = new Date(dates[0].split('T')[0]);
@@ -75,7 +103,7 @@ export const formatDatesWithStartEndTimings = (
     date: extractZoneSpecificDateWithFixedHourTime(
       startDate,
       timeZone,
-      dropOfStartTime,
+      dropOffStartTime,
     ),
   });
 
@@ -169,3 +197,178 @@ export const generateDatesBetween = (
   dates.push(format(to, 'yyyy-MM-dd HH:mm:ssxxx', { timeZone }));
   return dates;
 };
+
+export function checkIfHoliday(
+  date: Date,
+  holidays: Holidays[],
+  timeZone: string,
+) {
+  let isHoliday = false;
+  const holidayNames: string[] = [];
+  const newDate = utcToZonedTime(
+    toDate(date, {
+      timeZone,
+    }),
+    timeZone,
+  );
+
+  for (let i = 0; i < holidays.length; i++) {
+    if (holidays[i].timeZone !== timeZone && holidays[i].timeZone !== '*')
+      continue;
+    const holidayFrom = utcToZonedTime(
+      toDate(holidays[i].startDate, {
+        timeZone,
+      }),
+      timeZone,
+    );
+    const holidayTo = utcToZonedTime(
+      toDate(holidays[i].endDate, {
+        timeZone,
+      }),
+      timeZone,
+    );
+
+    const isDaysSame =
+      isSameDay(newDate, holidayFrom) || isSameDay(newDate, holidayTo);
+    if (!isDaysSame) {
+      const isAfterHoliday = isAfter(newDate, holidayFrom);
+      const isBeforeHoliday = isBefore(newDate, holidayTo);
+      isHoliday = isAfterHoliday && isBeforeHoliday;
+    } else {
+      isHoliday = isDaysSame;
+    }
+    if (isHoliday) {
+      holidayNames.push(holidays[i].title);
+      break;
+    }
+  }
+  return { isHoliday, holidayNames };
+}
+
+export function generateRecurringDates(
+  recurringStartDate: Date,
+  timezone: string,
+  recurringDays: DaysOfWeek[],
+  holidays: Holidays[],
+  visitsByDay: Map<DaysOfWeek, Prisma.JsonObject[]>,
+  durationInMinutes: number,
+  skipOffset: boolean,
+) {
+  const generatedDates = generateDays(
+    {
+      offset: recurringStartDate,
+      skipOffset,
+      timezone,
+    },
+    recurringDays,
+  );
+
+  const result = [];
+
+  generatedDates.forEach((date) => {
+    const day = extractDay(date, timezone);
+    const { isHoliday, holidayNames } = checkIfHoliday(
+      date,
+      holidays,
+      timezone,
+    );
+    visitsByDay.get(day).forEach((visit) => {
+      const time: string = visit.time as string;
+      const [startingTime, meridien] = time.split(' ');
+      const [hour, minute] = startingTime.split(':');
+      const startingHour = parseInt(hour) + (meridien === 'PM' ? 12 : 0);
+      const startingDateTimeWithFixedHour =
+        extractZoneSpecificDateWithFixedHourTime(
+          new Date(date),
+          timezone,
+          `T${startingHour >= 10 ? '' : '0'}${startingHour}:${
+            minute.length === 1 ? '0' : ''
+          }${minute}:00`,
+        );
+
+      const endingDateTimeWithFixedHour = addMinutes(
+        new Date(startingDateTimeWithFixedHour),
+        durationInMinutes,
+      );
+      result.push({
+        date,
+        day,
+        isHoliday,
+        holidayNames,
+        visitStartTimeString: getZoneTimeString(
+          new Date(startingDateTimeWithFixedHour),
+          timezone,
+        ),
+        visitEndTimeString: getZoneTimeString(
+          new Date(endingDateTimeWithFixedHour),
+          timezone,
+        ),
+        visitStartInDateTime: new Date(startingDateTimeWithFixedHour),
+        visitEndTimeInDateTime: new Date(endingDateTimeWithFixedHour),
+        durationInMinutes,
+      });
+    });
+  });
+  return result;
+}
+
+export function generateDatesFromProposalVisits(
+  recurringStartDate: string,
+  proposalVisits: VisitType[],
+  timeZone: string,
+  isRecurring: boolean,
+) {
+  const dates = [];
+  if (isRecurring) {
+    const zonedStartDate = convertToZoneSpecificDateTime(
+      new Date(recurringStartDate),
+      timeZone,
+    );
+    const daysOfWeek = proposalVisits.map((visit) => visit.day);
+    const recurringDays = daysOfWeek.map(
+      (item) => item[0].toUpperCase() + item.slice(1),
+    );
+
+    const generatedDates = generateDays(
+      {
+        offset: convertToZoneSpecificDateTime(zonedStartDate, timeZone),
+        skipOffset: true,
+        timezone: timeZone,
+      },
+      recurringDays as DaysOfWeek[],
+    );
+    generatedDates.forEach((date) => {
+      const day = extractDay(date, timeZone);
+      const visit = proposalVisits.find(
+        (visit) => visit.day === day.toLowerCase(),
+      );
+      if (visit) {
+        visit.visits?.forEach((time) => {
+          const datetime = `${
+            date.toISOString().split('T')[0]
+          }${formatTimeFromMeridien(time)}`;
+          const parsedDate = toDate(datetime, { timeZone });
+          const countryDate = utcToZonedTime(parsedDate, timeZone);
+
+          dates.push(
+            format(countryDate, 'yyyy-MM-dd HH:mm:ssxxx', { timeZone }),
+          );
+        });
+      }
+    });
+  } else {
+    proposalVisits?.forEach((visit) => {
+      visit.visits.forEach((time) => {
+        const datetime = `${visit?.date?.split('T')[0]}${formatTimeFromMeridien(
+          time,
+        )}`;
+        const parsedDate = toDate(datetime, { timeZone });
+        const countryDate = utcToZonedTime(parsedDate, timeZone);
+
+        dates.push(format(countryDate, 'yyyy-MM-dd HH:mm:ssxxx', { timeZone }));
+      });
+    });
+  }
+
+  return dates;
+}

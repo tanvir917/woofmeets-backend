@@ -34,7 +34,7 @@ export class MessagingProxyService {
           body,
           {
             headers: {
-              Authorization: `Bearer ${
+              Authorization: `${
                 req?.cookies?.token || req?.headers?.authorization
               }`,
             },
@@ -63,7 +63,7 @@ export class MessagingProxyService {
           )}/v1/groups/${id}`,
           {
             headers: {
-              Authorization: `Bearer ${
+              Authorization: `${
                 req?.cookies?.token || req?.headers?.authorization
               }`,
             },

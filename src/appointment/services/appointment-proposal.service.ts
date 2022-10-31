@@ -4,6 +4,7 @@ import {
   appointmentProposalEnum,
   appointmentStatusEnum,
   petTypeEnum,
+  Prisma,
 } from '@prisma/client';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime';
 import axios from 'axios';
@@ -14,9 +15,15 @@ import { CommonService } from 'src/common/common.service';
 import { SuccessfulUploadResponse } from 'src/file/dto/upload-flie.dto';
 import { MulterFileUploadService } from 'src/file/multer-file-upload-service';
 import {
+  DaysOfWeek,
+  extractZoneSpecificDateWithFirstHourTime,
+  generateDays,
+} from 'src/global';
+import {
   throwBadRequestErrorCheck,
   throwNotFoundErrorCheck,
 } from 'src/global/exceptions/error-logic';
+import { convertToZoneSpecificDateTime } from 'src/global/time/time-coverters';
 import { MessagingProxyService } from 'src/messaging/messaging.service';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { ProviderServicesService } from 'src/provider-services/provider-services.service';
@@ -35,6 +42,9 @@ import {
   checkIfAnyDateHoliday,
   formatDatesWithTimeZone,
   generateDatesBetween,
+  generateDatesFromProposalVisits,
+  TimingType,
+  VisitType,
 } from '../helpers/appointment-visits';
 
 @Injectable()
@@ -658,6 +668,7 @@ export class AppointmentProposalService {
       proposalStartDate,
       proposalEndDate,
       proposalOtherDate,
+      proposalVisits,
       isRecurring,
       recurringStartDate,
       recurringSelectedDay,
@@ -807,7 +818,10 @@ export class AppointmentProposalService {
             pickUpEndTime,
             proposalStartDate,
             proposalEndDate,
-            proposalOtherDate,
+            proposalOtherDate: proposalOtherDate?.map((item) => ({
+              date: item,
+            })),
+            proposalVisits,
             isRecurring,
             recurringStartDate,
             recurringSelectedDay,
@@ -896,7 +910,7 @@ export class AppointmentProposalService {
           id: appointment?.appointmentProposal[0]?.id,
         },
         data: {
-          priceCalculationDetails,
+          priceCalculationDetails: Object(priceCalculationDetails),
         },
       }),
     ]);
@@ -971,6 +985,7 @@ export class AppointmentProposalService {
       proposalStartDate,
       proposalEndDate,
       proposalOtherDate,
+      proposalVisits,
       isRecurring,
       recurringStartDate,
       recurringSelectedDay,
@@ -996,7 +1011,10 @@ export class AppointmentProposalService {
         pickUpEndTime,
         proposalStartDate,
         proposalEndDate,
-        proposalOtherDate,
+        proposalOtherDate: proposalOtherDate?.map((item) => ({
+          date: item,
+        })),
+        proposalVisits,
         isRecurring,
         recurringStartDate,
         recurringSelectedDay,
@@ -1046,7 +1064,9 @@ export class AppointmentProposalService {
           id: proposal?.id,
         },
         data: {
-          priceCalculationDetails,
+          priceCalculationDetails: JSON.parse(
+            JSON.stringify(priceCalculationDetails),
+          ),
         },
       }),
     ]);
@@ -1107,7 +1127,7 @@ export class AppointmentProposalService {
       'Proposal giver can not accept own proposal.',
     );
 
-    /* 
+    /*
       Billing Table Generation
       Appointment Dates Generation
     */
@@ -1450,22 +1470,31 @@ export class AppointmentProposalService {
     });
 
     const proposalDates =
-      appointment.appointmentProposal?.[0].proposalOtherDate.map((item) => {
+      appointment.appointmentProposal?.[0].proposalOtherDate?.map((item) => {
         return (item as { date: string }).date;
       });
     const providerService = appointment.providerService.serviceType.slug;
     const timing = {
-      dropOfStartTime: appointment.appointmentProposal?.[0].dropOffStartTime,
-      dropOfEndTime: appointment.appointmentProposal?.[0].dropOffEndTime,
+      dropOffStartTime: appointment.appointmentProposal?.[0].dropOffStartTime,
+      dropOffEndTime: appointment.appointmentProposal?.[0].dropOffEndTime,
       pickUpStartTime: appointment.appointmentProposal?.[0].pickUpStartTime,
       pickUpEndTime: appointment.appointmentProposal?.[0].pickUpEndTime,
     };
+
+    const recurringStartDate = extractZoneSpecificDateWithFirstHourTime(
+      appointment.appointmentProposal?.[0].recurringStartDate,
+      appointment.providerTimeZone,
+    );
     if (providerService === 'doggy-day-care') {
       return this.calculateDayCarePrice(
         appointment.providerServiceId,
         appointment.appointmentProposal?.[0].petsIds,
         proposalDates,
         appointment.providerTimeZone,
+        timing,
+        appointment.appointmentProposal?.[0].isRecurring,
+        recurringStartDate,
+        appointment.appointmentProposal?.[0].recurringSelectedDay,
       );
     } else if (
       providerService === 'house-sitting' ||
@@ -1477,13 +1506,46 @@ export class AppointmentProposalService {
         appointment.appointmentProposal?.[0].proposalStartDate,
         appointment.appointmentProposal?.[0].proposalEndDate,
         appointment.providerTimeZone,
+        timing,
       );
+    } else if (
+      providerService === 'drop-in-visits' ||
+      providerService === 'dog-walking'
+    ) {
+      const isRecurring = appointment.appointmentProposal?.[0].isRecurring;
+      const proposalVisits =
+        appointment.appointmentProposal?.[0].proposalVisits;
+      const formattedProposalVisits: VisitType[] = [];
+      for (let i = 0; i < proposalVisits.length; i++) {
+        const proposalVisit = proposalVisits[i] as Prisma.JsonObject;
+        formattedProposalVisits.push({
+          ...(isRecurring
+            ? { day: proposalVisit?.name as string }
+            : { date: proposalVisit?.date as string }),
+          visits: (
+            proposalVisit?.visits as { id: number; time: string }[]
+          )?.map((visit) => visit?.time),
+        });
+      }
+      return this.calculateVisitWalkPrice(
+        appointment.providerServiceId,
+        appointment.appointmentProposal?.[0].petsIds,
+        isRecurring,
+        appointment.appointmentProposal?.[0].recurringStartDate.toISOString(),
+        formattedProposalVisits,
+        appointment.providerTimeZone,
+        BigInt(appointment.appointmentProposal?.[0].length),
+      );
+    } else {
+      // throwBadRequestErrorCheck(true, 'Invalid Provider Service');
     }
     return {
       petsRates: null,
       ratesByServiceType: null,
       formatedDatesByZone: null,
       subTotal: null,
+      sixtyMinuteRate: null,
+      timing: null,
       serviceChargeInParcentage: null,
       total: null,
     };
@@ -1494,16 +1556,54 @@ export class AppointmentProposalService {
     petIds: bigint[],
     dates: string[],
     timeZone: string,
+    timing: TimingType,
+    isRecurring: boolean,
+    recurringStartDate: string,
+    recurringSelectedDays: string[],
   ) {
-    const formatedDatesByZone: string[] = formatDatesWithTimeZone(
-      dates,
-      timeZone,
-    );
+    let formatedDatesByZone: string[] = [];
+    if (isRecurring) {
+      throwBadRequestErrorCheck(
+        recurringSelectedDays.length === 0,
+        'Invalid Request! recurringSelectedDays required if isRecurring true',
+      );
+      const recurringDays = recurringSelectedDays.map(
+        (item) => item[0].toUpperCase() + item.slice(1),
+      );
+
+      const generatedDates = generateDays(
+        {
+          offset: convertToZoneSpecificDateTime(
+            new Date(recurringStartDate),
+            timeZone,
+          ),
+          skipOffset: true,
+          timezone: timeZone,
+        },
+        recurringDays as DaysOfWeek[],
+      );
+      const generatedDatesInString = generatedDates.map((date) =>
+        date.toISOString(),
+      );
+      formatedDatesByZone = formatDatesWithTimeZone(
+        generatedDatesInString,
+        timeZone,
+      );
+    } else {
+      throwBadRequestErrorCheck(
+        dates?.length === 0,
+        'Invalid Request! dates are required if isRecurring is false',
+      );
+      formatedDatesByZone = formatDatesWithTimeZone(dates, timeZone);
+    }
+
     return this.calculateProposalPrice(
       serviceId,
       petIds,
       formatedDatesByZone,
       timeZone,
+      false,
+      timing,
     );
   }
 
@@ -1513,13 +1613,71 @@ export class AppointmentProposalService {
     proposalStartDate: string,
     proposalEndDate: string,
     timeZone: string,
+    timing: TimingType,
   ) {
     const dates: string[] = generateDatesBetween(
       proposalStartDate,
       proposalEndDate,
       timeZone,
     );
-    return this.calculateProposalPrice(serviceId, petIds, dates, timeZone);
+    return this.calculateProposalPrice(
+      serviceId,
+      petIds,
+      dates,
+      timeZone,
+      false,
+      timing,
+    );
+  }
+
+  async calculateVisitWalkPrice(
+    serviceId: bigint,
+    petIds: bigint[],
+    isRecurring: boolean,
+    recurringStartDate: string,
+    proposalVisits: VisitType[],
+    timeZone: string,
+    length: bigint,
+    timing?: TimingType,
+  ) {
+    throwBadRequestErrorCheck(
+      proposalVisits?.length === 0,
+      "Invalid Request! proposalVisits shouldn't be empty",
+    );
+
+    if (isRecurring) {
+      for (let i = 0; i < proposalVisits.length; i++) {
+        throwBadRequestErrorCheck(
+          proposalVisits[i]?.day == '' ||
+            proposalVisits[i]?.visits?.length === 0,
+          "Invalid Request! each item of proposalVisit's day and visits must be valid",
+        );
+      }
+    } else {
+      for (let i = 0; i < proposalVisits.length; i++) {
+        throwBadRequestErrorCheck(
+          proposalVisits[i]?.date == '' ||
+            proposalVisits[i]?.visits?.length === 0,
+          "Invalid Request! each item of proposalVisit's date and visits must be valid",
+        );
+      }
+    }
+
+    const dates = generateDatesFromProposalVisits(
+      recurringStartDate,
+      proposalVisits,
+      timeZone,
+      isRecurring,
+    );
+    const isSixtyMinuteRate = length >= 60;
+    return this.calculateProposalPrice(
+      serviceId,
+      petIds,
+      dates,
+      timeZone,
+      isSixtyMinuteRate,
+      timing,
+    );
   }
 
   // calculate price for Day Care, Boarding and House Sitting
@@ -1528,6 +1686,8 @@ export class AppointmentProposalService {
     petIds: bigint[],
     dates: string[],
     timeZone: string,
+    isSixtyMinuteRate: boolean,
+    timing?: TimingType,
   ) {
     const rates = await this.serviceRatesService.findOne(serviceId);
     const ratesByServiceType = {};
@@ -1537,7 +1697,6 @@ export class AppointmentProposalService {
         amount: rate.amount,
       };
     });
-
     const pets = await this.prismaService.pet.findMany({
       where: {
         id: {
@@ -1611,13 +1770,27 @@ export class AppointmentProposalService {
         subTotal += rate.amount * numberOfNights;
       });
     }
+
+    if (isSixtyMinuteRate) {
+      subTotal += numberOfNights * ratesByServiceType['sixty-minutes'].amount;
+    }
+    const serviceChargeInParcentage = this.configService.get<number>(
+      'APPOINTMENT_SERVICE_CHARGE_PERCENTAGE',
+    );
     const result = {
       petsRates,
+      ...(isSixtyMinuteRate && {
+        sixtyMinutesRate: {
+          count: numberOfNights,
+          rate: ratesByServiceType['sixty-minutes'],
+        },
+      }),
       ratesByServiceType,
+      ...(timing && { timing }),
       formatedDatesByZone: formattedDatesWithHolidays,
       subTotal: subTotal.toFixed(2),
-      serviceChargeInParcentage: 10,
-      total: (subTotal * 1.1).toFixed(2),
+      serviceChargeInParcentage,
+      total: (subTotal * (1 + serviceChargeInParcentage)).toFixed(2),
     };
 
     return result;

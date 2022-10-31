@@ -988,9 +988,10 @@ model AppointmentProposal {
   proposalEndDate          String?
   appointmentEndDateTime   DateTime?                 @db.Timestamptz(3)
   proposalOtherDate        Json[]
+  proposalVisits           Json[]
   isRecurring              Boolean?
   recurringStartDate       DateTime                  @default(now()) @db.Timestamptz(3)
-  recurringSelectedDay     Json[]
+  recurringSelectedDay     String[]
   meta                     Json?
   createdAt                DateTime                  @default(now()) @db.Timestamptz(3)
   updatedAt                DateTime?                 @updatedAt @db.Timestamptz(3)
