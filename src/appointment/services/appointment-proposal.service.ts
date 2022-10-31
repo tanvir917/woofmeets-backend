@@ -7,6 +7,8 @@ import {
 } from '@prisma/client';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime';
 import axios from 'axios';
+import { differenceInDays } from 'date-fns';
+import { toDate, utcToZonedTime } from 'date-fns-tz';
 import { PinoLogger } from 'nestjs-pino';
 import { CommonService } from 'src/common/common.service';
 import { SuccessfulUploadResponse } from 'src/file/dto/upload-flie.dto';
@@ -244,8 +246,8 @@ export class AppointmentProposalService {
 
     if (status == 'PROPOSAL') {
       statusArray.push(AppointmentStatusEnum.ACCEPTED);
-    } else if (status == 'CANCELLED') {
-      statusArray.push(AppointmentStatusEnum.REJECTED);
+    } else if (status == 'REJECTED') {
+      statusArray.push(AppointmentStatusEnum.CANCELLED);
     }
 
     const appointments = await this.prismaService.appointment.findMany({
@@ -357,8 +359,8 @@ export class AppointmentProposalService {
 
     if (status == 'PROPOSAL') {
       statusArray.push(AppointmentStatusEnum.ACCEPTED);
-    } else if (status == 'CANCELLED') {
-      statusArray.push(AppointmentStatusEnum.REJECTED);
+    } else if (status == 'REJECTED') {
+      statusArray.push(AppointmentStatusEnum.CANCELLED);
     }
 
     const appointments = await this.prismaService.appointment.findMany({
@@ -875,15 +877,29 @@ export class AppointmentProposalService {
     );
     await Promise.allSettled(messagePromises);
 
-    const updatedAppointment = await this.prismaService.appointment.update({
-      where: {
-        id: appointment?.id,
-      },
-      data: {
-        lastProposalId: appointment?.appointmentProposal[0]?.id,
-        messageGroupId: messageRoom?.data?._id,
-      },
-    });
+    const priceCalculationDetails = await this.getProposalPrice(
+      appointment?.opk,
+    );
+
+    const [updatedAppointment] = await this.prismaService.$transaction([
+      this.prismaService.appointment.update({
+        where: {
+          id: appointment?.id,
+        },
+        data: {
+          lastProposalId: appointment?.appointmentProposal[0]?.id,
+          messageGroupId: messageRoom?.data?._id,
+        },
+      }),
+      this.prismaService.appointmentProposal.update({
+        where: {
+          id: appointment?.appointmentProposal[0]?.id,
+        },
+        data: {
+          priceCalculationDetails,
+        },
+      }),
+    ]);
 
     // TODO: Price calculation
     // TODO: Unavailability check
@@ -1012,15 +1028,28 @@ export class AppointmentProposalService {
     }
 
     await Promise.allSettled(promises);
+    const priceCalculationDetails = await this.getProposalPrice(
+      appointment?.opk,
+    );
 
-    await this.prismaService.appointment.update({
-      where: {
-        id: appointment?.id,
-      },
-      data: {
-        lastProposalId: proposal?.id,
-      },
-    });
+    await this.prismaService.$transaction([
+      this.prismaService.appointment.update({
+        where: {
+          id: appointment?.id,
+        },
+        data: {
+          lastProposalId: proposal?.id,
+        },
+      }),
+      this.prismaService.appointmentProposal.update({
+        where: {
+          id: proposal?.id,
+        },
+        data: {
+          priceCalculationDetails,
+        },
+      }),
+    ]);
 
     return {
       message: 'Appointment proposal updated successfully',
@@ -1077,19 +1106,6 @@ export class AppointmentProposalService {
           user?.provider?.id == appointment?.providerId),
       'Proposal giver can not accept own proposal.',
     );
-
-    // const updatedAppointment = await this.prismaService.appointment.update({
-    //   where: {
-    //     id: appointment?.id,
-    //   },
-    //   data: {
-    //     status: 'ACCEPTED',
-    //     lastStatusChangedBy:
-    //       appointment?.appointmentProposal[0]?.proposedBy === 'USER'
-    //         ? appointmentProposalEnum.PROVIDER
-    //         : appointmentProposalEnum.USER,
-    //   },
-    // });
 
     /* 
       Billing Table Generation
@@ -1164,6 +1180,14 @@ export class AppointmentProposalService {
           opk,
           deletedAt: null,
         },
+        include: {
+          billing: true,
+          provider: {
+            select: {
+              cancellationPolicy: true,
+            },
+          },
+        },
       }),
     ]);
 
@@ -1187,6 +1211,90 @@ export class AppointmentProposalService {
 
     const { cancelReason } = cancelAppointmentDto;
 
+    /*
+     * Get price of appointment
+     * Convert server to provider timezone
+     * Calculate appointment remaining days
+     * Based on remaining days check cancellation policy and calculate price on calcellation policy
+     * if provider cancelled appointment, then check how many visits remaining and calculate refund price
+     */
+    const priceCalculationDetails = await this.getProposalPrice(
+      appointment?.opk,
+    );
+
+    const serverProviderZoneTime = utcToZonedTime(
+      toDate(new Date(), {
+        timeZone: appointment?.providerTimeZone,
+      }),
+      appointment?.providerTimeZone,
+    );
+
+    const diffDays = differenceInDays(
+      new Date(priceCalculationDetails?.formatedDatesByZone[0]?.date),
+      serverProviderZoneTime,
+    );
+
+    let fullRefund = true;
+    let cancellationPolicyId;
+    let userRefundAmount = 0;
+    let providerRemainingAppointmentVisits;
+
+    if (lastStatusChangedBy === 'USER') {
+      if (appointment?.provider?.cancellationPolicy?.slug == 'seven_day') {
+        cancellationPolicyId = appointment?.provider?.cancellationPolicy?.id;
+        fullRefund = diffDays >= 7 ? true : false;
+      } else if (
+        appointment?.provider?.cancellationPolicy?.slug == 'three_day'
+      ) {
+        cancellationPolicyId = appointment?.provider?.cancellationPolicy?.id;
+        fullRefund = diffDays >= 3 ? true : false;
+      } else if (appointment?.provider?.cancellationPolicy?.slug == 'one_day') {
+        cancellationPolicyId = appointment?.provider?.cancellationPolicy?.id;
+        fullRefund = diffDays >= 1 ? true : false;
+      } else if (
+        appointment?.provider?.cancellationPolicy?.slug == 'same_day'
+      ) {
+        cancellationPolicyId = appointment?.provider?.cancellationPolicy?.id;
+        fullRefund = diffDays >= 0 ? true : false;
+      }
+
+      userRefundAmount = fullRefund
+        ? appointment?.billing[0]?.total
+        : Number(
+            (
+              appointment?.billing[0]?.subtotal *
+              this.secretService.getAppointmentCreds().refundPercentage
+            ).toFixed(2),
+          );
+    } else {
+      let totalDayCountDone = 0;
+
+      for (
+        let i = 0;
+        i <= priceCalculationDetails?.formatedDatesByZone?.length;
+        i++
+      ) {
+        if (
+          serverProviderZoneTime >
+          new Date(priceCalculationDetails?.formatedDatesByZone[i]?.date)
+        ) {
+          break;
+        }
+        totalDayCountDone++;
+      }
+
+      providerRemainingAppointmentVisits =
+        appointment?.billing[0]?.totalDayCount - totalDayCountDone;
+
+      userRefundAmount = Number(
+        (
+          providerRemainingAppointmentVisits *
+          (appointment?.billing[0]?.subtotal /
+            appointment?.billing[0]?.totalDayCount)
+        ).toFixed(2),
+      );
+    }
+
     const updatedAppointment = await this.prismaService.appointment.update({
       where: {
         id: appointment?.id,
@@ -1195,6 +1303,21 @@ export class AppointmentProposalService {
         status: 'CANCELLED',
         lastStatusChangedBy,
         cancelReason,
+        cancelAppointment: {
+          create: {
+            cancellationPolicyId,
+            cancelledBy: lastStatusChangedBy,
+            paidTo: 'USER',
+            dayRemainingBeforeAppointment: diffDays,
+            userRefundAmount,
+            userRefundPercentage:
+              this.secretService.getAppointmentCreds().refundPercentage,
+            providerRemainingAppointmentVisits: 1,
+          },
+        },
+      },
+      include: {
+        cancelAppointment: true,
       },
     });
 
@@ -1227,8 +1350,9 @@ export class AppointmentProposalService {
       throwNotFoundErrorCheck(!user, 'User not found.');
       throwNotFoundErrorCheck(!appointment, 'Appointment not found.');
       throwBadRequestErrorCheck(
-        appointment.status !== 'PROPOSAL',
-        'Only appointment proposal can be rejected.',
+        appointment?.status !== 'PROPOSAL' &&
+          appointment?.status !== 'ACCEPTED',
+        'Apointment is not in rejected state',
       );
 
       let lastStatusChangedBy: appointmentProposalEnum;
@@ -1252,7 +1376,7 @@ export class AppointmentProposalService {
         },
       });
       return {
-        message: 'Appointment proposal rejected successfully',
+        message: 'Appointment rejected successfully',
         data: { result },
       };
     } catch (error) {

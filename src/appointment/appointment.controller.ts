@@ -29,6 +29,7 @@ import {
   GetModifiedBoardingHouseSittingPriceDTO,
   GetModifiedDayCarePriceDTO,
 } from './dto/appointment-pricing.dto';
+import { CancelAppointmentDto } from './dto/cancel-appointment.dto';
 import { CreateAppointmentProposalDto } from './dto/create-appointment-proposal.dto';
 import { PetsCheckDto } from './dto/pet-check.dto';
 import { UpdateAppointmentProposalDto } from './dto/update-appointment-proposal.dto';
@@ -202,25 +203,25 @@ export class AppointmentController {
     );
   }
 
-  // @ApiBearerAuth('access-token')
-  // @UseGuards(JwtAuthGuard)
-  // @Put('/cancel/:opk')
-  // async cancelAppointment(
-  //   @Param('opk') opk: string,
-  //   @Body() cancelAppointmentDto: CancelAppointmentDto,
-  //   @Request() req: any,
-  // ) {
-  //   const userId = BigInt(req.user?.id) ?? BigInt(-1);
-  //   throwBadRequestErrorCheck(
-  //     !opk || opk == undefined,
-  //     'Invalid appointment opk. Please, try again after sometime with valid appointment opk.',
-  //   );
-  //   return this.appointmentProposalService.cancelAppointment(
-  //     userId,
-  //     opk,
-  //     cancelAppointmentDto,
-  //   );
-  // }
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard)
+  @Put('/cancel/:opk')
+  async cancelAppointment(
+    @Param('opk') opk: string,
+    @Body() cancelAppointmentDto: CancelAppointmentDto,
+    @Request() req: any,
+  ) {
+    const userId = BigInt(req.user?.id) ?? BigInt(-1);
+    throwBadRequestErrorCheck(
+      !opk || opk == undefined,
+      'Invalid appointment opk. Please, try again after sometime with valid appointment opk.',
+    );
+    return this.appointmentProposalService.cancelAppointment(
+      userId,
+      opk,
+      cancelAppointmentDto,
+    );
+  }
 
   @ApiBearerAuth('access-token')
   @UseGuards(JwtAuthGuard)
