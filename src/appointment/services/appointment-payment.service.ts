@@ -97,13 +97,7 @@ export class AppointmentPaymentService {
       );
     } catch (error) {
       if (error?.code == 'idempotency_key_in_use') {
-        return {
-          statusCode: HttpStatus.CONFLICT,
-          message: 'Idempotency key already in use',
-          data: {
-            status: 'idempotency_key_in_use',
-          },
-        };
+        throwConflictErrorCheck(true, 'idempotency_key_in_use');
       }
       throwBadRequestErrorCheck(true, error?.message);
     }
