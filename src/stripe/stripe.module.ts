@@ -16,6 +16,7 @@ import { StripeDispatcherService } from './stripe.dispatcher.service';
     StripeWebhooksService,
     StripeConnectWebhooksService,
     StripeService,
+    StripeDispatcherService,
   ],
   exports: [StripeDispatcherService],
 })
