@@ -483,6 +483,7 @@ export class AppointmentProposalService {
             serviceType: true,
           },
         },
+        review: true,
         billing: true,
         user: {
           select: {
@@ -1790,7 +1791,7 @@ export class AppointmentProposalService {
       formatedDatesByZone: formattedDatesWithHolidays,
       subTotal: subTotal.toFixed(2),
       serviceChargeInParcentage,
-      total: (subTotal * (1 + serviceChargeInParcentage)).toFixed(2),
+      total: (subTotal * (1 + serviceChargeInParcentage / 100)).toFixed(2),
     };
 
     return result;

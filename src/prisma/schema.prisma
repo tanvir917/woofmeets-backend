@@ -1010,11 +1010,12 @@ model AppointmentDates {
   day                    String
   isHoliday              Boolean
   holidayNames           String[]
-  visitStartTimeString   String
-  visitStartInDateTime   DateTime            @db.Timestamptz(3)
-  visitEndTimeString     String
-  visitEndTimeInDateTime DateTime            @db.Timestamptz(3)
-  durationInMinutes      Int
+  visitStartTimeString   String?
+  visitStartInDateTime   DateTime?           @db.Timestamptz(3)
+  visitEndTimeString     String?
+  visitEndTimeInDateTime DateTime?           @db.Timestamptz(3)
+  durationInMinutes      Int?
+  paymentStatus          String              @default("PAID")
   createdAt              DateTime            @default(now()) @db.Timestamptz(3)
   updatedAt              DateTime?           @updatedAt @db.Timestamptz(3)
   deletedAt              DateTime?           @db.Timestamptz(3)

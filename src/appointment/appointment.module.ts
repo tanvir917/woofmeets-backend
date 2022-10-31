@@ -27,5 +27,6 @@ import { AppointmentRecurringService } from './services/appointment-recurring.se
     AppointmentPaymentService,
   ],
   controllers: [AppointmentController],
+  exports: [AppointmentProposalService],
 })
 export class AppointmentModule {}

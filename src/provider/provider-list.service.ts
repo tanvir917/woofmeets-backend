@@ -143,6 +143,7 @@ export class ProviderListService {
                 },
               },
             },
+            providerDetails: true,
             HomeAttributes: true,
           },
         },
@@ -151,6 +152,9 @@ export class ProviderListService {
             serviceTypeRate: {
               serviceRateTypeId: 1, // base rate only
             },
+          },
+          include: {
+            serviceTypeRate: true,
           },
         },
       },
@@ -173,8 +177,8 @@ export class ProviderListService {
 
     await Promise.all(
       services.map(async (service) => {
-        let s = service;
-        let tmp = raw && raw?.find((row) => BigInt(row.id) === service.id);
+        const s = service;
+        const tmp = raw && raw?.find((row) => BigInt(row.id) === service.id);
         s.provider.user.password = null;
         try {
           const { data } = await this.availabilityService.getAvailability(
