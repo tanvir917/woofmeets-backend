@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Get,
+  Headers,
   Param,
   Post,
   Put,
@@ -12,7 +13,13 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
-import { ApiBearerAuth, ApiConsumes, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiConsumes,
+  ApiHeader,
+  ApiOperation,
+  ApiTags,
+} from '@nestjs/swagger';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 import { FileUploadBody } from 'src/file/dto/file-upload-body.dto';
 import { SuccessfulUploadResponse } from 'src/file/dto/upload-flie.dto';
@@ -25,6 +32,7 @@ import { CancelAppointmentDto } from './dto/cancel-appointment.dto';
 import { CreateAppointmentProposalDto } from './dto/create-appointment-proposal.dto';
 import { PetsCheckDto } from './dto/pet-check.dto';
 import { UpdateAppointmentProposalDto } from './dto/update-appointment-proposal.dto';
+import { AppointmentPaymentService } from './services/appointment-payment.service';
 import { AppointmentProposalService } from './services/appointment-proposal.service';
 import { AppointmentRecurringService } from './services/appointment-recurring.service';
 
@@ -34,6 +42,7 @@ export class AppointmentController {
   constructor(
     private readonly appointmentProposalService: AppointmentProposalService,
     private readonly appointmentRecurringService: AppointmentRecurringService,
+    private readonly appointmentPaymentService: AppointmentPaymentService,
   ) {}
 
   @ApiBearerAuth('access-token')
@@ -295,6 +304,34 @@ export class AppointmentController {
       body.proposalStartDate,
       body.proposalEndDate,
       body.timeZone,
+    );
+  }
+
+  @ApiOperation({
+    summary: 'Pay appointment bill v1 with idempotency key.',
+  })
+  @ApiBearerAuth('access-token')
+  @ApiHeader({
+    name: 'Idempontency-Key',
+    required: true,
+    schema: { type: 'string' },
+  })
+  @UseGuards(JwtAuthGuard)
+  @Post('/:opk/billing/:billingId/pay')
+  async payAppointmentBilling(
+    @Request() req: any,
+    @Param('opk') opk: string,
+    @Param('billingId') billingId: string,
+    @Query('cardId') cardId: string,
+    @Headers('Idempontency-Key') idempontencyKey: any,
+  ) {
+    const userId = BigInt(req.user?.id) ?? BigInt(-1);
+    return await this.appointmentPaymentService.payAppointmentBilling(
+      userId,
+      opk,
+      BigInt(billingId),
+      BigInt(cardId),
+      idempontencyKey,
     );
   }
 }

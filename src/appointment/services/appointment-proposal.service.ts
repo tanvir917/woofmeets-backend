@@ -3,7 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import {
   appointmentProposalEnum,
   appointmentStatusEnum,
-  petTypeEnum,
+  petTypeEnum
 } from '@prisma/client';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime';
 import axios from 'axios';
@@ -15,7 +15,7 @@ import { SuccessfulUploadResponse } from 'src/file/dto/upload-flie.dto';
 import { MulterFileUploadService } from 'src/file/multer-file-upload-service';
 import {
   throwBadRequestErrorCheck,
-  throwNotFoundErrorCheck,
+  throwNotFoundErrorCheck
 } from 'src/global/exceptions/error-logic';
 import { MessagingProxyService } from 'src/messaging/messaging.service';
 import { PrismaService } from 'src/prisma/prisma.service';
@@ -29,12 +29,12 @@ import { PetsCheckDto } from '../dto/pet-check.dto';
 import { UpdateAppointmentProposalDto } from '../dto/update-appointment-proposal.dto';
 import {
   AppointmentProposalEnum,
-  AppointmentStatusEnum,
+  AppointmentStatusEnum
 } from '../helpers/appointment-enum';
 import {
   checkIfAnyDateHoliday,
   formatDatesWithTimeZone,
-  generateDatesBetween,
+  generateDatesBetween
 } from '../helpers/appointment-visits';
 
 @Injectable()
@@ -1211,11 +1211,13 @@ export class AppointmentProposalService {
 
     const { cancelReason } = cancelAppointmentDto;
 
-    console.log({
-      policy: appointment?.provider?.cancellationPolicy,
-      billing: appointment?.billing,
-    });
-
+    /*
+     * Get price of appointment
+     * Convert server to provider timezone
+     * Calculate appointment remaining days
+     * Based on remaining days check cancellation policy and calculate price on calcellation policy
+     * if provider cancelled appointment, then check how many visits remaining and calculate refund price
+     */
     const priceCalculationDetails = await this.getProposalPrice(
       appointment?.opk,
     );
@@ -1260,7 +1262,7 @@ export class AppointmentProposalService {
         ? appointment?.billing[0]?.total
         : Number(
             (
-              appointment?.billing[0]?.total *
+              appointment?.billing[0]?.subtotal *
               this.secretService.getAppointmentCreds().refundPercentage
             ).toFixed(2),
           );
@@ -1287,7 +1289,7 @@ export class AppointmentProposalService {
       userRefundAmount = Number(
         (
           providerRemainingAppointmentVisits *
-          (appointment?.billing[0]?.total /
+          (appointment?.billing[0]?.subtotal /
             appointment?.billing[0]?.totalDayCount)
         ).toFixed(2),
       );
@@ -1474,7 +1476,6 @@ export class AppointmentProposalService {
         appointment.providerTimeZone,
       );
     }
-
     return {
       petsRates: null,
       ratesByServiceType: null,

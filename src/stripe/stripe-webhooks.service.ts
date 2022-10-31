@@ -300,9 +300,104 @@ export class StripeWebhooksService {
       metadata,
     } = Object(charge);
 
-    const { type, userId } = metadata;
+    const { type } = metadata;
 
-    if (type == 'default_verification') {
+    if (type == 'appointment_payment') {
+      const { userId, billingId, providerId } = metadata;
+      const appointmentBillingPayments =
+        await this.prismaService.appointmentBillingPayments.findFirst({
+          where: {
+            piId: payment_intent,
+            billingId: BigInt(billingId),
+            paidByUserId: BigInt(userId),
+          },
+        });
+
+      throwBadRequestErrorCheck(
+        !appointmentBillingPayments,
+        'Payment history not found',
+      );
+
+      const provider = await this.prismaService.provider.findFirst({
+        where: {
+          id: BigInt(providerId),
+        },
+      });
+      throwBadRequestErrorCheck(!provider, 'Provider not found');
+
+      const billing = await this.prismaService.billing.findFirst({
+        where: {
+          id: BigInt(billingId),
+        },
+      });
+      throwBadRequestErrorCheck(!billing, 'Billing not found');
+
+      await this.prismaService.$transaction([
+        this.prismaService.appointmentBillingPayments.update({
+          where: { id: appointmentBillingPayments?.id },
+          data: {
+            chargeId: id,
+            status: status,
+            src: Object(payment_method_details),
+            billingDate: new Date(),
+          },
+        }),
+        this.prismaService.billing.update({
+          where: { id: BigInt(billingId) },
+          data: {
+            paid: true,
+            paymentStatus: 'paid',
+          },
+        }),
+        this.prismaService.appointment.update({
+          where: { id: billing?.appointmentId },
+          data: {
+            status: 'PAID',
+          },
+        }),
+      ]);
+
+      let providerPercentage = 0;
+
+      if (provider?.subscriptionType === 'BASIC') {
+        providerPercentage = 91;
+      } else if (provider?.subscriptionType === 'GOLD') {
+        providerPercentage = 98;
+      } else if (provider?.subscriptionType === 'PLATINUM') {
+        providerPercentage = 100;
+      }
+
+      const providerAmount = Number(
+        ((billing?.subtotal * providerPercentage) / 100)?.toFixed(2),
+      );
+
+      const releaseDate = new Date();
+      releaseDate.setDate(releaseDate.getDate() + 3);
+
+      const appointmentBillingTransactions =
+        await this.prismaService.appointmentBillingTransactions.create({
+          data: {
+            billingId: BigInt(billingId),
+            providerId: BigInt(providerId),
+            paidAmount: appointmentBillingPayments?.amount,
+            currency: appointmentBillingPayments?.currency,
+            providerSubsStatus: provider?.subscriptionType,
+            providerPercentage: providerPercentage,
+            providerAmount: providerAmount,
+            releaseDate: releaseDate,
+          },
+        });
+
+      throwBadRequestErrorCheck(
+        !appointmentBillingTransactions,
+        'Could not create transaction',
+      );
+
+      return {
+        message: 'Charge Succeeded',
+      };
+    } else if (type == 'default_verification') {
+      const { userId } = metadata;
       const provider = await this.prismaService.provider.findFirst({
         where: {
           userId: BigInt(userId),
@@ -372,7 +467,43 @@ export class StripeWebhooksService {
 
     const { type, userId } = metadata;
 
-    if (type == 'default_verification') {
+    if (type == 'appointment_payment') {
+      const { userId, billingId } = metadata;
+      const appointmentBillingPayments =
+        await this.prismaService.appointmentBillingPayments.findFirst({
+          where: {
+            piId: payment_intent,
+            billingId: BigInt(billingId),
+            paidByUserId: BigInt(userId),
+          },
+        });
+
+      throwBadRequestErrorCheck(
+        !appointmentBillingPayments,
+        'Payment history not found',
+      );
+
+      const paymentUpdate =
+        await this.prismaService.appointmentBillingPayments.update({
+          where: { id: appointmentBillingPayments?.id },
+          data: {
+            chargeId: id,
+            status: status,
+            src: Object(payment_method_details),
+            billingDate: new Date(),
+            deletedAt: new Date(),
+            meta: outcome,
+          },
+        });
+      throwBadRequestErrorCheck(
+        !paymentUpdate,
+        'Appointment payment failure can not be updated.',
+      );
+
+      return {
+        message: 'Charge Failed',
+      };
+    } else if (type == 'default_verification') {
       const userMiscellenous =
         await this.prismaService.miscellaneousPayments.findFirst({
           where: {
