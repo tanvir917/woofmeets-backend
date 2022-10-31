@@ -8,6 +8,7 @@ import Stripe from 'stripe';
 import { AdminPanelService } from '../admin-panel/admin-panel.service';
 import {
   throwBadRequestErrorCheck,
+  throwConflictErrorCheck,
   throwUnauthorizedErrorCheck,
 } from '../global/exceptions/error-logic';
 import { PrismaService } from '../prisma/prisma.service';
@@ -301,13 +302,7 @@ export class SubscriptionV2Service {
         );
       } catch (error) {
         if (error?.code == 'idempotency_key_in_use') {
-          return {
-            statusCode: 409,
-            message: 'Idempotency key already in use',
-            data: {
-              status: 'idempotency_key_in_use',
-            },
-          };
+          throwConflictErrorCheck(true, 'idempotency_key_in_use');
         }
         throwBadRequestErrorCheck(true, error?.message);
       }
@@ -835,13 +830,7 @@ export class SubscriptionV2Service {
         latestInvoice = Object(subscription['latest_invoice']);
       } catch (error) {
         if (error?.code == 'idempotency_key_in_use') {
-          return {
-            statusCode: 409,
-            message: 'Idempotency key already in use',
-            data: {
-              status: 'idempotency_key_in_use',
-            },
-          };
+          throwConflictErrorCheck(true, 'idempotency_key_in_use');
         }
         throwBadRequestErrorCheck(true, error?.message);
       }
