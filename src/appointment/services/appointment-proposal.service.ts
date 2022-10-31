@@ -1312,7 +1312,7 @@ export class AppointmentProposalService {
             userRefundAmount,
             userRefundPercentage:
               this.secretService.getAppointmentCreds().refundPercentage,
-            providerRemainingAppointmentVisits: 1,
+            providerRemainingAppointmentVisits,
           },
         },
       },

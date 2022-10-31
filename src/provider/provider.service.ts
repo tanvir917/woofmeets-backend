@@ -136,6 +136,7 @@ export class ProviderService {
           reviewedForId: true,
           rating: true,
           comment: true,
+          createdAt: true,
           reviewedByIdUser: {
             select: {
               id: true,
