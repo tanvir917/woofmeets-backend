@@ -154,6 +154,7 @@ export class ProviderDetailsService {
                 skillTypeId: {
                   in: skills,
                 },
+                deletedAt: null,
               },
             },
           },
@@ -193,6 +194,7 @@ export class ProviderDetailsService {
         skillTypeId: {
           notIn: skills,
         },
+        deletedAt: null,
       },
       data: {
         deletedAt: new Date(),
