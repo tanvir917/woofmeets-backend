@@ -49,15 +49,20 @@ export class StripeConnectService {
       },
       include: {
         userStripeConnectAccount: true,
+        basicInfo: {
+          include: {
+            country: true,
+          },
+        },
       },
     });
 
     throwBadRequestErrorCheck(!user, 'No user found!');
 
-    // throwBadRequestErrorCheck(
-    //   !!user?.userStripeConnectAccount?.stripeAccountId,
-    //   'User onboardeding already initiated! Please use refresh url if you have not yet onboarded.',
-    // );
+    throwBadRequestErrorCheck(
+      !user?.basicInfo,
+      'User needs to add basic info!',
+    );
 
     if (user?.userStripeConnectAccount?.stripeAccountId) {
       return {
@@ -70,16 +75,31 @@ export class StripeConnectService {
     }
 
     try {
-      const account = await this.stripe.accounts.create({
+      const countryCode = user?.basicInfo?.country?.alpha2.toUpperCase();
+      const isUS = countryCode === 'US';
+      const tosAcceptance = isUS
+        ? {}
+        : { tos_acceptance: { service_agreement: 'recipient' } };
+      const capabilities = isUS
+        ? {
+            capabilities: {
+              transfers: { requested: true },
+              card_payments: {
+                requested: true,
+              },
+            },
+          }
+        : {
+            capabilities: {
+              transfers: { requested: true },
+            },
+          };
+
+      const account: Stripe.Account = await this.stripe.accounts.create({
         type: 'express',
         email: user?.email,
-        country: 'US',
-        capabilities: {
-          transfers: { requested: true },
-          card_payments: {
-            requested: true,
-          },
-        },
+        country: countryCode,
+        ...capabilities,
         business_type: 'individual',
         settings: {
           payouts: {
@@ -88,6 +108,7 @@ export class StripeConnectService {
             },
           },
         },
+        ...tosAcceptance,
       });
 
       throwBadRequestErrorCheck(
