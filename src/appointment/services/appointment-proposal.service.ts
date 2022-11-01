@@ -38,7 +38,7 @@ import { PetsCheckDto } from '../dto/pet-check.dto';
 import { UpdateAppointmentProposalDto } from '../dto/update-appointment-proposal.dto';
 import {
   AppointmentProposalEnum,
-  AppointmentStatusEnum
+  AppointmentStatusEnum,
 } from '../helpers/appointment-enum';
 import {
   checkIfAnyDateHoliday,
@@ -46,7 +46,7 @@ import {
   generateDatesBetween,
   generateDatesFromProposalVisits,
   TimingType,
-  VisitType
+  VisitType,
 } from '../helpers/appointment-visits';
 
 @Injectable()
@@ -97,6 +97,8 @@ export class AppointmentProposalService {
 
     throwNotFoundErrorCheck(!appointment, 'Appointment not found.');
 
+    // TODO: @ankur datta | filter incomplete data
+
     const providerServiceDetails =
       await this.prismaService.providerServices.findFirst({
         where: {
@@ -105,6 +107,11 @@ export class AppointmentProposalService {
         },
         include: {
           ServiceHasRates: {
+            where: {
+              amount: {
+                not: null,
+              },
+            },
             include: {
               serviceTypeRate: {
                 include: {
