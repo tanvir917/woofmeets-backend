@@ -8,6 +8,7 @@ import {
 } from 'src/global/exceptions/error-logic';
 import { extractZoneSpecificDateWithFirstHourTime } from 'src/global/time/time-coverters';
 import { addDays } from 'date-fns';
+import { generateDatesFromAndTo } from 'src/global/time/time-generators';
 
 @Injectable()
 export class AvailabilityGetServcie {
@@ -56,10 +57,10 @@ export class AvailabilityGetServcie {
       );
     }
 
-    for (let day = from; day <= to; day.setDate(day.getDate() + 1)) {
-      initDates.push(
-        new Date(extractZoneSpecificDateWithFirstHourTime(day, tz)),
-      );
+    const dateRange = generateDatesFromAndTo(from, till, []);
+
+    for (var date of dateRange) {
+      initDates.push(date);
     }
 
     initDates?.map((date) => {
@@ -116,7 +117,7 @@ export class AvailabilityGetServcie {
       },
     });
 
-    for(let service of services) {
+    for (let service of services) {
       const opk = service?.provider?.user?.opk;
       let { data } = await this.getAvailability(opk, service.id, query, true);
       service['availability'] = data;
