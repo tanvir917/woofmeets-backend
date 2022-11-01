@@ -24,7 +24,6 @@ import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 import { FileUploadBody } from 'src/file/dto/file-upload-body.dto';
 import { SuccessfulUploadResponse } from 'src/file/dto/upload-flie.dto';
 import { throwBadRequestErrorCheck } from 'src/global/exceptions/error-logic';
-import { TransformInterceptor } from '../transform.interceptor';
 import {
   GetModifiedBoardingHouseSittingPriceDTO,
   GetModifiedDayCarePriceDTO,
@@ -387,6 +386,36 @@ export class AppointmentController {
     return await this.appointmentPaymentService.getAppointmentListsWithPaymentsForUser(
       userId,
       query,
+    );
+  }
+
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard)
+  @Put('/complete/:opk')
+  async completeAppointment(@Param('opk') opk: string, @Request() req: any) {
+    const userId = BigInt(req.user?.id) ?? BigInt(-1);
+    throwBadRequestErrorCheck(
+      !opk || opk == undefined,
+      'Invalid appointment opk. Please, try again after sometime with valid appointment opk.',
+    );
+    return this.appointmentProposalService.completeAppointment(userId, opk);
+  }
+
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard)
+  @Put('/recurring-billing/:opk')
+  async recurringAppointmentBilling(
+    @Param('opk') opk: string,
+    @Request() req: any,
+  ) {
+    const userId = BigInt(req.user?.id) ?? BigInt(-1);
+    throwBadRequestErrorCheck(
+      !opk || opk == undefined,
+      'Invalid appointment opk. Please, try again after sometime with valid appointment opk.',
+    );
+    return this.appointmentProposalService.recurringAppointmentBilling(
+      userId,
+      opk,
     );
   }
 }
