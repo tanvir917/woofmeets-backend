@@ -4,7 +4,7 @@ import {
   appointmentProposalEnum,
   appointmentStatusEnum,
   petTypeEnum,
-  Prisma
+  Prisma,
 } from '@prisma/client';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime';
 import axios from 'axios';
@@ -18,11 +18,11 @@ import { MulterFileUploadService } from 'src/file/multer-file-upload-service';
 import {
   DaysOfWeek,
   extractZoneSpecificDateWithFirstHourTime,
-  generateDays
+  generateDays,
 } from 'src/global';
 import {
   throwBadRequestErrorCheck,
-  throwNotFoundErrorCheck
+  throwNotFoundErrorCheck,
 } from 'src/global/exceptions/error-logic';
 import { convertToZoneSpecificDateTime } from 'src/global/time/time-coverters';
 import { MessagingProxyService } from 'src/messaging/messaging.service';
@@ -714,6 +714,9 @@ export class AppointmentProposalService {
               id: providerServiceId,
               deletedAt: null,
             },
+            include: {
+              ServiceHasRates: true,
+            },
           },
         },
       }),
@@ -722,6 +725,11 @@ export class AppointmentProposalService {
     throwNotFoundErrorCheck(!user, 'User not found');
 
     throwNotFoundErrorCheck(!provider, 'Provider not found.');
+
+    throwBadRequestErrorCheck(
+      provider?.providerServices?.[0]?.ServiceHasRates?.length === 0,
+      "Provider doesn't has all the rates of this service so can not book appointment now.",
+    );
 
     throwBadRequestErrorCheck(
       BigInt(providerId) == user?.provider?.id,
@@ -755,7 +763,6 @@ export class AppointmentProposalService {
       const checkOpk = await this.prismaService.appointment.findFirst({
         where: {
           opk,
-          deletedAt: null,
         },
       });
       if (checkOpk) {
@@ -776,7 +783,6 @@ export class AppointmentProposalService {
         {
           where: {
             invoiceNumber,
-            deletedAt: null,
           },
         },
       );
@@ -2023,10 +2029,12 @@ export class AppointmentProposalService {
     );
 
     // this condition is now block for frontend implementation & test purpose
-    // throwBadRequestErrorCheck(
-    //   lastDate?.date > serverProviderZoneTime,
-    //   'Appointment not finished yet',
-    // );
+    if (!this.secretService.getTwilioCreds().allowTest) {
+      throwBadRequestErrorCheck(
+        lastDate?.date > serverProviderZoneTime,
+        'Appointment not finished yet',
+      );
+    }
 
     const result = await this.prismaService.appointment.update({
       where: {
@@ -2086,16 +2094,6 @@ export class AppointmentProposalService {
       user?.id != appointment?.userId || appointment?.status !== 'PAID',
       'Only user can extend the recurring appointment which must be paid.',
     );
-
-    const lastDate = await this.prismaService.appointmentDates.findFirst({
-      where: {
-        appointmentId: appointment?.id,
-        deletedAt: null,
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
-    });
 
     const priceCalculation = await this.getProposalPrice(appointment?.opk);
 
