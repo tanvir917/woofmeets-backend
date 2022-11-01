@@ -140,7 +140,6 @@ export class AuthService {
       const checkOpk = await this.prismaService.user.findFirst({
         where: {
           opk,
-          deletedAt: null,
         },
       });
       if (checkOpk) {
@@ -234,7 +233,6 @@ export class AuthService {
         const checkOpk = await this.prismaService.user.findFirst({
           where: {
             opk,
-            deletedAt: null,
           },
         });
         if (checkOpk) {

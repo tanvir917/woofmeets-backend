@@ -1,6 +1,6 @@
 import { CACHE_MANAGER, Inject, Injectable } from '@nestjs/common';
 import axios from 'axios';
-import { Cache } from 'cache-manager';
+import Cache from 'cache-manager';
 import { PinoLogger } from 'nestjs-pino';
 import { throwNotFoundErrorCheck } from './global/exceptions/error-logic';
 import { SecretService } from './secret/secret.service';

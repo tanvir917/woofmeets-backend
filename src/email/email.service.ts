@@ -3,6 +3,7 @@ import { MailgunService } from '@nextnm/nestjs-mailgun';
 import { SecretService } from 'src/secret/secret.service';
 import { TestEmailDto } from './dto/test.email.dto';
 import { ForgetPasswordTemplate } from './template/forget-password.template.dto';
+import { PaymentAppointmentTemplate } from './template/paid-appointment.template';
 import { TempAppointmentTemplate } from './template/temp-appointment.tepmlate';
 import { UpdatePasswordTemplate } from './template/update-password.template.dto';
 
@@ -104,8 +105,8 @@ export class EmailService {
     );
   }
 
-  async appointmentPaymentEmail(email: string, status?: string) {
-    const content = new TempAppointmentTemplate(status).html();
+  async appointmentPaymentEmail(email: string, amount: number, txnId: string) {
+    const content = new PaymentAppointmentTemplate({ amount, txnId }).html();
     return this.mailgunService.createEmail(
       this.secretService.getMailgunCreds().domain,
       {
