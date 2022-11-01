@@ -126,6 +126,7 @@ enum appointmentStatusEnum {
   REJECTED
   CANCELLED
   PAID
+  COMPLETED
 }
 
 enum appointmentLengthTypeEnum {

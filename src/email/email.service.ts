@@ -3,6 +3,7 @@ import { MailgunService } from '@nextnm/nestjs-mailgun';
 import { SecretService } from 'src/secret/secret.service';
 import { TestEmailDto } from './dto/test.email.dto';
 import { ForgetPasswordTemplate } from './template/forget-password.template.dto';
+import { TempAppointmentTemplate } from './template/temp-appointment.tepmlate';
 import { UpdatePasswordTemplate } from './template/update-password.template.dto';
 
 @Injectable()
@@ -73,6 +74,71 @@ export class EmailService {
         to: email,
         subject: 'Your woofmeets journey begins from here.',
         template: 'signup_welcome',
+      },
+    );
+  }
+
+  async appointmentAcceptEmail(email: string, status?: string) {
+    const content = new TempAppointmentTemplate(status).html();
+    return this.mailgunService.createEmail(
+      this.secretService.getMailgunCreds().domain,
+      {
+        from: this.secretService.getMailgunCreds().from,
+        to: email,
+        subject: 'Appointment accepted notification',
+        html: content,
+      },
+    );
+  }
+
+  async appointmentCreationEmail(email: string, status?: string) {
+    const content = new TempAppointmentTemplate(status).html();
+    return this.mailgunService.createEmail(
+      this.secretService.getMailgunCreds().domain,
+      {
+        from: this.secretService.getMailgunCreds().from,
+        to: email,
+        subject: 'New appointment notification',
+        html: content,
+      },
+    );
+  }
+
+  async appointmentPaymentEmail(email: string, status?: string) {
+    const content = new TempAppointmentTemplate(status).html();
+    return this.mailgunService.createEmail(
+      this.secretService.getMailgunCreds().domain,
+      {
+        from: this.secretService.getMailgunCreds().from,
+        to: email,
+        subject: 'Appointment payment notification',
+        html: content,
+      },
+    );
+  }
+
+  async appointmentCancelEmail(email: string, status?: string) {
+    const content = new TempAppointmentTemplate(status).html();
+    return this.mailgunService.createEmail(
+      this.secretService.getMailgunCreds().domain,
+      {
+        from: this.secretService.getMailgunCreds().from,
+        to: email,
+        subject: 'Appointment cancelled notification',
+        html: content,
+      },
+    );
+  }
+
+  async appointmentCompleteEmail(email: string, status?: string) {
+    const content = new TempAppointmentTemplate(status).html();
+    return this.mailgunService.createEmail(
+      this.secretService.getMailgunCreds().domain,
+      {
+        from: this.secretService.getMailgunCreds().from,
+        to: email,
+        subject: 'Appointment completed notification',
+        html: content,
       },
     );
   }

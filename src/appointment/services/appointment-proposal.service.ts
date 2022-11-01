@@ -4,7 +4,7 @@ import {
   appointmentProposalEnum,
   appointmentStatusEnum,
   petTypeEnum,
-  Prisma,
+  Prisma
 } from '@prisma/client';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime';
 import axios from 'axios';
@@ -12,16 +12,17 @@ import { differenceInDays } from 'date-fns';
 import { toDate, utcToZonedTime } from 'date-fns-tz';
 import { PinoLogger } from 'nestjs-pino';
 import { CommonService } from 'src/common/common.service';
+import { EmailService } from 'src/email/email.service';
 import { SuccessfulUploadResponse } from 'src/file/dto/upload-flie.dto';
 import { MulterFileUploadService } from 'src/file/multer-file-upload-service';
 import {
   DaysOfWeek,
   extractZoneSpecificDateWithFirstHourTime,
-  generateDays,
+  generateDays
 } from 'src/global';
 import {
   throwBadRequestErrorCheck,
-  throwNotFoundErrorCheck,
+  throwNotFoundErrorCheck
 } from 'src/global/exceptions/error-logic';
 import { convertToZoneSpecificDateTime } from 'src/global/time/time-coverters';
 import { MessagingProxyService } from 'src/messaging/messaging.service';
@@ -37,7 +38,7 @@ import { PetsCheckDto } from '../dto/pet-check.dto';
 import { UpdateAppointmentProposalDto } from '../dto/update-appointment-proposal.dto';
 import {
   AppointmentProposalEnum,
-  AppointmentStatusEnum,
+  AppointmentStatusEnum
 } from '../helpers/appointment-enum';
 import {
   checkIfAnyDateHoliday,
@@ -45,7 +46,7 @@ import {
   generateDatesBetween,
   generateDatesFromProposalVisits,
   TimingType,
-  VisitType,
+  VisitType
 } from '../helpers/appointment-visits';
 
 @Injectable()
@@ -61,6 +62,7 @@ export class AppointmentProposalService {
     private readonly logger: PinoLogger,
     private readonly serviceRatesService: ServiceRatesService,
     private readonly stripeService: StripeDispatcherService,
+    private readonly emailService: EmailService,
   ) {
     this.logger.setContext(AppointmentProposalService.name);
   }
@@ -918,7 +920,15 @@ export class AppointmentProposalService {
       }),
     ]);
 
-    // TODO: Price calculation
+    /*
+     * Dispatch email notification
+     */
+    await this.emailService.appointmentCreationEmail(user?.email, 'PROPOSAL');
+    await this.emailService.appointmentCreationEmail(
+      provider?.user?.email,
+      'PROPOSAL',
+    );
+
     // TODO: Unavailability check
     return {
       message: 'Appointment proposal created successfully',
@@ -1107,6 +1117,12 @@ export class AppointmentProposalService {
           deletedAt: null,
         },
         include: {
+          user: true,
+          provider: {
+            include: {
+              user: true,
+            },
+          },
           appointmentProposal: {
             orderBy: {
               createdAt: 'desc',
@@ -1170,6 +1186,18 @@ export class AppointmentProposalService {
       ],
     );
 
+    /*
+     * Dispatch email notification
+     */
+    await this.emailService.appointmentAcceptEmail(
+      appointment?.user?.email,
+      'ACCEPTED',
+    );
+    await this.emailService.appointmentAcceptEmail(
+      appointment?.provider?.user?.email,
+      'ACCEPTED',
+    );
+
     return {
       message: 'Appointment accepted successfully.',
       data: updatedAppointment,
@@ -1204,6 +1232,7 @@ export class AppointmentProposalService {
           deletedAt: null,
         },
         include: {
+          user: true,
           appointmentProposal: {
             orderBy: {
               createdAt: 'desc',
@@ -1236,6 +1265,7 @@ export class AppointmentProposalService {
           },
           provider: {
             select: {
+              user: true,
               cancellationPolicy: true,
             },
           },
@@ -1441,6 +1471,19 @@ export class AppointmentProposalService {
           },
         });
       }
+
+      /*
+       * Dispatch email notification
+       */
+      await this.emailService.appointmentCancelEmail(
+        appointment?.user?.email,
+        'CANCELLED',
+      );
+      await this.emailService.appointmentCancelEmail(
+        appointment?.provider?.user?.email,
+        'CANCELLED',
+      );
+
       return {
         message: 'Appointment cancelled successfully.',
         data: updatedAppointment,
@@ -1920,5 +1963,162 @@ export class AppointmentProposalService {
     };
 
     return result;
+  }
+
+  async completeAppointment(userId: bigint, opk: string) {
+    const [user, appointment] = await this.prismaService.$transaction([
+      this.prismaService.user.findFirst({
+        where: {
+          id: userId,
+          deletedAt: null,
+        },
+      }),
+      this.prismaService.appointment.findFirst({
+        where: {
+          opk,
+          deletedAt: null,
+        },
+        include: {
+          provider: {
+            include: {
+              user: true,
+            },
+          },
+        },
+      }),
+    ]);
+
+    throwNotFoundErrorCheck(!user, 'User not found.');
+    throwNotFoundErrorCheck(!appointment, 'Appointment not found.');
+    throwBadRequestErrorCheck(
+      appointment?.status === 'COMPLETED',
+      'Appointment is already completed.',
+    );
+
+    throwBadRequestErrorCheck(
+      appointment?.status !== 'PROPOSAL' && appointment?.status !== 'PAID',
+      'Apointment is not in completed state',
+    );
+
+    throwBadRequestErrorCheck(
+      user?.id != appointment?.userId,
+      'Only user can complete the appointment.',
+    );
+
+    const lastDate = await this.prismaService.appointmentDates.findFirst({
+      where: {
+        appointmentId: appointment?.id,
+        deletedAt: null,
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    const serverProviderZoneTime = utcToZonedTime(
+      toDate(new Date(), {
+        timeZone: appointment?.providerTimeZone,
+      }),
+      appointment?.providerTimeZone,
+    );
+
+    // this condition is now block for frontend implementation & test purpose
+    // throwBadRequestErrorCheck(
+    //   lastDate?.date > serverProviderZoneTime,
+    //   'Appointment not finished yet',
+    // );
+
+    const result = await this.prismaService.appointment.update({
+      where: {
+        opk,
+      },
+      data: {
+        status: appointmentStatusEnum.COMPLETED,
+        endOfLife: new Date(),
+        lastStatusChangedBy: 'USER',
+      },
+    });
+
+    /*
+     * Dispatch email notification
+     */
+    await this.emailService.appointmentCompleteEmail(
+      appointment?.provider?.user?.email,
+      'COMPLETED',
+    );
+
+    return {
+      message: 'Appointment completed successfully',
+      data: result,
+    };
+  }
+
+  async recurringAppointmentBilling(userId: bigint, opk: string) {
+    const [user, appointment] = await this.prismaService.$transaction([
+      this.prismaService.user.findFirst({
+        where: {
+          id: userId,
+          deletedAt: null,
+        },
+      }),
+      this.prismaService.appointment.findFirst({
+        where: {
+          opk,
+          deletedAt: null,
+        },
+        include: {
+          appointmentProposal: {
+            orderBy: {
+              createdAt: 'desc',
+            },
+          },
+        },
+      }),
+    ]);
+
+    throwNotFoundErrorCheck(!user, 'User not found.');
+    throwNotFoundErrorCheck(!appointment, 'Appointment not found.');
+    throwNotFoundErrorCheck(
+      !appointment?.appointmentProposal[0]?.isRecurring,
+      'Appointment is not recurring.',
+    );
+    throwBadRequestErrorCheck(
+      user?.id != appointment?.userId || appointment?.status !== 'PAID',
+      'Only user can extend the recurring appointment which must be paid.',
+    );
+
+    const lastDate = await this.prismaService.appointmentDates.findFirst({
+      where: {
+        appointmentId: appointment?.id,
+        deletedAt: null,
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    const priceCalculation = await this.getProposalPrice(appointment?.opk);
+
+    const billing = await this.prismaService.billing.create({
+      data: {
+        appointmentId: appointment?.id,
+        totalDayCount: priceCalculation?.formatedDatesByZone?.length,
+        subtotal: Number(priceCalculation?.subTotal),
+        serviceCharge: Number(
+          (
+            (Number(priceCalculation?.subTotal) *
+              priceCalculation?.serviceChargeInParcentage) /
+            100
+          ).toFixed(2),
+        ),
+        serviceChargePercentage: priceCalculation?.serviceChargeInParcentage,
+        total: Number(priceCalculation?.total),
+      },
+    });
+
+    return {
+      message: 'Recurring appointment billing generated successfully',
+      data: billing,
+    };
   }
 }
