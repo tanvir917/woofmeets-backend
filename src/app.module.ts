@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { CacheModule, Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { SwaggerModule } from '@nestjs/swagger';
 import { LoggerModule } from 'nestjs-pino';
@@ -55,6 +55,10 @@ import { ReviewModule } from './review/review.module';
     }),
     SecretModule,
     LoggerModule.forRootAsync(ASYNC_LOGGER_CONFIG),
+    CacheModule.register({
+      ttl: 5000,
+      max: 100,
+    }),
     SwaggerModule,
     GlobalModule,
     PrismaModule,

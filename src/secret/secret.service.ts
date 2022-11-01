@@ -134,6 +134,13 @@ export class SecretService {
        */
 
       CRYPTO_SECRET: this.configService.get<string>('CRYPTO_SECRET'),
+
+      /**
+       * Map Secret variable
+       */
+      PUBLIC_GOOGLE_MAP_KEY: this.configService.get<string>(
+        'PUBLIC_GOOGLE_MAP_KEY',
+      ),
     };
 
     this.#environment = plainToInstance(EnvironmentVariable, env);
@@ -264,6 +271,10 @@ export class SecretService {
     return {
       secret: this.#environment.CRYPTO_SECRET,
     };
+  }
+
+  getGoogleMapsKey() {
+    return this.#environment.PUBLIC_GOOGLE_MAP_KEY;
   }
 
   // getCheckrCreds() {

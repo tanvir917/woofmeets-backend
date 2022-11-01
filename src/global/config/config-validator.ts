@@ -227,6 +227,10 @@ export class EnvironmentVariable {
   @IsNotEmpty()
   @IsString()
   CRYPTO_SECRET: string;
+
+  @IsNotEmpty()
+  @IsString()
+  PUBLIC_GOOGLE_MAP_KEY: string;
 }
 
 export function validateEnvironmentVariables(
