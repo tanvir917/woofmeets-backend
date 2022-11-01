@@ -60,6 +60,7 @@
     "aws-sdk": "^2.1195.0",
     "axios": "^0.27.2",
     "bcrypt": "^5.0.1",
+    "cache-manager": "^4.0.0",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.13.2",
     "clone-buffer": "^1.0.0",
