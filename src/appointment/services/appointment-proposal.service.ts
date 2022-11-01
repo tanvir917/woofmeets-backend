@@ -4,7 +4,7 @@ import {
   appointmentProposalEnum,
   appointmentStatusEnum,
   petTypeEnum,
-  Prisma,
+  Prisma
 } from '@prisma/client';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime';
 import axios from 'axios';
@@ -18,16 +18,15 @@ import { MulterFileUploadService } from 'src/file/multer-file-upload-service';
 import {
   DaysOfWeek,
   extractZoneSpecificDateWithFirstHourTime,
-  generateDays,
+  generateDays
 } from 'src/global';
 import {
   throwBadRequestErrorCheck,
-  throwNotFoundErrorCheck,
+  throwNotFoundErrorCheck
 } from 'src/global/exceptions/error-logic';
 import { convertToZoneSpecificDateTime } from 'src/global/time/time-coverters';
 import { MessagingProxyService } from 'src/messaging/messaging.service';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { ProviderServicesService } from 'src/provider-services/provider-services.service';
 import { SecretService } from 'src/secret/secret.service';
 import { ServiceRatesService } from 'src/service-rates/service-rates.service';
 import { StripeDispatcherService } from 'src/stripe/stripe.dispatcher.service';
@@ -38,7 +37,7 @@ import { PetsCheckDto } from '../dto/pet-check.dto';
 import { UpdateAppointmentProposalDto } from '../dto/update-appointment-proposal.dto';
 import {
   AppointmentProposalEnum,
-  AppointmentStatusEnum,
+  AppointmentStatusEnum
 } from '../helpers/appointment-enum';
 import {
   checkIfAnyDateHoliday,
@@ -46,7 +45,7 @@ import {
   generateDatesBetween,
   generateDatesFromProposalVisits,
   TimingType,
-  VisitType,
+  VisitType
 } from '../helpers/appointment-visits';
 
 @Injectable()
@@ -54,7 +53,6 @@ export class AppointmentProposalService {
   constructor(
     private readonly prismaService: PrismaService,
     private readonly commonService: CommonService,
-    private readonly providerServicesService: ProviderServicesService,
     private readonly secretService: SecretService,
     private readonly messageService: MessagingProxyService,
     private readonly multerFileUploadService: MulterFileUploadService,
@@ -76,15 +74,58 @@ export class AppointmentProposalService {
   async getProviderServices(opk: string) {
     const user = await this.prismaService.user.findFirst({
       where: { opk, deletedAt: null },
+      include: {
+        provider: true,
+      },
     });
 
     throwNotFoundErrorCheck(!user, 'Provider not found.');
+    throwNotFoundErrorCheck(!user?.provider, 'Provider not found.');
 
-    const providerService = await this.providerServicesService.findAll(
-      user?.id,
+    const providerServices = await this.prismaService.providerServices.findMany(
+      {
+        where: {
+          providerId: user.provider.id,
+          isApproved: true,
+          deletedAt: null,
+        },
+        include: {
+          serviceType: {
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+              displayName: true,
+              description: true,
+              icon: true,
+              sequence: true,
+              appRequired: true,
+            },
+          },
+          ServiceHasRates: true,
+          AvailableDay: true,
+        },
+        orderBy: {
+          createdAt: 'asc',
+        },
+      },
     );
 
-    return providerService;
+    throwNotFoundErrorCheck(
+      !providerServices.length,
+      'Provider service list not found',
+    );
+
+    const filterProviderServices = providerServices.filter((item) => {
+      if (item?.AvailableDay?.length > 0 && item?.ServiceHasRates?.length > 0) {
+        return item;
+      }
+    });
+
+    return {
+      message: 'Provider services found successfully',
+      data: filterProviderServices,
+    };
   }
 
   async getProviderServiceAdditionalRates(opk: string) {
