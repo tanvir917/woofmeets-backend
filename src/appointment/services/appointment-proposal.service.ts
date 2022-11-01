@@ -2164,7 +2164,10 @@ export class AppointmentProposalService {
 
     return {
       message: 'Recurring appointment billing generated successfully',
-      data: billing,
+      data: {
+        billing,
+        priceCalculation,
+      },
     };
   }
 }
