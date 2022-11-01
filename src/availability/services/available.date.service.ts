@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { isSameDay, isBefore, isAfter } from 'date-fns';
+import { isSameDay, isBefore, isAfter, addDays } from 'date-fns';
 import { formatInTimeZone } from 'date-fns-tz';
 import {
   throwBadRequestErrorCheck,
@@ -9,6 +9,7 @@ import {
   extractZoneSpecificDateWithFirstHourTime,
   isSameDate,
 } from 'src/global/time/time-coverters';
+import { generateDatesFromAndTo } from 'src/global/time/time-generators';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateAvailableDateDto } from '../dto/create-date.dto';
 
@@ -90,79 +91,70 @@ export class AvailableDateService {
     const toD = new Date(till);
     const dates = [];
 
-    for (let day = fromD; day <= toD; day.setDate(day.getDate() + 1)) {
-      const d = new Date(day).toISOString();
-      // make all possible combination of date and service id
+    const dateRange = generateDatesFromAndTo(parsedFromDate, parsedToDate, []);
+
+    for (var date of dateRange) {
       serviceList.map((s) => {
         dates.push({
-          date: new Date(
-            extractZoneSpecificDateWithFirstHourTime(
-              new Date(d),
-              timezone ?? 'America/New_York',
-            ),
-          ),
+          date,
           serviceId: s,
           userId,
         });
       });
     }
 
-    const unavailableDates = await this.prismaService.unavailability.updateMany(
-      {
+    const dateMaker = (date: Date, add: number = 0) => {
+      return addDays(
+        new Date(
+          extractZoneSpecificDateWithFirstHourTime(
+            date,
+            timezone ?? 'America/New_York',
+          ),
+        ),
+        add,
+      );
+    };
+
+    const [minDate, maxDate] = [
+      dateMaker(parsedFromDate, 0),
+      dateMaker(parsedToDate, 1),
+    ];
+
+    await this.prismaService.$transaction([
+      this.prismaService.unavailability.updateMany({
         data: {
           deletedAt: new Date(),
         },
         where: {
           deletedAt: null,
           date: {
-            gte: new Date(
-              extractZoneSpecificDateWithFirstHourTime(
-                new Date(from),
-                timezone ?? 'America/New_York',
-              ),
-            ),
-            lte: new Date(
-              extractZoneSpecificDateWithFirstHourTime(
-                new Date(till),
-                timezone ?? 'America/New_York',
-              ),
-            ),
+            gte: minDate,
+            lte: maxDate,
           },
           serviceId: {
             in: serviceList,
           },
         },
-      },
-    );
-    const delAvailable = await this.prismaService.availableDate.updateMany({
-      where: {
-        date: {
-          gte: new Date(
-            extractZoneSpecificDateWithFirstHourTime(
-              new Date(from),
-              timezone ?? 'America/New_York',
-            ),
-          ),
-          lte: new Date(
-            extractZoneSpecificDateWithFirstHourTime(
-              new Date(till),
-              timezone ?? 'America/New_York',
-            ),
-          ),
+      }),
+      this.prismaService.availableDate.updateMany({
+        where: {
+          date: {
+            gte: minDate,
+            lte: maxDate,
+          },
+          serviceId: {
+            in: serviceList,
+          },
+          deletedAt: null,
         },
-        serviceId: {
-          in: serviceList,
+        data: {
+          deletedAt: new Date(),
         },
-        deletedAt: null,
-      },
-      data: {
-        deletedAt: new Date(),
-      },
-    });
-
-    const availableDates = await this.prismaService.availableDate.createMany({
-      data: dates,
-    });
+      }),
+      this.prismaService.availableDate.createMany({
+        data: dates,
+      }),
+    ]);
 
     return {
       message: 'Availability created successfully.',
