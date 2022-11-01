@@ -1194,6 +1194,7 @@ model AppointmentBillingPayments {
   billing      Billing   @relation(fields: [billingId], references: [id])
   paidByUserId BigInt
   paidByUser   User      @relation(fields: [paidByUserId], references: [id])
+  txnId        String?   @unique
   piId         String    @unique
   chargeId     String?
   amount       Float?

@@ -8,9 +8,16 @@ import { StripeConnectWebhooksService } from './stripe-connect-webhooks.service'
 import { StripeService } from './stripe.service';
 import { AppointmentModule } from '../appointment/appointment.module';
 import { StripeDispatcherService } from './stripe.dispatcher.service';
+import { EmailModule } from '../email/email.module';
 
 @Module({
-  imports: [PrismaModule, SecretModule, CheckrModule, AppointmentModule],
+  imports: [
+    PrismaModule,
+    SecretModule,
+    CheckrModule,
+    AppointmentModule,
+    EmailModule,
+  ],
   controllers: [StripeController],
   providers: [
     StripeWebhooksService,

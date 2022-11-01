@@ -2,6 +2,7 @@ import { HttpStatus, Injectable } from '@nestjs/common';
 import { nextSunday } from 'date-fns';
 import Stripe from 'stripe';
 import { AppointmentProposalService } from '../appointment/services/appointment-proposal.service';
+import { EmailService } from '../email/email.service';
 import { throwBadRequestErrorCheck } from '../global/exceptions/error-logic';
 import { PrismaService } from '../prisma/prisma.service';
 import { SecretService } from '../secret/secret.service';
@@ -19,6 +20,7 @@ export class StripeWebhooksService {
     private prismaService: PrismaService,
     private secretService: SecretService,
     private appointmentProposalService: AppointmentProposalService,
+    private emailService: EmailService,
   ) {
     this.stripe = new Stripe(this.secretService.getStripeCreds().secretKey, {
       apiVersion: this.secretService.getStripeCreds().apiVersion,
@@ -335,6 +337,12 @@ export class StripeWebhooksService {
         include: {
           appointment: {
             include: {
+              user: true,
+              provider: {
+                include: {
+                  user: true,
+                },
+              },
               appointmentProposal: {
                 orderBy: {
                   createdAt: 'desc',
@@ -347,30 +355,42 @@ export class StripeWebhooksService {
 
       throwBadRequestErrorCheck(!billing, 'Billing not found');
 
-      await this.prismaService.$transaction([
-        this.prismaService.appointmentBillingPayments.update({
-          where: { id: appointmentBillingPayments?.id },
-          data: {
-            chargeId: id,
-            status: status,
-            src: Object(payment_method_details),
-            billingDate: new Date(),
-          },
-        }),
-        this.prismaService.billing.update({
-          where: { id: BigInt(billingId) },
-          data: {
-            paid: true,
-            paymentStatus: 'paid',
-          },
-        }),
-        this.prismaService.appointment.update({
-          where: { id: billing?.appointmentId },
-          data: {
-            status: 'PAID',
-          },
-        }),
-      ]);
+      const [appointmentBillingPayment] = await this.prismaService.$transaction(
+        [
+          this.prismaService.appointmentBillingPayments.update({
+            where: { id: appointmentBillingPayments?.id },
+            data: {
+              chargeId: id,
+              status: status,
+              src: Object(payment_method_details),
+              billingDate: new Date(),
+            },
+          }),
+          this.prismaService.billing.update({
+            where: { id: BigInt(billingId) },
+            data: {
+              paid: true,
+              paymentStatus: 'paid',
+            },
+          }),
+          this.prismaService.appointment.update({
+            where: { id: billing?.appointmentId },
+            data: {
+              status: 'PAID',
+            },
+          }),
+        ],
+      );
+
+      // Send email to user and provider for successful payments
+      this.emailService.appointmentPaymentEmail(
+        billing?.appointment?.user?.email,
+        appointmentBillingPayment?.amount,
+        appointmentBillingPayment?.txnId,
+      );
+      this.emailService.appointmentPaymentForProviderEmail(
+        billing?.appointment?.provider?.user?.email,
+      );
 
       const date = await this.appointmentProposalService.getProposalPrice(
         billing?.appointment?.opk,

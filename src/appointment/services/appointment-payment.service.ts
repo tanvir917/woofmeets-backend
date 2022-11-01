@@ -1,5 +1,6 @@
-import { HttpStatus, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import Stripe from 'stripe';
+import { CommonService } from '../../common/common.service';
 import {
   throwBadRequestErrorCheck,
   throwConflictErrorCheck,
@@ -14,6 +15,7 @@ export class AppointmentPaymentService {
   constructor(
     private prismaService: PrismaService,
     private secretService: SecretService,
+    private commonService: CommonService,
   ) {
     this.stripe = new Stripe(this.secretService.getStripeCreds().secretKey, {
       apiVersion: this.secretService.getStripeCreds().apiVersion,
@@ -114,7 +116,52 @@ export class AppointmentPaymentService {
       if (prevPayments?.status === 'succeeded') {
         throwBadRequestErrorCheck(true, 'Payment already done');
       } else {
-        throwConflictErrorCheck(true, 'Payment failed. Please try again.');
+        switch (paymentIntent.status) {
+          case 'succeeded':
+            return {
+              message: 'Payment successful',
+              data: {
+                requiresAction: false,
+              },
+            };
+          case 'requires_action':
+            return {
+              message: 'Payment requires action.',
+              data: {
+                requiresAction: true,
+                clientSecret: paymentIntent?.client_secret,
+              },
+            };
+          case 'processing':
+            return {
+              message: 'Payment already processing. Please wait some time.',
+              data: {
+                requiresAction: false,
+              },
+            };
+          default:
+            throwConflictErrorCheck(true, 'Payment failed. Please try again.');
+        }
+      }
+    }
+
+    /**
+     * TxnId generation
+     */
+
+    let txnNumber = this.commonService.getInvoiceNumber();
+    let txnNumberGenerated = false;
+    while (!txnNumberGenerated) {
+      const checkTxnNumber =
+        await this.prismaService.appointmentBillingPayments.findFirst({
+          where: {
+            txnId: txnNumber,
+          },
+        });
+      if (checkTxnNumber) {
+        txnNumber = this.commonService.getInvoiceNumber();
+      } else {
+        txnNumberGenerated = true;
       }
     }
 
@@ -122,6 +169,7 @@ export class AppointmentPaymentService {
       data: {
         billingId: billing?.id,
         paidByUserId: user?.id,
+        txnId: txnNumber,
         piId: paymentIntent?.id,
         amount: paymentIntent?.amount / 100,
         payerEmail: user?.email,
@@ -144,6 +192,13 @@ export class AppointmentPaymentService {
         data: {
           requiresAction: true,
           clientSecret: paymentIntent?.client_secret,
+        },
+      };
+    } else if (paymentIntent?.status === 'processing') {
+      return {
+        message: 'Payment processing. Please wait some time.',
+        data: {
+          requiresAction: false,
         },
       };
     }
