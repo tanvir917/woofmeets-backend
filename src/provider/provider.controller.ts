@@ -96,4 +96,16 @@ export class ProviderController {
   async completeUserOnboarding(@Body() body: ProviderCreationDto) {
     return this.providerCreationService.seed(body);
   }
+
+  @ApiOperation({
+    summary: 'Get provider unavailability.',
+  })
+  @Get('/unavailability/:opk')
+  async getUnavailability(@Param('opk') opk: string) {
+    throwBadRequestErrorCheck(
+      !opk || opk == undefined,
+      'Invalid user opk. Please, try again after sometime with valid user opk.',
+    );
+    return this.providerService.getUnavailability(opk);
+  }
 }

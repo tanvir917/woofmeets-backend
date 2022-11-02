@@ -311,8 +311,7 @@ export class ZoomService {
       where: { id: userId, deletedAt: null },
       select: {
         provider: {
-          select: {
-            id: true,
+          include: {
             zoomInfo: true,
           },
         },
@@ -320,6 +319,15 @@ export class ZoomService {
     });
 
     throwNotFoundErrorCheck(!user?.provider, 'Provider not found.');
+
+    // Subscription type check of provider
+    if (!this.secretService.getTwilioCreds().allowTest) {
+      throwBadRequestErrorCheck(
+        user?.provider?.subscriptionType == 'BASIC' ||
+          user?.provider?.subscriptionType == 'NONE',
+        'Upgrade subscription type to unlock this feature.',
+      );
+    }
 
     const url =
       'https://zoom.us/oauth/token?grant_type=authorization_code&code=' +
@@ -382,7 +390,7 @@ export class ZoomService {
       where: { id: userId, deletedAt: null },
       select: {
         provider: {
-          select: {
+          include: {
             zoomInfo: true,
           },
         },
@@ -390,6 +398,14 @@ export class ZoomService {
     });
 
     throwBadRequestErrorCheck(!user?.provider, 'Provider not found.');
+    // Subscription type check of provider
+    if (!this.secretService.getTwilioCreds().allowTest) {
+      throwBadRequestErrorCheck(
+        user?.provider?.subscriptionType == 'BASIC' ||
+          user?.provider?.subscriptionType == 'NONE',
+        'Upgrade subscription type to unlock this feature.',
+      );
+    }
     throwBadRequestErrorCheck(
       !user?.provider?.zoomInfo?.refreshToken ||
         user?.provider?.zoomInfo?.refreshToken?.length <= 0,
