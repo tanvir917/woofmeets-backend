@@ -1,13 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
+import { isBefore } from 'date-fns';
 import { AvailabilityGetServcie } from 'src/availability/services/availability.get.service';
-import { PrismaService } from 'src/prisma/prisma.service';
-import { SearchProviderDto } from './dto/search.provider.dto';
-import { addDays, isBefore } from 'date-fns';
 import {
   throwBadRequestErrorCheck,
   throwNotFoundErrorCheck,
 } from 'src/global/exceptions/error-logic';
+import { PrismaService } from 'src/prisma/prisma.service';
+import { SearchProviderDto } from './dto/search.provider.dto';
 
 @Injectable()
 export class ProviderListService {
@@ -97,7 +97,7 @@ export class ProviderListService {
       'End date can not be less than start date!',
     );
 
-    const sql = `select ST_DistanceSphere(ST_MakePoint(p.longitude, p.latitude), ST_MakePoint(${long}, ${lat})) / 1000 as distance, ps."id" as id from "ProviderServices" as ps inner join "Provider" as p on ps."providerId" = p.id WHERE ps."serviceTypeId" = ${serviceId} ${rawWhere} group by p.id, ps.id having (ST_DistanceSphere(ST_MakePoint(p.longitude, p.latitude), ST_MakePoint(${long}, ${lat})) / 1000) < 30 ORDER BY distance asc`;
+    const sql = `select ST_DistanceSphere(ST_MakePoint(p.longitude, p.latitude), ST_MakePoint(${long}, ${lat})) / 1000 as distance, ps."id" as id from "ProviderServices" as ps inner join "Provider" as p on ps."providerId" = p.id WHERE ps."serviceTypeId" = ${serviceId} ${rawWhere} group by p.id, ps.id having (ST_DistanceSphere(ST_MakePoint(p.longitude, p.latitude), ST_MakePoint(${long}, ${lat})) / 1000) < 50 ORDER BY distance asc`;
     // console.log(sql);
     const raw = await this.prismaService.$queryRaw<
       {

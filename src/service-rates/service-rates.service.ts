@@ -125,7 +125,15 @@ export class ServiceRatesService {
         deletedAt: null,
       },
       include: {
-        service: true,
+        service: {
+          include: {
+            provider: {
+              select: {
+                subscriptionType: true,
+              },
+            },
+          },
+        },
         serviceTypeRate: {
           include: {
             serviceRateType: {
