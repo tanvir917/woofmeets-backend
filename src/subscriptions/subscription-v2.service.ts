@@ -915,7 +915,7 @@ export class SubscriptionV2Service {
             return {
               message: 'Payment requires action',
               data: {
-                requiresAction: false,
+                requiresAction: true,
                 clientSecret: clientSecret,
               },
             };
