@@ -1360,6 +1360,120 @@ export class SubscriptionV2Service {
     };
   }
 
+  async getUserCurrentSubscriptionV2(userId: bigint) {
+    const user = await this.prismaService.user.findFirst({
+      where: {
+        id: userId,
+        deletedAt: null,
+      },
+      include: {
+        provider: true,
+        userSubscriptions: {
+          where: {
+            status: 'active',
+          },
+          select: {
+            id: true,
+            userId: true,
+            cardId: true,
+            currency: true,
+            currentPeriodStart: true,
+            currentPeriodEnd: true,
+            status: true,
+            paymentStatus: true,
+            meta: true,
+            membershipPlanPrice: {
+              include: {
+                membershipPlan: true,
+              },
+            },
+          },
+          orderBy: {
+            createdAt: 'desc',
+          },
+        },
+      },
+    });
+
+    throwBadRequestErrorCheck(!user, 'User not found');
+
+    const paymentChecker = await this.checkUserSubsOrSignupPayment(user?.id);
+
+    if (!user?.userSubscriptions?.length) {
+      if (paymentChecker) {
+        const priceObject =
+          await this.prismaService.membershipPlanPrices.findFirst({
+            where: {
+              membershipPlan: {
+                slug: SubscriptionPlanSlugs.BASIC,
+              },
+              deletedAt: null,
+            },
+          });
+
+        throwBadRequestErrorCheck(!priceObject, 'Price not found');
+
+        const endDate: Date = new Date();
+        endDate.setMonth(endDate.getMonth() + 60);
+        const [userSubs, provider] = await this.prismaService.$transaction([
+          this.prismaService.userSubscriptions.create({
+            data: {
+              userId: userId,
+              membershipPlanPriceId: priceObject.id,
+              status: SubscriptionStatusEnum.active,
+              paymentStatus: 'paid',
+              currentPeriodStart: new Date(),
+              currentPeriodEnd: endDate,
+              currency: 'usd',
+            },
+            select: {
+              id: true,
+              userId: true,
+              cardId: true,
+              currency: true,
+              currentPeriodStart: true,
+              currentPeriodEnd: true,
+              status: true,
+              paymentStatus: true,
+              meta: true,
+              membershipPlanPrice: {
+                include: {
+                  membershipPlan: true,
+                },
+              },
+            },
+          }),
+          this.prismaService.provider.update({
+            where: {
+              userId: userId,
+            },
+            data: {
+              subscriptionType: 'BASIC',
+            },
+          }),
+        ]);
+
+        return {
+          message: 'User current subscription.',
+          data: {
+            subscriptionType: provider?.subscriptionType,
+            subscriptionInfo: userSubs,
+          },
+        };
+      } else {
+        throwBadRequestErrorCheck(true, 'No subscription found');
+      }
+    }
+
+    return {
+      message: 'User current subscription.',
+      data: {
+        subscriptionType: user?.provider?.subscriptionType,
+        subscriptionInfo: user?.userSubscriptions[0],
+      },
+    };
+  }
+
   async cancelUserSubscription(userId: bigint, subscriptionId: bigint) {
     throwBadRequestErrorCheck(!subscriptionId, 'Subscription id is required');
 

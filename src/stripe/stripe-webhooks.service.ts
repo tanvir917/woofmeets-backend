@@ -492,7 +492,10 @@ export class StripeWebhooksService {
 
       let providerPercentage = 0;
 
-      if (provider?.subscriptionType === 'BASIC') {
+      if (
+        provider?.subscriptionType === 'BASIC' ||
+        provider?.subscriptionType === 'NONE'
+      ) {
         providerPercentage = 91;
       } else if (provider?.subscriptionType === 'GOLD') {
         providerPercentage = 98;
