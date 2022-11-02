@@ -1,5 +1,8 @@
 import { Injectable } from '@nestjs/common';
-import { throwNotFoundErrorCheck } from 'src/global/exceptions/error-logic';
+import {
+  throwBadRequestErrorCheck,
+  throwNotFoundErrorCheck,
+} from 'src/global/exceptions/error-logic';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { latlongDistanceCalculator } from 'src/utils/tools';
 
@@ -172,6 +175,16 @@ export class ProviderService {
       }),
     ]);
 
+    const petHandled = await this.prismaService.appointmentPet.count({
+      where: {
+        appointment: {
+          providerId: providerUser?.provider?.id,
+          status: 'COMPLETED',
+          deletedAt: null,
+        },
+      },
+    });
+
     return {
       message: 'Provider details found successfully',
       data: {
@@ -213,8 +226,8 @@ export class ProviderService {
                 : null,
             experience:
               providerUser?.provider?.providerDetails?.yearsOfExperience,
-            petHandled: null,
-            reviewsCount: null,
+            petHandled,
+            reviewsCount: reviewStatistics?._count?.id ?? 0,
           },
           about: providerUser?.provider?.providerDetails?.about,
           skills: providerUser?.provider?.providerSkills,
@@ -227,6 +240,43 @@ export class ProviderService {
         },
         reviews,
         recomendedSitters: [],
+      },
+    };
+  }
+
+  async getUnavailability(opk: string) {
+    const user = await this.prismaService.user.findFirst({
+      where: {
+        opk,
+        deletedAt: null,
+      },
+      include: {
+        provider: true,
+      },
+    });
+
+    throwBadRequestErrorCheck(!user || !user?.provider, 'Provider not found.');
+
+    const appoinntmentDates =
+      await this.prismaService.appointmentDates.findMany({
+        where: {
+          appointment: {
+            providerId: user?.provider?.id,
+            deletedAt: null,
+          },
+          paymentStatus: 'PAID',
+          deletedAt: null,
+        },
+      });
+
+    const unavailability = appoinntmentDates?.map((item) => {
+      return item?.date?.toISOString();
+    });
+
+    return {
+      message: 'Provder unavailability found successfully.',
+      data: {
+        unavailability: [...new Set(unavailability)],
       },
     };
   }
