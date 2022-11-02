@@ -125,6 +125,18 @@ export class SecretService {
       APPOINTMENT_SERVICE_CHARGE_PERCENTAGE: this.configService.get<number>(
         'APPOINTMENT_SERVICE_CHARGE_PERCENTAGE',
       ),
+      APPOINTMENT_PROVIDER_CHARGE_PERCENTAGE_BASIC:
+        this.configService.get<number>(
+          'APPOINTMENT_PROVIDER_CHARGE_PERCENTAGE_BASIC',
+        ),
+      APPOINTMENT_PROVIDER_CHARGE_PERCENTAGE_GOLD:
+        this.configService.get<number>(
+          'APPOINTMENT_PROVIDER_CHARGE_PERCENTAGE_GOLD',
+        ),
+      APPOINTMENT_PROVIDER_CHARGE_PERCENTAGE_PLATINUM:
+        this.configService.get<number>(
+          'APPOINTMENT_PROVIDER_CHARGE_PERCENTAGE_PLATINUM',
+        ),
       APPOINTMENT_REFUND_PERCENTAGE: this.configService.get<number>(
         'APPOINTMENT_REFUND_PERCENTAGE',
       ),
@@ -263,6 +275,12 @@ export class SecretService {
       invoiceNumberLength: this.#environment.APPOINTMENT_INVOICE_NUMBER_LENGTH,
       serviceChargePercentage:
         this.#environment.APPOINTMENT_SERVICE_CHARGE_PERCENTAGE,
+      providerChargeParcentageBasic:
+        this.#environment.APPOINTMENT_PROVIDER_CHARGE_PERCENTAGE_BASIC,
+      providerChargeParcentageGold:
+        this.#environment.APPOINTMENT_PROVIDER_CHARGE_PERCENTAGE_GOLD,
+      providerChargeParcentagePlatinum:
+        this.#environment.APPOINTMENT_PROVIDER_CHARGE_PERCENTAGE_PLATINUM,
       refundPercentage: this.#environment.APPOINTMENT_REFUND_PERCENTAGE,
     };
   }

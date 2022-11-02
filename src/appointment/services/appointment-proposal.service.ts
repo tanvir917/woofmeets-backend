@@ -4,7 +4,8 @@ import {
   appointmentProposalEnum,
   appointmentStatusEnum,
   petTypeEnum,
-  Prisma
+  Prisma,
+  subscriptionTypeEnum,
 } from '@prisma/client';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime';
 import axios from 'axios';
@@ -18,11 +19,11 @@ import { MulterFileUploadService } from 'src/file/multer-file-upload-service';
 import {
   DaysOfWeek,
   extractZoneSpecificDateWithFirstHourTime,
-  generateDays
+  generateDays,
 } from 'src/global';
 import {
   throwBadRequestErrorCheck,
-  throwNotFoundErrorCheck
+  throwNotFoundErrorCheck,
 } from 'src/global/exceptions/error-logic';
 import { convertToZoneSpecificDateTime } from 'src/global/time/time-coverters';
 import { MessagingProxyService } from 'src/messaging/messaging.service';
@@ -37,7 +38,7 @@ import { PetsCheckDto } from '../dto/pet-check.dto';
 import { UpdateAppointmentProposalDto } from '../dto/update-appointment-proposal.dto';
 import {
   AppointmentProposalEnum,
-  AppointmentStatusEnum
+  AppointmentStatusEnum,
 } from '../helpers/appointment-enum';
 import {
   checkIfAnyDateHoliday,
@@ -45,7 +46,7 @@ import {
   generateDatesBetween,
   generateDatesFromProposalVisits,
   TimingType,
-  VisitType
+  VisitType,
 } from '../helpers/appointment-visits';
 
 @Injectable()
@@ -1689,6 +1690,11 @@ export class AppointmentProposalService {
             createdAt: 'desc',
           },
         },
+        provider: {
+          select: {
+            subscriptionType: true,
+          },
+        },
       },
     });
 
@@ -1920,6 +1926,7 @@ export class AppointmentProposalService {
         amount: rate.amount,
       };
     });
+    const subscriptionType = rates.data[0].service.provider.subscriptionType;
     const pets = await this.prismaService.pet.findMany({
       where: {
         id: {
@@ -1997,9 +2004,41 @@ export class AppointmentProposalService {
     if (isSixtyMinuteRate) {
       subTotal += numberOfNights * ratesByServiceType['sixty-minutes'].amount;
     }
+
+    const providerFee = {
+      subscriptionType,
+      subscriptionFee: 0,
+      subscriptionFeeInParcentage: 0,
+      providerTotal: 0,
+    };
+    const appointmentCreds = this.secretService.getAppointmentCreds();
+    switch (subscriptionType) {
+      case subscriptionTypeEnum.BASIC:
+        providerFee.subscriptionFeeInParcentage =
+          appointmentCreds.providerChargeParcentageBasic;
+        break;
+      case subscriptionTypeEnum.GOLD:
+        providerFee.subscriptionFeeInParcentage =
+          appointmentCreds.providerChargeParcentageGold;
+        break;
+      case subscriptionTypeEnum.PLATINUM:
+        providerFee.subscriptionFeeInParcentage =
+          appointmentCreds.providerChargeParcentagePlatinum;
+        break;
+    }
+
+    const providerSubscriptionFee =
+      providerFee.subscriptionFeeInParcentage > 0
+        ? providerFee.subscriptionFeeInParcentage / 100
+        : 0;
+    providerFee.subscriptionFee = subTotal * providerSubscriptionFee;
+    providerFee.providerTotal = subTotal - providerFee.subscriptionFee;
+
     const serviceChargeInParcentage = this.configService.get<number>(
       'APPOINTMENT_SERVICE_CHARGE_PERCENTAGE',
     );
+    const customerCharge =
+      serviceChargeInParcentage > 0 ? serviceChargeInParcentage / 100 : 0;
     const result = {
       petsRates,
       ...(isSixtyMinuteRate && {
@@ -2012,8 +2051,9 @@ export class AppointmentProposalService {
       ...(timing && { timing }),
       formatedDatesByZone: formattedDatesWithHolidays,
       subTotal: subTotal.toFixed(2),
+      providerFee,
       serviceChargeInParcentage,
-      total: (subTotal * (1 + serviceChargeInParcentage / 100)).toFixed(2),
+      total: (subTotal * (1 + customerCharge)).toFixed(2),
     };
 
     return result;

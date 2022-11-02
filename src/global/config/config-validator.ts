@@ -210,6 +210,18 @@ export class EnvironmentVariable {
 
   @IsNotEmpty()
   @IsNumber()
+  APPOINTMENT_PROVIDER_CHARGE_PERCENTAGE_BASIC: number;
+
+  @IsNotEmpty()
+  @IsNumber()
+  APPOINTMENT_PROVIDER_CHARGE_PERCENTAGE_GOLD: number;
+
+  @IsNotEmpty()
+  @IsNumber()
+  APPOINTMENT_PROVIDER_CHARGE_PERCENTAGE_PLATINUM: number;
+
+  @IsNotEmpty()
+  @IsNumber()
   APPOINTMENT_REFUND_PERCENTAGE: number;
 
   @IsNotEmpty()
