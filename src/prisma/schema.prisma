@@ -948,6 +948,7 @@ model Appointment {
   lastStatusChangedBy appointmentProposalEnum?
   cancelReason        String?
   providerTimeZone    String?
+  isRecurring         Boolean? @default(false)
   endOfLife           DateTime?                @db.Timestamptz(3)
   lastProposalId      BigInt?
   messageGroupId      String?

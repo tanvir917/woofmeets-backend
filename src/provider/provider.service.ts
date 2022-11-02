@@ -74,6 +74,7 @@ export class ProviderService {
                     providerServiceId: true,
                     providerServiceRating: true,
                     providerServiceComment: true,
+                    createdAt: true,
                     reviewedByIdUser: {
                       select: {
                         id: true,
@@ -185,6 +186,14 @@ export class ProviderService {
       },
     });
 
+    const services = providerUser?.provider?.providerServices?.filter(
+      (item) => {
+        if (item?.ServiceHasRates?.length > 0) {
+          return item;
+        }
+      },
+    );
+
     return {
       message: 'Provider details found successfully',
       data: {
@@ -207,7 +216,7 @@ export class ProviderService {
           contact: providerUser?.contact,
           badge: null,
         },
-        services: providerUser?.provider?.providerServices,
+        services,
         canHost: providerUser?.provider?.ServicePetPreference,
         atHome: providerUser?.provider?.ServicePetPreference,
         overview: {

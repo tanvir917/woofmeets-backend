@@ -846,6 +846,7 @@ export class AppointmentProposalService {
         userId,
         providerId,
         providerServiceId,
+        isRecurring: isRecurring ?? false,
         lastStatusChangedBy: AppointmentProposalEnum?.USER,
         status: AppointmentStatusEnum.PROPOSAL,
         providerTimeZone: provider?.user?.timezone
