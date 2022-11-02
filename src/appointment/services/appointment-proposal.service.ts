@@ -16,16 +16,11 @@ import { CommonService } from 'src/common/common.service';
 import { EmailService } from 'src/email/email.service';
 import { SuccessfulUploadResponse } from 'src/file/dto/upload-flie.dto';
 import { MulterFileUploadService } from 'src/file/multer-file-upload-service';
-import {
-  DaysOfWeek,
-  extractZoneSpecificDateWithFirstHourTime,
-  generateDays,
-} from 'src/global';
+import { DaysOfWeek, generateDatesFromAndTo, generateDays } from 'src/global';
 import {
   throwBadRequestErrorCheck,
   throwNotFoundErrorCheck,
 } from 'src/global/exceptions/error-logic';
-import { convertToZoneSpecificDateTime } from 'src/global/time/time-coverters';
 import { MessagingProxyService } from 'src/messaging/messaging.service';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { SecretService } from 'src/secret/secret.service';
@@ -42,8 +37,6 @@ import {
 } from '../helpers/appointment-enum';
 import {
   checkIfAnyDateHoliday,
-  formatDatesWithTimeZone,
-  generateDatesBetween,
   generateDatesFromProposalVisits,
   TimingType,
   VisitType,
@@ -1700,7 +1693,7 @@ export class AppointmentProposalService {
 
     const proposalDates =
       appointment.appointmentProposal?.[0].proposalOtherDate?.map((item) => {
-        return (item as { date: string }).date;
+        return new Date((item as { date: string }).date);
       });
     const providerService = appointment.providerService.serviceType.slug;
     const timing = {
@@ -1710,10 +1703,6 @@ export class AppointmentProposalService {
       pickUpEndTime: appointment.appointmentProposal?.[0].pickUpEndTime,
     };
 
-    const recurringStartDate = extractZoneSpecificDateWithFirstHourTime(
-      appointment.appointmentProposal?.[0].recurringStartDate,
-      appointment.providerTimeZone,
-    );
     if (providerService === 'doggy-day-care') {
       return this.calculateDayCarePrice(
         appointment.providerServiceId,
@@ -1722,7 +1711,7 @@ export class AppointmentProposalService {
         appointment.providerTimeZone,
         timing,
         appointment.appointmentProposal?.[0].isRecurring,
-        recurringStartDate,
+        appointment.appointmentProposal?.[0].recurringStartDate,
         appointment.appointmentProposal?.[0].recurringSelectedDay,
       );
     } else if (
@@ -1760,7 +1749,7 @@ export class AppointmentProposalService {
         appointment.providerServiceId,
         appointment.appointmentProposal?.[0].petsIds,
         isRecurring,
-        appointment.appointmentProposal?.[0].recurringStartDate.toISOString(),
+        appointment.appointmentProposal?.[0].recurringStartDate,
         formattedProposalVisits,
         appointment.providerTimeZone,
         BigInt(appointment.appointmentProposal?.[0].length),
@@ -1783,14 +1772,14 @@ export class AppointmentProposalService {
   async calculateDayCarePrice(
     serviceId: bigint,
     petIds: bigint[],
-    dates: string[],
+    dates: Date[],
     timeZone: string,
     timing: TimingType,
     isRecurring: boolean,
-    recurringStartDate: string,
+    recurringStartDate: Date,
     recurringSelectedDays: string[],
   ) {
-    let formatedDatesByZone: string[] = [];
+    let generatedDates: Date[] = [];
     if (isRecurring) {
       throwBadRequestErrorCheck(
         recurringSelectedDays.length === 0,
@@ -1800,36 +1789,25 @@ export class AppointmentProposalService {
         (item) => item[0].toUpperCase() + item.slice(1),
       );
 
-      const generatedDates = generateDays(
+      generatedDates = generateDays(
         {
-          offset: convertToZoneSpecificDateTime(
-            new Date(recurringStartDate),
-            timeZone,
-          ),
+          offset: recurringStartDate,
           skipOffset: true,
           timezone: timeZone,
         },
         recurringDays as DaysOfWeek[],
-      );
-      const generatedDatesInString = generatedDates.map((date) =>
-        date.toISOString(),
-      );
-      formatedDatesByZone = formatDatesWithTimeZone(
-        generatedDatesInString,
-        timeZone,
       );
     } else {
       throwBadRequestErrorCheck(
         dates?.length === 0,
         'Invalid Request! dates are required if isRecurring is false',
       );
-      formatedDatesByZone = formatDatesWithTimeZone(dates, timeZone);
     }
-
+    const datesToPass = isRecurring ? generatedDates : dates;
     return this.calculateProposalPrice(
       serviceId,
       petIds,
-      formatedDatesByZone,
+      datesToPass,
       timeZone,
       false,
       timing,
@@ -1844,10 +1822,10 @@ export class AppointmentProposalService {
     timeZone: string,
     timing: TimingType,
   ) {
-    const dates: string[] = generateDatesBetween(
-      proposalStartDate,
-      proposalEndDate,
-      timeZone,
+    const dates: Date[] = generateDatesFromAndTo(
+      new Date(proposalStartDate),
+      new Date(proposalEndDate),
+      [],
     );
     return this.calculateProposalPrice(
       serviceId,
@@ -1863,7 +1841,7 @@ export class AppointmentProposalService {
     serviceId: bigint,
     petIds: bigint[],
     isRecurring: boolean,
-    recurringStartDate: string,
+    recurringStartDate: Date,
     proposalVisits: VisitType[],
     timeZone: string,
     length: bigint,
@@ -1875,7 +1853,7 @@ export class AppointmentProposalService {
     );
 
     if (isRecurring) {
-      for (let i = 0; i < proposalVisits.length; i++) {
+      for (let i = 0; i < proposalVisits?.length; i++) {
         throwBadRequestErrorCheck(
           proposalVisits[i]?.day == '' ||
             proposalVisits[i]?.visits?.length === 0,
@@ -1883,10 +1861,10 @@ export class AppointmentProposalService {
         );
       }
     } else {
-      for (let i = 0; i < proposalVisits.length; i++) {
+      for (let i = 0; i < proposalVisits?.length; i++) {
         throwBadRequestErrorCheck(
-          proposalVisits[i]?.date == '' ||
-            proposalVisits[i]?.visits?.length === 0,
+          proposalVisits?.[i]?.date == '' ||
+            proposalVisits?.[i]?.visits?.length === 0,
           "Invalid Request! each item of proposalVisit's date and visits must be valid",
         );
       }
@@ -1913,7 +1891,7 @@ export class AppointmentProposalService {
   async calculateProposalPrice(
     serviceId: bigint,
     petIds: bigint[],
-    dates: string[],
+    dates: Date[],
     timeZone: string,
     isSixtyMinuteRate: boolean,
     timing?: TimingType,

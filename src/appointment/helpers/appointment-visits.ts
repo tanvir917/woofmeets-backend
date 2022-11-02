@@ -127,7 +127,7 @@ export const formatDatesWithStartEndTimings = (
 };
 
 export const checkIfAnyDateHoliday = (
-  dates: string[],
+  dates: Date[],
   holidays: Holidays[],
   timeZone: string,
 ) => {
@@ -142,31 +142,13 @@ export const checkIfAnyDateHoliday = (
     );
 
     const formatedDate = {
-      date: dates[i],
+      date: format(dates[i], 'yyyy-MM-dd HH:mm:ssxxx KK:mma', { timeZone }),
       isHoliday,
       holidayNames,
-      day: extractDay(new Date(dates[i]), timeZone),
+      day: extractDay(dates[i], timeZone),
     };
 
     isThereAnyHoliday = isThereAnyHoliday || isHoliday;
-    // for (let j = 0; j < holidays.length; j++) {
-    //   const startDate = utcToZonedTime(
-    //     toDate(holidays[j].startDate, { timeZone }),
-    //     timeZone,
-    //   );
-    //   const endDate = utcToZonedTime(
-    //     toDate(holidays[j].endDate, { timeZone }),
-    //     timeZone,
-    //   );
-    //   if (
-    //     (isAfter(startDate, currentDate) && isBefore(endDate, currentDate)) ||
-    //     isSameDay(startDate, currentDate) ||
-    //     isSameDay(endDate, currentDate)
-    //   ) {
-    //     isThereAnyHoliday = true;
-    //     formatedDate.holidayNames.push(holidays[j].title);
-    //   }
-    // }
     formattedDatesWithHolidays.push(formatedDate);
   }
   return { isThereAnyHoliday, formattedDatesWithHolidays };
@@ -198,9 +180,16 @@ export const generateDatesBetween = (
   return dates;
 };
 
+export class HolidayType {
+  title: string;
+  startDate: string;
+  endDate: string;
+  timeZone: string;
+}
+
 export function checkIfHoliday(
   date: Date,
-  holidays: Holidays[],
+  holidays: HolidayType[],
   timeZone: string,
 ) {
   let isHoliday = false;
@@ -313,17 +302,13 @@ export function generateRecurringDates(
 }
 
 export function generateDatesFromProposalVisits(
-  recurringStartDate: string,
+  recurringStartDate: Date,
   proposalVisits: VisitType[],
   timeZone: string,
   isRecurring: boolean,
 ) {
-  const dates = [];
+  const dates: Date[] = [];
   if (isRecurring) {
-    const zonedStartDate = convertToZoneSpecificDateTime(
-      new Date(recurringStartDate),
-      timeZone,
-    );
     const daysOfWeek = proposalVisits.map((visit) => visit.day);
     const recurringDays = daysOfWeek.map(
       (item) => item[0].toUpperCase() + item.slice(1),
@@ -331,7 +316,7 @@ export function generateDatesFromProposalVisits(
 
     const generatedDates = generateDays(
       {
-        offset: convertToZoneSpecificDateTime(zonedStartDate, timeZone),
+        offset: recurringStartDate,
         skipOffset: true,
         timezone: timeZone,
       },
@@ -344,28 +329,31 @@ export function generateDatesFromProposalVisits(
       );
       if (visit) {
         visit.visits?.forEach((time) => {
-          const datetime = `${
-            date.toISOString().split('T')[0]
-          }${formatTimeFromMeridien(time)}`;
-          const parsedDate = toDate(datetime, { timeZone });
-          const countryDate = utcToZonedTime(parsedDate, timeZone);
-
-          dates.push(
-            format(countryDate, 'yyyy-MM-dd HH:mm:ssxxx', { timeZone }),
+          const countryDate = convertToZoneSpecificDateTime(
+            date,
+            timeZone,
+            formatTimeFromMeridien(time),
           );
+
+          dates.push(countryDate);
         });
       }
     });
   } else {
     proposalVisits?.forEach((visit) => {
       visit.visits.forEach((time) => {
-        const datetime = `${visit?.date?.split('T')[0]}${formatTimeFromMeridien(
-          time,
-        )}`;
-        const parsedDate = toDate(datetime, { timeZone });
-        const countryDate = utcToZonedTime(parsedDate, timeZone);
+        // const datetime = `${visit?.date?.split('T')[0]}${formatTimeFromMeridien(
+        //   time,
+        // )}`;
+        // const parsedDate = toDate(datetime, { timeZone });
+        // const countryDate = utcToZonedTime(parsedDate, timeZone);
+        const countryDate = convertToZoneSpecificDateTime(
+          toDate(visit?.date, { timeZone }),
+          timeZone,
+          formatTimeFromMeridien(time),
+        );
 
-        dates.push(format(countryDate, 'yyyy-MM-dd HH:mm:ssxxx', { timeZone }));
+        dates.push(countryDate);
       });
     });
   }

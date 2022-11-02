@@ -10,7 +10,6 @@ import { StripeDispatcherService } from '../stripe/stripe.dispatcher.service';
 import { AppointmentController } from './appointment.controller';
 import { AppointmentPaymentService } from './services/appointment-payment.service';
 import { AppointmentProposalService } from './services/appointment-proposal.service';
-import { AppointmentRecurringService } from './services/appointment-recurring.service';
 
 @Module({
   imports: [
@@ -25,7 +24,6 @@ import { AppointmentRecurringService } from './services/appointment-recurring.se
   ],
   providers: [
     AppointmentProposalService,
-    AppointmentRecurringService,
     AppointmentPaymentService,
     StripeDispatcherService,
   ],
