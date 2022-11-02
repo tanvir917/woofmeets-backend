@@ -36,14 +36,12 @@ import { PetsCheckDto } from './dto/pet-check.dto';
 import { UpdateAppointmentProposalDto } from './dto/update-appointment-proposal.dto';
 import { AppointmentPaymentService } from './services/appointment-payment.service';
 import { AppointmentProposalService } from './services/appointment-proposal.service';
-import { AppointmentRecurringService } from './services/appointment-recurring.service';
 
 @ApiTags('Appointment')
 @Controller('appointment')
 export class AppointmentController {
   constructor(
     private readonly appointmentProposalService: AppointmentProposalService,
-    private readonly appointmentRecurringService: AppointmentRecurringService,
     private readonly appointmentPaymentService: AppointmentPaymentService,
   ) {}
 
@@ -136,18 +134,6 @@ export class AppointmentController {
       userId,
       opk,
     );
-  }
-
-  @ApiBearerAuth('access-token')
-  @UseGuards(JwtAuthGuard)
-  @Get('/:opk/generate-recurring-dates')
-  async generateRecurringDates(@Param('opk') opk: string, @Request() req: any) {
-    // const userId = BigInt(req.user?.id) ?? BigInt(-1);
-    throwBadRequestErrorCheck(
-      !opk || opk == undefined,
-      'Invalid appointment opk. Please, try again after sometime with valid appointment opk.',
-    );
-    return await this.appointmentRecurringService.generateRecurringDates(opk);
   }
 
   @ApiBearerAuth('access-token')
@@ -298,15 +284,15 @@ export class AppointmentController {
         'Invalid Request! dates are required if isRecurring is false',
       );
     }
-
+    const dates = body?.dates?.map((date) => new Date(date));
     return await this.appointmentProposalService.calculateDayCarePrice(
       BigInt(body.serviceId),
       body.petIds,
-      body.dates,
+      dates,
       body.timeZone,
       body.timing,
       body.isRecurring,
-      body.recurringStartDate,
+      new Date(body.recurringStartDate),
       body.recurringSelectedDays,
     );
   }
@@ -339,8 +325,8 @@ export class AppointmentController {
       BigInt(body.serviceId),
       body.petIds,
       body.isRecurring,
-      body.recurringStartDate,
-      body.proposalVisits,
+      new Date(body.recurringStartDate),
+      body?.proposalVisits,
       body.timeZone,
       BigInt(body.length),
     );

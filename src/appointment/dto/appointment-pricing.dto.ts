@@ -103,6 +103,7 @@ export class GetModifiedVisitWalkPriceDTO {
   recurringStartDate: string;
 
   @ApiProperty()
+  @IsOptional()
   @IsNotEmpty()
   proposalVisits: any;
 
