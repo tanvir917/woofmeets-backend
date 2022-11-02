@@ -768,6 +768,11 @@ export class AppointmentProposalService {
 
     throwNotFoundErrorCheck(!provider, 'Provider not found.');
 
+    throwNotFoundErrorCheck(
+      !provider?.user?.timezone,
+      'Provider needs to update timezone.',
+    );
+
     throwBadRequestErrorCheck(
       provider?.providerServices?.[0]?.ServiceHasRates?.length === 0,
       "Provider doesn't has all the rates of this service so can not book appointment now.",
@@ -849,9 +854,7 @@ export class AppointmentProposalService {
         isRecurring: isRecurring ?? false,
         lastStatusChangedBy: AppointmentProposalEnum?.USER,
         status: AppointmentStatusEnum.PROPOSAL,
-        providerTimeZone: provider?.user?.timezone
-          ? provider?.user?.timezone
-          : 'America/New_York',
+        providerTimeZone: provider?.user?.timezone,
         appointmentProposal: {
           create: {
             proposedBy: appointmentProposalEnum.USER,
@@ -1535,7 +1538,16 @@ export class AppointmentProposalService {
 
       return {
         message: 'Appointment cancelled successfully.',
-        data: updatedAppointment,
+        data: {
+          ...updatedAppointment,
+          userAmount: userRefundAmount,
+          providerAmount: Math.max(
+            priceCalculationDetails?.providerFee?.providerTotal -
+              userRefundAmount,
+            0,
+          ),
+          providerFee: priceCalculationDetails?.providerFee,
+        },
       };
     } else {
       await this.prismaService.cancelAppointment.create({
@@ -1767,6 +1779,7 @@ export class AppointmentProposalService {
       timing: null,
       serviceChargeInParcentage: null,
       total: null,
+      providerFee: null,
     };
   }
 

@@ -245,6 +245,15 @@ export class SubscriptionsController {
     return this.subscriptionV2Service.getUserCurrentSubscription(userId);
   }
 
+  @Version('2')
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard)
+  @Get('my-current-subscription')
+  getUserCurrentSubscriptionV2(@Request() req: any) {
+    const userId = BigInt(req.user?.id) ?? BigInt(-1);
+    return this.subscriptionV2Service.getUserCurrentSubscriptionV2(userId);
+  }
+
   @ApiBearerAuth('access-token')
   @UseGuards(JwtAuthGuard)
   @Delete('cancel-subscription')
