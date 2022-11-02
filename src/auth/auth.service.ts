@@ -128,7 +128,7 @@ export class AuthService {
     /*
       Zipcode verification
     */
-    throwNotFoundErrorCheck(!checkZipcode(zipcode), 'Zipcode not found');
+    //throwNotFoundErrorCheck(!checkZipcode(zipcode), 'Zipcode not found');
 
     const hashedPassword = await this.passwordService.getHashedPassword(
       password,
