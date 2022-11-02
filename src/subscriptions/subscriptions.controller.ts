@@ -172,6 +172,7 @@ export class SubscriptionsController {
     );
   }
 
+  // create subscription v1
   @ApiBearerAuth('access-token')
   @UseGuards(JwtAuthGuard)
   @Post('subscribe')
@@ -180,9 +181,37 @@ export class SubscriptionsController {
     @Query() query: CreateSubscriptionQueryDto,
   ) {
     const userId = BigInt(req.user?.id) ?? BigInt(-1);
-    return this.subscriptionV2Service.createSubscriptionV2(userId, query);
+    return this.subscriptionV2Service.createSubscriptionV1(userId, query);
   }
 
+  // create subscription v2
+  @ApiOperation({
+    summary:
+      'Create user subscription v2 with idempotency key. UPDATED with 3DS',
+  })
+  @Version('2')
+  @ApiBearerAuth('access-token')
+  @ApiHeader({
+    name: 'Idempontency-Key',
+    required: true,
+    schema: { type: 'string' },
+  })
+  @UseGuards(JwtAuthGuard)
+  @Post('subscribe')
+  subscribeToPlanV2(
+    @Request() req: any,
+    @Query() query: CreateSubscriptionQueryDto,
+    @Headers('Idempontency-Key') idempontencyKey: any,
+  ) {
+    const userId = BigInt(req.user?.id) ?? BigInt(-1);
+    return this.subscriptionV2Service.createSubscriptionV2(
+      userId,
+      query,
+      idempontencyKey,
+    );
+  }
+
+  // create subscription v3
   @ApiOperation({
     summary: 'Create user subscription v3 with idempotency key.',
   })

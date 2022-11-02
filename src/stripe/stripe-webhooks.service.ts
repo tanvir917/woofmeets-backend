@@ -1,4 +1,5 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
+import { User } from '@prisma/client';
 import { nextSunday } from 'date-fns';
 import Stripe from 'stripe';
 import { AppointmentProposalService } from '../appointment/services/appointment-proposal.service';
@@ -8,6 +9,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { SecretService } from '../secret/secret.service';
 import {
   ProviderBackgourndCheckEnum,
+  ProviderSubscriptionTypeEnum,
   SubscriptionPlanSlugs,
   SubscriptionStatusEnum,
 } from '../subscriptions/entities/subscription.entity';
@@ -28,6 +30,21 @@ export class StripeWebhooksService {
 
     this.stripeWebhookSecret =
       this.secretService.getStripeCreds().webhookSecret;
+  }
+
+  async updateBackgroundCheckStatus(
+    providerId: bigint,
+    status: ProviderBackgourndCheckEnum,
+  ) {
+    await this.prismaService.provider.update({
+      where: {
+        id: providerId,
+      },
+      data: {
+        backGroundCheck: status,
+      },
+    });
+    return true;
   }
 
   /**
@@ -169,6 +186,7 @@ export class StripeWebhooksService {
         customer,
         status,
         latest_invoice,
+        metadata,
       } = subData;
 
       const customerSubs =
@@ -212,6 +230,71 @@ export class StripeWebhooksService {
           src: Object(subData),
         },
       });
+
+      /**
+       * LOGIC:
+       * 1.Check if user has an active subscription.
+       * 2.Check if the subscription plan is platinum. If yes, check if background check is not
+       *    platinum. If yes, create a background platinum check.
+       * 3.If subscription plan is Gold, check if background check is not gold or platinum. If yes,
+       *   create a gold background check.
+       */
+      if (status === 'active') {
+        const { userId, priceId } = metadata;
+        const user = await this.prismaService.user.findFirst({
+          where: { id: BigInt(userId), deletedAt: null },
+          include: {
+            provider: true,
+          },
+        });
+
+        throwBadRequestErrorCheck(!user, 'User not found');
+
+        const priceObject =
+          await this.prismaService.membershipPlanPrices.findFirst({
+            where: {
+              id: BigInt(priceId),
+              deletedAt: null,
+            },
+            include: {
+              membershipPlan: true,
+            },
+          });
+
+        throwBadRequestErrorCheck(!priceObject, 'Price not found');
+
+        if (
+          user?.provider.backGroundCheck !=
+            ProviderBackgourndCheckEnum.PLATINUM &&
+          priceObject?.membershipPlan?.slug == SubscriptionPlanSlugs.PLATINUM
+        ) {
+          await this.updateBackgroundCheckStatus(
+            user?.provider?.id,
+            ProviderBackgourndCheckEnum.PLATINUM,
+          );
+        } else if (
+          user?.provider?.backGroundCheck != ProviderBackgourndCheckEnum.GOLD &&
+          user?.provider?.backGroundCheck !=
+            ProviderBackgourndCheckEnum.PLATINUM &&
+          priceObject?.membershipPlan?.slug == SubscriptionPlanSlugs.GOLD
+        ) {
+          await this.updateBackgroundCheckStatus(
+            user?.provider?.id,
+            ProviderBackgourndCheckEnum.GOLD,
+          );
+        }
+
+        await this.prismaService.provider.update({
+          where: {
+            id: user?.provider?.id,
+          },
+          data: {
+            subscriptionType:
+              priceObject?.membershipPlan?.slug?.toUpperCase() as ProviderSubscriptionTypeEnum,
+          },
+        });
+      }
+
       return {
         statusCode: HttpStatus.OK,
         data: 'Successful',
