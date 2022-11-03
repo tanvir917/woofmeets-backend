@@ -16,7 +16,12 @@ import { CommonService } from 'src/common/common.service';
 import { EmailService } from 'src/email/email.service';
 import { SuccessfulUploadResponse } from 'src/file/dto/upload-flie.dto';
 import { MulterFileUploadService } from 'src/file/multer-file-upload-service';
-import { DaysOfWeek, generateDatesFromAndTo, generateDays } from 'src/global';
+import {
+  DaysOfWeek,
+  extractDay,
+  generateDatesFromAndTo,
+  generateDays,
+} from 'src/global';
 import {
   throwBadRequestErrorCheck,
   throwNotFoundErrorCheck,
@@ -1593,10 +1598,10 @@ export class AppointmentProposalService {
           },
         },
       });
-      return {
-        message:
-          'Appointment can not cancelled now. Please try again after sometime or contact support team.',
-      };
+      throwBadRequestErrorCheck(
+        true,
+        'Appointment can not cancelled now. Please try again after sometime or contact support team.',
+      );
     }
   }
 
@@ -1826,6 +1831,13 @@ export class AppointmentProposalService {
         (item) => item[0].toUpperCase() + item.slice(1),
       );
 
+      const currentDay = extractDay(recurringStartDate, timeZone);
+      const isSelectedDay = recurringDays?.includes(currentDay);
+      throwBadRequestErrorCheck(
+        isSelectedDay,
+        `Invalid Request! Day of recurringStartDate ${currentDay} must be included recurringSelecteDays`,
+      );
+
       generatedDates = generateDays(
         {
           offset: recurringStartDate,
@@ -1890,13 +1902,21 @@ export class AppointmentProposalService {
     );
 
     if (isRecurring) {
+      const recurringDays: string[] = [];
       for (let i = 0; i < proposalVisits?.length; i++) {
         throwBadRequestErrorCheck(
           proposalVisits[i]?.day == '' ||
             proposalVisits[i]?.visits?.length === 0,
           "Invalid Request! each item of proposalVisit's day and visits must be valid",
         );
+        recurringDays.push(proposalVisits[i]?.day);
       }
+      const currentDay = extractDay(recurringStartDate, timeZone);
+      const isSelectedDay = recurringDays?.includes(currentDay.toLowerCase());
+      throwBadRequestErrorCheck(
+        isSelectedDay,
+        `Invalid Request! Day of recurringStartDate ${currentDay} must be included recurringSelecteDays`,
+      );
     } else {
       for (let i = 0; i < proposalVisits?.length; i++) {
         throwBadRequestErrorCheck(
