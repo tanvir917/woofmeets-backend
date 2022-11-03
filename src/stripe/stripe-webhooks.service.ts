@@ -1,6 +1,5 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
-import { User } from '@prisma/client';
-import { nextSunday } from 'date-fns';
+import { nextMonday } from 'date-fns';
 import Stripe from 'stripe';
 import { AppointmentProposalService } from '../appointment/services/appointment-proposal.service';
 import { EmailService } from '../email/email.service';
@@ -483,7 +482,7 @@ export class StripeWebhooksService {
         await this.prismaService.appointmentProposal.update({
           where: { id: billing?.appointment?.appointmentProposal[0]?.id },
           data: {
-            recurringStartDate: nextSunday(
+            recurringStartDate: nextMonday(
               billing?.appointment?.appointmentProposal[0]?.recurringStartDate,
             ),
           },

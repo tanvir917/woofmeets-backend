@@ -1829,7 +1829,7 @@ export class AppointmentProposalService {
       generatedDates = generateDays(
         {
           offset: recurringStartDate,
-          skipOffset: true,
+          skipOffset: false,
           timezone: timeZone,
         },
         recurringDays as DaysOfWeek[],
