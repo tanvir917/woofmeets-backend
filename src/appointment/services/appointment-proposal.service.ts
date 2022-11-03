@@ -1830,11 +1830,10 @@ export class AppointmentProposalService {
       const recurringDays = recurringSelectedDays.map(
         (item) => item[0].toUpperCase() + item.slice(1),
       );
-
       const currentDay = extractDay(recurringStartDate, timeZone);
       const isSelectedDay = recurringDays?.includes(currentDay);
       throwBadRequestErrorCheck(
-        isSelectedDay,
+        !isSelectedDay,
         `Invalid Request! Day of recurringStartDate ${currentDay} must be included recurringSelecteDays`,
       );
 
@@ -1913,8 +1912,9 @@ export class AppointmentProposalService {
       }
       const currentDay = extractDay(recurringStartDate, timeZone);
       const isSelectedDay = recurringDays?.includes(currentDay.toLowerCase());
+
       throwBadRequestErrorCheck(
-        isSelectedDay,
+        !isSelectedDay,
         `Invalid Request! Day of recurringStartDate ${currentDay} must be included recurringSelecteDays`,
       );
     } else {
@@ -1926,7 +1926,6 @@ export class AppointmentProposalService {
         );
       }
     }
-
     const dates = generateDatesFromProposalVisits(
       recurringStartDate,
       proposalVisits,
