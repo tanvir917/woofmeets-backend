@@ -28,6 +28,7 @@ export class TimingType {
 }
 
 export class VisitType {
+  name?: string;
   day?: string;
   date?: string;
   visits?: string[];
@@ -314,10 +315,11 @@ export function generateDatesFromProposalVisits(
   isRecurring: boolean,
 ) {
   const dates: Date[] = [];
+
   if (isRecurring) {
     const daysOfWeek = proposalVisits.map((visit) => visit.day);
     const recurringDays = daysOfWeek.map(
-      (item) => item[0].toUpperCase() + item.slice(1),
+      (item: string) => item?.[0].toUpperCase() + item.slice(1),
     );
 
     const generatedDates = generateDays(
