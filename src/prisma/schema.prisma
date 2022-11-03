@@ -995,6 +995,7 @@ model AppointmentProposal {
   isRecurring              Boolean?
   recurringStartDate       DateTime                  @default(now()) @db.Timestamptz(3)
   recurringSelectedDay     String[]
+  refundDetails            Json?
   meta                     Json?
   createdAt                DateTime                  @default(now()) @db.Timestamptz(3)
   updatedAt                DateTime?                 @updatedAt @db.Timestamptz(3)
