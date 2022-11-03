@@ -143,6 +143,12 @@ export const checkIfAnyDateHoliday = (
 
     const formatedDate = {
       date: format(dates[i], 'yyyy-MM-dd HH:mm:ssxxx', { timeZone }),
+      localTime: format(dates[i], 'yyyy-MM-dd HH:mm:ssxxx KK:mma', {
+        timeZone,
+      }),
+      monthDay: format(dates[i], 'LLL d', {
+        timeZone,
+      }),
       isHoliday,
       holidayNames,
       day: extractDay(dates[i], timeZone),
