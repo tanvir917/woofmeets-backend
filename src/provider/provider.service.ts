@@ -37,6 +37,7 @@ export class ProviderService {
         lastName: true,
         email: true,
         image: true,
+        timezone: true,
         basicInfo: {
           include: {
             country: true,
@@ -203,6 +204,7 @@ export class ProviderService {
           lastName: providerUser?.lastName,
           email: providerUser?.email,
           avatar: providerUser?.image,
+          timezone: providerUser?.timezone,
           rating: {
             average: reviewStatistics?._avg?.rating
               ? Number(reviewStatistics?._avg?.rating?.toFixed(1))
