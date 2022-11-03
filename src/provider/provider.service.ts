@@ -228,11 +228,15 @@ export class ProviderService {
               viewerUser?.basicInfo?.longitude &&
               providerUser?.basicInfo?.latitude &&
               providerUser?.basicInfo?.longitude
-                ? latlongDistanceCalculator(
-                    providerUser?.basicInfo?.latitude,
-                    providerUser?.basicInfo?.longitude,
-                    viewerUser?.basicInfo?.latitude,
-                    viewerUser?.basicInfo?.longitude,
+                ? Number(
+                    (
+                      latlongDistanceCalculator(
+                        providerUser?.basicInfo?.latitude,
+                        providerUser?.basicInfo?.longitude,
+                        viewerUser?.basicInfo?.latitude,
+                        viewerUser?.basicInfo?.longitude,
+                      ) * 0.62137
+                    ).toFixed(2),
                   )
                 : null,
             experience:
