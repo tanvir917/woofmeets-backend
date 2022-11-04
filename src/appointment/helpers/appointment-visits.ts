@@ -342,9 +342,10 @@ export function generateDatesFromProposalVisits(
             timeZone,
             formatTimeFromMeridien(time),
           );
-          if (countryDate.getTime() > recurringStartDate.getTime()) {
-            dates.push(countryDate);
-          }
+          // if (countryDate.getTime() > recurringStartDate.getTime()) {
+          //   dates.push(countryDate);
+          // }
+          dates.push(countryDate);
         });
       }
     });
