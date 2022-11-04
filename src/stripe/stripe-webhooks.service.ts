@@ -466,14 +466,18 @@ export class StripeWebhooksService {
       );
 
       // Send email to user and provider for successful payments
-      this.emailService.appointmentPaymentEmail(
-        billing?.appointment?.user?.email,
-        appointmentBillingPayment?.amount,
-        appointmentBillingPayment?.txnId,
-      );
-      this.emailService.appointmentPaymentForProviderEmail(
-        billing?.appointment?.provider?.user?.email,
-      );
+      try {
+        this.emailService.appointmentPaymentEmail(
+          billing?.appointment?.user?.email,
+          appointmentBillingPayment?.amount,
+          appointmentBillingPayment?.txnId,
+        );
+        this.emailService.appointmentPaymentForProviderEmail(
+          billing?.appointment?.provider?.user?.email,
+        );
+      } catch (error) {
+        console.log(error?.message);
+      }
 
       const date = await this.appointmentProposalService.getProposalPrice(
         billing?.appointment?.opk,

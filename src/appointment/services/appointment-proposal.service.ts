@@ -984,11 +984,15 @@ export class AppointmentProposalService {
     /*
      * Dispatch email notification
      */
-    await this.emailService.appointmentCreationEmail(user?.email, 'PROPOSAL');
-    await this.emailService.appointmentCreationEmail(
-      provider?.user?.email,
-      'PROPOSAL',
-    );
+    try {
+      await this.emailService.appointmentCreationEmail(user?.email, 'PROPOSAL');
+      await this.emailService.appointmentCreationEmail(
+        provider?.user?.email,
+        'PROPOSAL',
+      );
+    } catch (error) {
+      console.log(error?.message);
+    }
 
     // TODO: Unavailability check
     return {
@@ -1250,14 +1254,18 @@ export class AppointmentProposalService {
     /*
      * Dispatch email notification
      */
-    await this.emailService.appointmentAcceptEmail(
-      appointment?.user?.email,
-      'ACCEPTED',
-    );
-    await this.emailService.appointmentAcceptEmail(
-      appointment?.provider?.user?.email,
-      'ACCEPTED',
-    );
+    try {
+      await this.emailService.appointmentAcceptEmail(
+        appointment?.user?.email,
+        'ACCEPTED',
+      );
+      await this.emailService.appointmentAcceptEmail(
+        appointment?.provider?.user?.email,
+        'ACCEPTED',
+      );
+    } catch (error) {
+      console.log(error?.message);
+    }
 
     return {
       message: 'Appointment accepted successfully.',
@@ -1559,14 +1567,18 @@ export class AppointmentProposalService {
       /*
        * Dispatch email notification
        */
-      this.emailService.appointmentCancelEmail(
-        appointment?.user?.email,
-        'CANCELLED',
-      );
-      this.emailService.appointmentCancelEmail(
-        appointment?.provider?.user?.email,
-        'CANCELLED',
-      );
+      try {
+        await this.emailService.appointmentCancelEmail(
+          appointment?.user?.email,
+          'CANCELLED',
+        );
+        await this.emailService.appointmentCancelEmail(
+          appointment?.provider?.user?.email,
+          'CANCELLED',
+        );
+      } catch (error) {
+        console.log(error?.message);
+      }
 
       return {
         message: 'Appointment cancelled successfully.',
@@ -2069,8 +2081,12 @@ export class AppointmentProposalService {
       providerFee.subscriptionFeeInParcentage > 0
         ? providerFee.subscriptionFeeInParcentage / 100
         : 0;
-    providerFee.subscriptionFee = subTotal * providerSubscriptionFee;
-    providerFee.providerTotal = subTotal - providerFee.subscriptionFee;
+    providerFee.subscriptionFee = Number(
+      (subTotal * providerSubscriptionFee).toFixed(2),
+    );
+    providerFee.providerTotal = Number(
+      (subTotal - providerFee.subscriptionFee).toFixed(2),
+    );
 
     const serviceChargeInParcentage = this.configService.get<number>(
       'APPOINTMENT_SERVICE_CHARGE_PERCENTAGE',
@@ -2111,6 +2127,7 @@ export class AppointmentProposalService {
           deletedAt: null,
         },
         include: {
+          user: true,
           provider: {
             include: {
               user: true,
@@ -2176,10 +2193,17 @@ export class AppointmentProposalService {
     /*
      * Dispatch email notification
      */
-    await this.emailService.appointmentCompleteEmail(
-      appointment?.provider?.user?.email,
-      'COMPLETED',
-    );
+    try {
+      await this.emailService.appointmentCompleteEmail(
+        appointment?.provider?.user?.email,
+        'COMPLETED',
+      );
+      await this.emailService.appointmentCompleteEmail(
+        appointment?.user?.email,
+      );
+    } catch (error) {
+      console.log(error?.message);
+    }
 
     return {
       message: 'Appointment completed successfully',

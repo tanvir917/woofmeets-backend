@@ -5,12 +5,11 @@ import { EmailService } from 'src/email/email.service';
 import {
   throwBadRequestErrorCheck,
   throwConflictErrorCheck,
-  throwNotFoundErrorCheck,
+  throwNotFoundErrorCheck
 } from 'src/global/exceptions/error-logic';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { SecretService } from 'src/secret/secret.service';
 import { LoginProviderEnum } from 'src/utils/enums';
-import { checkZipcode } from 'src/utils/tools/zipcode.checker.tools';
 import { LoginDto } from './dto/login.dto';
 import { SignupDto } from './dto/signup.dto';
 import { SocialAuthDto } from './dto/social.auth.dto';
@@ -171,7 +170,11 @@ export class AuthService {
     throwBadRequestErrorCheck(!user, 'User is not created');
 
     //Sending welcome email
-    await this.emailService.signupWelcomeEmail(email);
+    try {
+      await this.emailService.signupWelcomeEmail(email);
+    } catch (error) {
+      console.log(error?.message);
+    }
 
     const {
       password: ignoredPassword,
@@ -264,7 +267,11 @@ export class AuthService {
       throwBadRequestErrorCheck(!user, 'User is not created');
 
       //Sending welcome email
-      await this.emailService.signupWelcomeEmail(email);
+      try {
+        await this.emailService.signupWelcomeEmail(email);
+      } catch (error) {
+        console.log(error?.message);
+      }
     } else if (user?.loginProvider == 'LOCAL') {
       throwConflictErrorCheck(
         user?.loginProvider != provider,

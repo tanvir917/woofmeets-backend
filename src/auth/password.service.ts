@@ -84,7 +84,11 @@ export class PasswordService {
       },
     });
 
-    this.emailService.updatePasswordConfirmEmail(user.email, user.firstName);
+    try {
+      this.emailService.updatePasswordConfirmEmail(user.email, user.firstName);
+    } catch (error) {
+      console.log(error?.message);
+    }
 
     return { message: 'User password updated successfully.' };
   }
@@ -164,7 +168,11 @@ export class PasswordService {
       },
     });
 
-    this.emailService.forgetPasswordOTPEmail(user.email, code);
+    try {
+      this.emailService.forgetPasswordOTPEmail(user.email, code);
+    } catch (error) {
+      console.log(error?.message);
+    }
 
     return { message: 'Reset password OTP has been sent.' };
   }
@@ -254,7 +262,11 @@ export class PasswordService {
       },
     });
 
-    this.emailService.updatePasswordConfirmEmail(user.email, user.firstName);
+    try {
+      this.emailService.updatePasswordConfirmEmail(user.email, user.firstName);
+    } catch (error) {
+      console.log(error?.message);
+    }
 
     return { message: 'User password updated successfully.' };
   }

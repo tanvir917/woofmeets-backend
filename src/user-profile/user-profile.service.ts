@@ -166,7 +166,11 @@ export class UserProfileService {
       'Provider onboarding process can not be submitted. Please try again later.',
     );
 
-    await this.emailService.completeOnBoardingEmail(user?.email);
+    try {
+      await this.emailService.completeOnBoardingEmail(user?.email);
+    } catch (error) {
+      console.log(error?.message);
+    }
 
     return {
       message: 'Provider onboarding process submitted successfully.',
