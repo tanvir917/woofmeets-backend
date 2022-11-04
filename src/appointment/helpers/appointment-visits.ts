@@ -342,19 +342,15 @@ export function generateDatesFromProposalVisits(
             timeZone,
             formatTimeFromMeridien(time),
           );
-
-          dates.push(countryDate);
+          if (countryDate.getTime() > recurringStartDate.getTime()) {
+            dates.push(countryDate);
+          }
         });
       }
     });
   } else {
     proposalVisits?.forEach((visit) => {
       visit.visits.forEach((time) => {
-        // const datetime = `${visit?.date?.split('T')[0]}${formatTimeFromMeridien(
-        //   time,
-        // )}`;
-        // const parsedDate = toDate(datetime, { timeZone });
-        // const countryDate = utcToZonedTime(parsedDate, timeZone);
         const countryDate = convertToZoneSpecificDateTime(
           toDate(visit?.date, { timeZone }),
           timeZone,

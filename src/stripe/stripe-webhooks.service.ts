@@ -1,5 +1,6 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
 import { nextMonday } from 'date-fns';
+import { convertToZoneSpecificDateTime } from 'src/global/time/time-coverters';
 import Stripe from 'stripe';
 import { AppointmentProposalService } from '../appointment/services/appointment-proposal.service';
 import { EmailService } from '../email/email.service';
@@ -482,8 +483,12 @@ export class StripeWebhooksService {
         await this.prismaService.appointmentProposal.update({
           where: { id: billing?.appointment?.appointmentProposal[0]?.id },
           data: {
-            recurringStartDate: nextMonday(
-              billing?.appointment?.appointmentProposal[0]?.recurringStartDate,
+            recurringStartDate: convertToZoneSpecificDateTime(
+              nextMonday(
+                billing?.appointment?.appointmentProposal[0]
+                  ?.recurringStartDate,
+              ),
+              billing?.appointment?.providerTimeZone,
             ),
           },
         });

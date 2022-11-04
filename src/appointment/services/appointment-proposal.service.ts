@@ -80,6 +80,10 @@ export class AppointmentProposalService {
 
     throwNotFoundErrorCheck(!user, 'Provider not found.');
     throwNotFoundErrorCheck(!user?.provider, 'Provider not found.');
+    throwBadRequestErrorCheck(
+      user?.provider?.isApproved == false,
+      'Pet sitter is not approved by Woofmeets for booking appointment yet!',
+    );
 
     const providerServices = await this.prismaService.providerServices.findMany(
       {
