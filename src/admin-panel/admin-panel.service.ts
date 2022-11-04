@@ -365,6 +365,7 @@ export class AdminPanelService {
       },
       data: {
         isApproved: !provider?.isApproved,
+        profileSubmitted: true,
       },
     });
 
