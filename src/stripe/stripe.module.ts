@@ -1,14 +1,15 @@
 import { Module } from '@nestjs/common';
-import { StripeController } from './stripe.controller';
+import { SmsModule } from 'src/sms/sms.module';
+import { AppointmentModule } from '../appointment/appointment.module';
+import { CheckrModule } from '../checkr/checkr.module';
+import { EmailModule } from '../email/email.module';
 import { PrismaModule } from '../prisma/prisma.module';
 import { SecretModule } from '../secret/secret.module';
-import { StripeWebhooksService } from './stripe-webhooks.service';
-import { CheckrModule } from '../checkr/checkr.module';
 import { StripeConnectWebhooksService } from './stripe-connect-webhooks.service';
-import { StripeService } from './stripe.service';
-import { AppointmentModule } from '../appointment/appointment.module';
+import { StripeWebhooksService } from './stripe-webhooks.service';
+import { StripeController } from './stripe.controller';
 import { StripeDispatcherService } from './stripe.dispatcher.service';
-import { EmailModule } from '../email/email.module';
+import { StripeService } from './stripe.service';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { EmailModule } from '../email/email.module';
     CheckrModule,
     AppointmentModule,
     EmailModule,
+    SmsModule,
   ],
   controllers: [StripeController],
   providers: [

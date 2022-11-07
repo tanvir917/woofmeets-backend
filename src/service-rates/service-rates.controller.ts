@@ -145,4 +145,9 @@ export class ServiceRatesController {
   allServiceRateType() {
     return this.serviceRatesService.getServiceRateTypes();
   }
+
+  @Get('/serviceRates')
+  all() {
+    return this.serviceRatesService.all();
+  }
 }

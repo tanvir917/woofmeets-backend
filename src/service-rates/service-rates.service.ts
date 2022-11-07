@@ -216,4 +216,19 @@ export class ServiceRatesService {
       data,
     };
   }
+
+  async all() {
+    // const providers = await this.prismaService.providerServices.findMany({
+    //   where: {
+    //     serviceType: {
+    //       id: {
+    //         in: [3, 5],
+    //       },
+    //       serviceTypeHasRate: {
+    //         serviceHasRtateId: 12,
+    //       },
+    //     },
+    //   },
+    // });
+  }
 }

@@ -105,16 +105,18 @@ export class EmailService {
     }
   }
 
-  async appointmentAcceptEmail(email: string, status?: string) {
+  async appointmentAcceptEmail(email: string, templateValue?: any) {
     try {
-      const content = new TempAppointmentTemplate(status).html();
       return this.mailgunService.createEmail(
         this.secretService.getMailgunCreds().domain,
         {
-          from: this.secretService.getMailgunCreds().from,
+          from: `Woofmeets no-reply <${
+            this.secretService.getMailgunCreds().from
+          }>`,
           to: email,
           subject: 'Appointment accepted notification',
-          html: content,
+          template: 'appointment_accepted',
+          ['h:X-Mailgun-Variables']: JSON.stringify(templateValue),
         },
       );
     } catch (error) {
@@ -122,16 +124,18 @@ export class EmailService {
     }
   }
 
-  async appointmentCreationEmail(email: string, status?: string) {
+  async appointmentCreationEmail(email: string, templateValue: any) {
     try {
-      const content = new TempAppointmentTemplate(status).html();
       return this.mailgunService.createEmail(
         this.secretService.getMailgunCreds().domain,
         {
-          from: this.secretService.getMailgunCreds().from,
+          from: `Woofmeets no-reply <${
+            this.secretService.getMailgunCreds().from
+          }>`,
           to: email,
-          subject: 'New appointment notification',
-          html: content,
+          subject: 'New appointment creation',
+          template: 'appointment_creation',
+          ['h:X-Mailgun-Variables']: JSON.stringify(templateValue),
         },
       );
     } catch (error) {
@@ -139,33 +143,19 @@ export class EmailService {
     }
   }
 
-  async appointmentPaymentEmail(email: string, amount: number, txnId: string) {
+  async appointmentPaymentEmail(email: string, templateValue?: any) {
     try {
-      const content = new PaymentAppointmentTemplate({ amount, txnId }).html();
+      //const content = new PaymentAppointmentTemplate({ amount, txnId }).html();
       return this.mailgunService.createEmail(
         this.secretService.getMailgunCreds().domain,
         {
-          from: this.secretService.getMailgunCreds().from,
-          to: email,
-          subject: 'Appointment payment notification',
-          html: content,
-        },
-      );
-    } catch (error) {
-      this.logger.error(error?.message);
-    }
-  }
-
-  async appointmentPaymentForProviderEmail(email: string) {
-    try {
-      const content = new PaymentAppointmentForProviderTemplate().html();
-      return this.mailgunService.createEmail(
-        this.secretService.getMailgunCreds().domain,
-        {
-          from: this.secretService.getMailgunCreds().from,
+          from: `Woofmeets no-reply <${
+            this.secretService.getMailgunCreds().from
+          }>`,
           to: email,
           subject: 'Appointment payment notification',
-          html: content,
+          template: 'appointment_payment_petowner',
+          ['h:X-Mailgun-Variables']: JSON.stringify(templateValue),
         },
       );
     } catch (error) {
@@ -173,16 +163,59 @@ export class EmailService {
     }
   }
 
-  async appointmentCancelEmail(email: string, status?: string) {
+  async appointmentPaymentForProviderEmail(email: string, templateValue?: any) {
     try {
-      const content = new TempAppointmentTemplate(status).html();
+      //const content = new PaymentAppointmentForProviderTemplate().html();
       return this.mailgunService.createEmail(
         this.secretService.getMailgunCreds().domain,
         {
-          from: this.secretService.getMailgunCreds().from,
+          from: `Woofmeets no-reply <${
+            this.secretService.getMailgunCreds().from
+          }>`,
+          to: email,
+          subject: 'Appointment payment notification',
+          template: 'appointment_payment_petsitter',
+          ['h:X-Mailgun-Variables']: JSON.stringify(templateValue),
+        },
+      );
+    } catch (error) {
+      this.logger.error(error?.message);
+    }
+  }
+
+  async appointmentRejectEmail(email: string, templateValue?: any) {
+    try {
+      //const content = new TempAppointmentTemplate(status).html();
+      return this.mailgunService.createEmail(
+        this.secretService.getMailgunCreds().domain,
+        {
+          from: `Woofmeets no-reply <${
+            this.secretService.getMailgunCreds().from
+          }>`,
+          to: email,
+          subject: 'Appointment canceled notification',
+          template: 'appointment_canceled',
+          ['h:X-Mailgun-Variables']: JSON.stringify(templateValue),
+        },
+      );
+    } catch (error) {
+      this.logger.error(error?.message);
+    }
+  }
+
+  async appointmentRefundEmail(email: string, templateValue?: any) {
+    try {
+      //const content = new TempAppointmentTemplate(status).html();
+      return this.mailgunService.createEmail(
+        this.secretService.getMailgunCreds().domain,
+        {
+          from: `Woofmeets no-reply <${
+            this.secretService.getMailgunCreds().from
+          }>`,
           to: email,
           subject: 'Appointment cancelled notification',
-          html: content,
+          template: 'appointment_refunded',
+          ['h:X-Mailgun-Variables']: JSON.stringify(templateValue),
         },
       );
     } catch (error) {
@@ -190,16 +223,19 @@ export class EmailService {
     }
   }
 
-  async appointmentCompleteEmail(email: string, status?: string) {
+  async appointmentCompleteEmail(email: string, templateValue?: any) {
     try {
-      const content = new TempAppointmentTemplate(status).html();
+      //const content = new TempAppointmentTemplate(status).html();
       return this.mailgunService.createEmail(
         this.secretService.getMailgunCreds().domain,
         {
-          from: this.secretService.getMailgunCreds().from,
+          from: `Woofmeets no-reply <${
+            this.secretService.getMailgunCreds().from
+          }>`,
           to: email,
           subject: 'Appointment completed notification',
-          html: content,
+          template: 'appointment_completed',
+          ['h:X-Mailgun-Variables']: JSON.stringify(templateValue),
         },
       );
     } catch (error) {
