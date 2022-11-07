@@ -30,6 +30,7 @@ import { MessagingProxyService } from 'src/messaging/messaging.service';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { SecretService } from 'src/secret/secret.service';
 import { ServiceRatesService } from 'src/service-rates/service-rates.service';
+import { SmsService } from 'src/sms/sms.service';
 import { StripeDispatcherService } from 'src/stripe/stripe.dispatcher.service';
 import { latlongDistanceCalculator } from 'src/utils/tools';
 import { CancelAppointmentDto } from '../dto/cancel-appointment.dto';
@@ -60,6 +61,7 @@ export class AppointmentProposalService {
     private readonly serviceRatesService: ServiceRatesService,
     private readonly stripeService: StripeDispatcherService,
     private readonly emailService: EmailService,
+    private readonly smsService: SmsService,
   ) {
     this.logger.setContext(AppointmentProposalService.name);
   }
@@ -746,11 +748,12 @@ export class AppointmentProposalService {
      * DB Data validation
      */
 
-    const [user, provider] = await this.prismaService.$transaction([
+    const [user, provider, pets] = await this.prismaService.$transaction([
       this.prismaService.user.findFirst({
         where: { id: userId, deletedAt: null },
         include: {
           provider: true,
+          contact: true,
         },
       }),
       this.prismaService.provider.findFirst({
@@ -759,16 +762,32 @@ export class AppointmentProposalService {
           deletedAt: null,
         },
         include: {
-          user: true,
+          user: {
+            include: {
+              contact: true,
+            },
+          },
           providerServices: {
             where: {
               id: providerServiceId,
               deletedAt: null,
             },
             include: {
+              serviceType: true,
               ServiceHasRates: true,
             },
           },
+        },
+      }),
+      this.prismaService.pet.findMany({
+        where: {
+          id: {
+            in: petsId,
+          },
+          deletedAt: null,
+        },
+        select: {
+          name: true,
         },
       }),
     ]);
@@ -970,6 +989,13 @@ export class AppointmentProposalService {
           lastProposalId: appointment?.appointmentProposal[0]?.id,
           messageGroupId: messageRoom?.data?._id,
         },
+        include: {
+          providerService: {
+            include: {
+              serviceType: true,
+            },
+          },
+        },
       }),
       this.prismaService.appointmentProposal.update({
         where: {
@@ -983,13 +1009,58 @@ export class AppointmentProposalService {
 
     /*
      * Dispatch email notification
+     * First need to formatted data for email template
+     * Only to provider
+     */
+
+    const dates = [];
+
+    for (
+      let i = 0;
+      i < priceCalculationDetails?.formatedDatesByZone?.length;
+      i++
+    ) {
+      dates.push(
+        new Date(
+          priceCalculationDetails?.formatedDatesByZone[i]?.date,
+        ).toDateString(),
+      );
+    }
+
+    const petsName = pets.map((item) => {
+      return item?.name;
+    });
+
+    try {
+      //await this.emailService.appointmentCreationEmail(user?.email, 'PROPOSAL');
+      await this.emailService.appointmentCreationEmail(provider?.user?.email, {
+        first_name: user?.firstName,
+        appointment_opk: appointment?.opk,
+        service_name: updatedAppointment?.providerService?.serviceType?.name,
+        appointment_dates: [...new Set(dates)]?.join(', '),
+        pet_names: petsName.join(', '),
+        sub_total: priceCalculationDetails?.subTotal,
+      });
+    } catch (error) {
+      console.log(error?.message);
+    }
+
+    /*
+     * Dispatch sms notification
      */
     try {
-      await this.emailService.appointmentCreationEmail(user?.email, 'PROPOSAL');
-      await this.emailService.appointmentCreationEmail(
-        provider?.user?.email,
-        'PROPOSAL',
-      );
+      if (user?.contact?.phone) {
+        await this.smsService.sendText(
+          user?.contact?.phone,
+          `Hi, ${user?.firstName}, your appointment is created successfuly.`,
+        );
+      }
+      if (provider?.user?.contact?.phone) {
+        await this.smsService.sendText(
+          provider?.user?.contact?.phone,
+          `Hi, ${provider?.user?.firstName}, you have a new appointment.`,
+        );
+      }
     } catch (error) {
       console.log(error?.message);
     }
@@ -1182,15 +1253,30 @@ export class AppointmentProposalService {
           deletedAt: null,
         },
         include: {
-          user: true,
+          user: {
+            include: {
+              contact: true,
+            },
+          },
           provider: {
             include: {
-              user: true,
+              user: {
+                include: {
+                  contact: true,
+                },
+              },
             },
           },
           appointmentProposal: {
             orderBy: {
               createdAt: 'desc',
+            },
+            include: {
+              appointmentPet: {
+                include: {
+                  pet: true,
+                },
+              },
             },
           },
         },
@@ -1216,6 +1302,10 @@ export class AppointmentProposalService {
       Appointment Dates Generation
     */
     const priceCalculation = await this.getProposalPrice(appointment?.opk);
+    const lastStatusChangedBy =
+      appointment?.appointmentProposal[0]?.proposedBy === 'USER'
+        ? appointmentProposalEnum.PROVIDER
+        : appointmentProposalEnum.USER;
 
     const [billing, updatedAppointment] = await this.prismaService.$transaction(
       [
@@ -1242,10 +1332,14 @@ export class AppointmentProposalService {
           },
           data: {
             status: 'ACCEPTED',
-            lastStatusChangedBy:
-              appointment?.appointmentProposal[0]?.proposedBy === 'USER'
-                ? appointmentProposalEnum.PROVIDER
-                : appointmentProposalEnum.USER,
+            lastStatusChangedBy,
+          },
+          include: {
+            providerService: {
+              include: {
+                serviceType: true,
+              },
+            },
           },
         }),
       ],
@@ -1253,16 +1347,67 @@ export class AppointmentProposalService {
 
     /*
      * Dispatch email notification
+     * First need to formatted data for email template
      */
-    try {
-      await this.emailService.appointmentAcceptEmail(
-        appointment?.user?.email,
-        'ACCEPTED',
+    const dates = [];
+
+    for (let i = 0; i < priceCalculation?.formatedDatesByZone?.length; i++) {
+      dates.push(
+        new Date(priceCalculation?.formatedDatesByZone[i]?.date).toDateString(),
       );
+    }
+
+    const petsName = appointment?.appointmentProposal[0]?.appointmentPet?.map(
+      (item) => {
+        return item?.pet?.name;
+      },
+    );
+
+    const first_name =
+      lastStatusChangedBy == 'USER'
+        ? appointment?.user?.firstName
+        : appointment?.provider?.user?.firstName;
+
+    try {
+      await this.emailService.appointmentAcceptEmail(appointment?.user?.email, {
+        first_name,
+        appointment_opk: appointment?.opk,
+        service_name: updatedAppointment?.providerService?.serviceType?.name,
+        appointment_dates: [...new Set(dates)]?.join(', '),
+        pet_names: petsName.join(', '),
+        sub_total: priceCalculation?.subTotal,
+      });
       await this.emailService.appointmentAcceptEmail(
         appointment?.provider?.user?.email,
-        'ACCEPTED',
+        {
+          first_name,
+          appointment_opk: appointment?.opk,
+          service_name: updatedAppointment?.providerService?.serviceType?.name,
+          appointment_dates: [...new Set(dates)]?.join(', '),
+          pet_names: petsName.join(', '),
+          sub_total: priceCalculation?.subTotal,
+        },
       );
+    } catch (error) {
+      console.log(error?.message);
+    }
+
+    /*
+     * Dispatch sms notification
+     */
+    try {
+      if (appointment?.user?.contact?.phone) {
+        await this.smsService.sendText(
+          appointment?.user?.contact?.phone,
+          `Hi, ${appointment?.user?.firstName}, your appointment is accepted.`,
+        );
+      }
+      if (appointment?.provider?.user?.contact?.phone) {
+        await this.smsService.sendText(
+          appointment?.provider?.user?.contact?.phone,
+          `Hi, ${appointment?.provider?.user?.firstName}, your appointment is accepted.`,
+        );
+      }
     } catch (error) {
       console.log(error?.message);
     }
@@ -1301,10 +1446,21 @@ export class AppointmentProposalService {
           deletedAt: null,
         },
         include: {
-          user: true,
+          user: {
+            include: {
+              contact: true,
+            },
+          },
           appointmentProposal: {
             orderBy: {
               createdAt: 'desc',
+            },
+            include: {
+              appointmentPet: {
+                include: {
+                  pet: true,
+                },
+              },
             },
           },
           billing: {
@@ -1334,7 +1490,11 @@ export class AppointmentProposalService {
           },
           provider: {
             select: {
-              user: true,
+              user: {
+                include: {
+                  contact: true,
+                },
+              },
               cancellationPolicy: true,
             },
           },
@@ -1566,16 +1726,86 @@ export class AppointmentProposalService {
 
       /*
        * Dispatch email notification
+       * First need to formatted data for email template
+       */
+      const dates = [];
+
+      for (
+        let i = 0;
+        i < priceCalculationDetails?.formatedDatesByZone?.length;
+        i++
+      ) {
+        dates.push(
+          new Date(
+            priceCalculationDetails?.formatedDatesByZone[i]?.date,
+          ).toDateString(),
+        );
+      }
+
+      const petsName = appointment?.appointmentProposal[0]?.appointmentPet?.map(
+        (item) => {
+          return item?.pet?.name;
+        },
+      );
+
+      const providerService =
+        await this.prismaService.providerServices.findFirst({
+          where: {
+            id: appointment?.providerServiceId,
+          },
+          include: {
+            serviceType: true,
+          },
+        });
+
+      const first_name =
+        lastStatusChangedBy == 'USER'
+          ? appointment?.user?.firstName
+          : appointment?.provider?.user?.firstName;
+
+      try {
+        await this.emailService.appointmentRefundEmail(
+          appointment?.user?.email,
+          {
+            first_name,
+            appointment_opk: appointment?.opk,
+            service_name: providerService?.serviceType?.name,
+            appointment_dates: [...new Set(dates)]?.join(', '),
+            pet_names: petsName.join(', '),
+            total_amount: priceCalculationDetails?.subTotal,
+            refund_amount: providerAmount,
+            refund_reason: cancelReason,
+          },
+        );
+        await this.emailService.appointmentRejectEmail(
+          appointment?.provider?.user?.email,
+          {
+            first_name: appointment?.provider?.user?.firstName,
+            appointment_opk: appointment?.opk,
+            appointment_dates:
+              priceCalculationDetails?.formatedDatesByZone[0]?.date,
+          },
+        );
+      } catch (error) {
+        console.log(error?.message);
+      }
+
+      /*
+       * Dispatch sms notification
        */
       try {
-        await this.emailService.appointmentCancelEmail(
-          appointment?.user?.email,
-          'CANCELLED',
-        );
-        await this.emailService.appointmentCancelEmail(
-          appointment?.provider?.user?.email,
-          'CANCELLED',
-        );
+        if (appointment?.user?.contact?.phone) {
+          await this.smsService.sendText(
+            appointment?.user?.contact?.phone,
+            `Hi, ${appointment?.user?.firstName}, your refund request is successful.`,
+          );
+        }
+        if (appointment?.provider?.user?.contact?.phone) {
+          await this.smsService.sendText(
+            appointment?.provider?.user?.contact?.phone,
+            `Hi, ${appointment?.provider?.user?.firstName}, your appointment is cancelled.`,
+          );
+        }
       } catch (error) {
         console.log(error?.message);
       }
@@ -1638,6 +1868,22 @@ export class AppointmentProposalService {
             opk,
             deletedAt: null,
           },
+          include: {
+            user: {
+              include: {
+                contact: true,
+              },
+            },
+            provider: {
+              include: {
+                user: {
+                  include: {
+                    contact: true,
+                  },
+                },
+              },
+            },
+          },
         }),
       ]);
 
@@ -1669,6 +1915,54 @@ export class AppointmentProposalService {
           lastStatusChangedBy,
         },
       });
+
+      /*
+       * Dispatch email notification
+       * First need to formatted data for email template
+       */
+      const priceCalculation = await this.getProposalPrice(appointment?.opk);
+
+      try {
+        await this.emailService.appointmentRejectEmail(
+          appointment?.user?.email,
+          {
+            first_name: appointment?.user?.firstName,
+            appointment_opk: appointment?.opk,
+            appointment_dates: priceCalculation?.formatedDatesByZone[0]?.date,
+          },
+        );
+        await this.emailService.appointmentRejectEmail(
+          appointment?.provider?.user?.email,
+          {
+            first_name: appointment?.provider?.user?.firstName,
+            appointment_opk: appointment?.opk,
+            appointment_dates: priceCalculation?.formatedDatesByZone[0]?.date,
+          },
+        );
+      } catch (error) {
+        console.log(error?.message);
+      }
+
+      /*
+       * Dispatch sms notification
+       */
+      try {
+        if (appointment?.user?.contact?.phone) {
+          await this.smsService.sendText(
+            appointment?.user?.contact?.phone,
+            `Hi, ${appointment?.user?.firstName}, your appointment is rejected.`,
+          );
+        }
+        if (appointment?.provider?.user?.contact?.phone) {
+          await this.smsService.sendText(
+            appointment?.provider?.user?.contact?.phone,
+            `Hi, ${appointment?.provider?.user?.firstName}, your appointment is rejected.`,
+          );
+        }
+      } catch (error) {
+        console.log(error?.message);
+      }
+
       return {
         message: 'Appointment rejected successfully',
         data: { result },
@@ -2131,10 +2425,18 @@ export class AppointmentProposalService {
           deletedAt: null,
         },
         include: {
-          user: true,
+          user: {
+            include: {
+              contact: true,
+            },
+          },
           provider: {
             include: {
-              user: true,
+              user: {
+                include: {
+                  contact: true,
+                },
+              },
             },
           },
         },
@@ -2200,11 +2502,38 @@ export class AppointmentProposalService {
     try {
       await this.emailService.appointmentCompleteEmail(
         appointment?.provider?.user?.email,
-        'COMPLETED',
+        {
+          first_name: appointment?.provider?.user?.firstName,
+          appointment_opk: appointment?.opk,
+        },
       );
       await this.emailService.appointmentCompleteEmail(
         appointment?.user?.email,
+        {
+          first_name: appointment?.user?.firstName,
+          appointment_opk: appointment?.opk,
+        },
       );
+    } catch (error) {
+      console.log(error?.message);
+    }
+
+    /*
+     * Dispatch sms notification
+     */
+    try {
+      if (appointment?.user?.contact?.phone) {
+        await this.smsService.sendText(
+          appointment?.user?.contact?.phone,
+          `Hi, ${appointment?.user?.firstName}, your appointment is completed.`,
+        );
+      }
+      if (appointment?.provider?.user?.contact?.phone) {
+        await this.smsService.sendText(
+          appointment?.provider?.user?.contact?.phone,
+          `Hi, ${appointment?.provider?.user?.firstName}, your appointment is completed.`,
+        );
+      }
     } catch (error) {
       console.log(error?.message);
     }

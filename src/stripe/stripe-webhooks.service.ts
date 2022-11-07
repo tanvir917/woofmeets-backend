@@ -1,6 +1,7 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
 import { nextMonday } from 'date-fns';
 import { convertToZoneSpecificDateTime } from 'src/global/time/time-coverters';
+import { SmsService } from 'src/sms/sms.service';
 import Stripe from 'stripe';
 import { AppointmentProposalService } from '../appointment/services/appointment-proposal.service';
 import { EmailService } from '../email/email.service';
@@ -23,6 +24,7 @@ export class StripeWebhooksService {
     private secretService: SecretService,
     private appointmentProposalService: AppointmentProposalService,
     private emailService: EmailService,
+    private smsService: SmsService,
   ) {
     this.stripe = new Stripe(this.secretService.getStripeCreds().secretKey, {
       apiVersion: this.secretService.getStripeCreds().apiVersion,
@@ -420,10 +422,18 @@ export class StripeWebhooksService {
         include: {
           appointment: {
             include: {
-              user: true,
+              user: {
+                include: {
+                  contact: true,
+                },
+              },
               provider: {
                 include: {
-                  user: true,
+                  user: {
+                    include: {
+                      contact: true,
+                    },
+                  },
                 },
               },
               appointmentProposal: {
@@ -464,20 +474,6 @@ export class StripeWebhooksService {
           }),
         ],
       );
-
-      // Send email to user and provider for successful payments
-      try {
-        this.emailService.appointmentPaymentEmail(
-          billing?.appointment?.user?.email,
-          appointmentBillingPayment?.amount,
-          appointmentBillingPayment?.txnId,
-        );
-        this.emailService.appointmentPaymentForProviderEmail(
-          billing?.appointment?.provider?.user?.email,
-        );
-      } catch (error) {
-        console.log(error?.message);
-      }
 
       const date = await this.appointmentProposalService.getProposalPrice(
         billing?.appointment?.opk,
@@ -556,6 +552,51 @@ export class StripeWebhooksService {
       await this.prismaService.appointmentDates.createMany({
         data: dateDatas,
       });
+
+      // Send email to user and provider for successful payments
+      try {
+        this.emailService.appointmentPaymentEmail(
+          billing?.appointment?.user?.email,
+          {
+            first_name: billing?.appointment?.user?.firstName,
+            appointment_opk: billing?.appointment?.opk,
+            amount_paid: appointmentBillingPayment?.amount,
+            transaction_id: appointmentBillingPayment?.txnId,
+          },
+        );
+        this.emailService.appointmentPaymentForProviderEmail(
+          billing?.appointment?.provider?.user?.email,
+          {
+            first_name: billing?.appointment?.provider?.user?.firstName,
+            appointment_opk: billing?.appointment?.opk,
+            sub_total: date?.subTotal,
+            subscription_fee: date?.providerFee.subscriptionFee,
+            total: date?.providerFee.providerTotal,
+          },
+        );
+      } catch (error) {
+        console.log(error?.message);
+      }
+
+      /*
+       * Dispatch sms notification
+       */
+      try {
+        if (billing?.appointment?.user?.contact?.phone) {
+          await this.smsService.sendText(
+            billing?.appointment?.user?.contact?.phone,
+            `Hi, ${billing?.appointment?.user?.firstName}, your appointment payment is successful.`,
+          );
+        }
+        if (billing?.appointment?.provider?.user?.contact?.phone) {
+          await this.smsService.sendText(
+            billing?.appointment?.provider?.user?.contact?.phone,
+            `Hi, ${billing?.appointment?.provider?.user?.firstName}, your appointment is paid by pet owner.`,
+          );
+        }
+      } catch (error) {
+        console.log(error?.message);
+      }
 
       return {
         message: 'Charge Succeeded',
