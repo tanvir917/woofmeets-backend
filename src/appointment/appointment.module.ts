@@ -6,6 +6,7 @@ import { MessagingModule } from 'src/messaging/messaging.module';
 import { PrismaModule } from 'src/prisma/prisma.module';
 import { SecretModule } from 'src/secret/secret.module';
 import { ServiceRatesModule } from 'src/service-rates/service-rates.module';
+import { SmsModule } from 'src/sms/sms.module';
 import { StripeDispatcherService } from '../stripe/stripe.dispatcher.service';
 import { AppointmentController } from './appointment.controller';
 import { AppointmentPaymentService } from './services/appointment-payment.service';
@@ -20,6 +21,7 @@ import { AppointmentProposalService } from './services/appointment-proposal.serv
     FileModule,
     ServiceRatesModule,
     EmailModule,
+    SmsModule,
     // StripeModule,
   ],
   providers: [
