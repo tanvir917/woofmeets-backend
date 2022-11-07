@@ -5,7 +5,7 @@ import {
   appointmentStatusEnum,
   petTypeEnum,
   Prisma,
-  subscriptionTypeEnum,
+  subscriptionTypeEnum
 } from '@prisma/client';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime';
 import axios from 'axios';
@@ -20,11 +20,11 @@ import {
   DaysOfWeek,
   extractDay,
   generateDatesFromAndTo,
-  generateDays,
+  generateDays
 } from 'src/global';
 import {
   throwBadRequestErrorCheck,
-  throwNotFoundErrorCheck,
+  throwNotFoundErrorCheck
 } from 'src/global/exceptions/error-logic';
 import { MessagingProxyService } from 'src/messaging/messaging.service';
 import { PrismaService } from 'src/prisma/prisma.service';
@@ -38,13 +38,13 @@ import { PetsCheckDto } from '../dto/pet-check.dto';
 import { UpdateAppointmentProposalDto } from '../dto/update-appointment-proposal.dto';
 import {
   AppointmentProposalEnum,
-  AppointmentStatusEnum,
+  AppointmentStatusEnum
 } from '../helpers/appointment-enum';
 import {
   checkIfAnyDateHoliday,
   generateDatesFromProposalVisits,
   TimingType,
-  VisitType,
+  VisitType
 } from '../helpers/appointment-visits';
 
 @Injectable()
@@ -687,7 +687,7 @@ export class AppointmentProposalService {
             ? true
             : false,
         rating: reviewStatistics?._avg?.rating
-          ? Number(reviewStatistics?._avg?.rating?.toFixed(1))
+          ? Math.round(Number(reviewStatistics?._avg?.rating?.toFixed(1)))
           : 0,
         review,
       },

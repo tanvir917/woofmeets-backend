@@ -15,6 +15,7 @@ import { TransformInterceptor } from 'src/transform.interceptor';
 import { CreateMultipleServiceRateDto } from './dto/create-multiple-service-rate.dto';
 import { CreateServiceRateDto } from './dto/create-service-rate.dto';
 import { CreateServiceTypeRateDto } from './dto/create-type-rate.dto';
+import { UpdateMultipleServiceRateDto } from './dto/update-multiple-service-rate.dto';
 import { UpdateServiceRateDto } from './dto/update-service-rate.dto';
 import { ServiceRatesService } from './service-rates.service';
 import { ServiceTypeHasRatesService } from './service-type-has-rate.service';
@@ -110,10 +111,10 @@ export class ServiceRatesController {
       'Update multiple rate at a time for provider service. Pass an array of object of service rates like create method in body.',
   })
   async multipleUpdate(
-    @Body() createMultipleServiceRateDto: CreateMultipleServiceRateDto,
+    @Body() updateMultipleServiceRateDto: UpdateMultipleServiceRateDto,
   ) {
     return this.serviceRatesService.multipleUpdate(
-      createMultipleServiceRateDto,
+      updateMultipleServiceRateDto,
     );
   }
 

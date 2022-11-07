@@ -207,7 +207,7 @@ export class ProviderService {
           timezone: providerUser?.timezone,
           rating: {
             average: reviewStatistics?._avg?.rating
-              ? Number(reviewStatistics?._avg?.rating?.toFixed(1))
+              ? Math.round(Number(reviewStatistics?._avg?.rating?.toFixed(1)))
               : 0,
             totalCount: reviewStatistics?._count?.id ?? 0,
           },
