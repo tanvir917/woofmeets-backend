@@ -7,6 +7,7 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { SecretService } from 'src/secret/secret.service';
 import { CreateMultipleServiceRateDto } from './dto/create-multiple-service-rate.dto';
 import { CreateServiceRateDto } from './dto/create-service-rate.dto';
+import { UpdateMultipleServiceRateDto } from './dto/update-multiple-service-rate.dto';
 import { UpdateServiceRateDto } from './dto/update-service-rate.dto';
 
 @Injectable()
@@ -86,7 +87,7 @@ export class ServiceRatesService {
         id,
       },
       data: {
-        amount: body.amount,
+        amount: body?.amount,
       },
     });
 
@@ -98,15 +99,25 @@ export class ServiceRatesService {
     };
   }
 
-  async multipleUpdate(body: CreateMultipleServiceRateDto) {
-    const { serviceRate } = body;
+  async multipleUpdate(body: UpdateMultipleServiceRateDto) {
+    const { ratesToUpdate, ratesToAdd } = body;
 
     const promises = [];
 
-    for (let i = 0; i < serviceRate?.length; i++) {
+    for (let i = 0; i < ratesToUpdate?.length; i++) {
       promises.push(
-        await this.update(BigInt(serviceRate[i]?.rateId) ?? BigInt(-1), {
-          amount: serviceRate[i]?.amount,
+        await this.update(BigInt(ratesToUpdate[i]?.rateId) ?? BigInt(-1), {
+          amount: ratesToUpdate[i]?.amount,
+        }),
+      );
+    }
+
+    for (let i = 0; i < ratesToAdd?.length; i++) {
+      promises.push(
+        await this.create({
+          serviceId: ratesToAdd[i]?.serviceId,
+          rateId: ratesToAdd[i]?.rateId,
+          amount: ratesToAdd[i]?.amount,
         }),
       );
     }
