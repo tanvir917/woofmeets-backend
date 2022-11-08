@@ -948,7 +948,7 @@ model Appointment {
   lastStatusChangedBy appointmentProposalEnum?
   cancelReason        String?
   providerTimeZone    String?
-  isRecurring         Boolean? @default(false)
+  isRecurring         Boolean?                 @default(false)
   endOfLife           DateTime?                @db.Timestamptz(3)
   lastProposalId      BigInt?
   messageGroupId      String?
@@ -1224,7 +1224,12 @@ model AppointmentBillingTransactions {
   providerAmount     Float?
   releaseDate        DateTime? @db.Timestamptz(3)
   releaseStatus      Boolean   @default(false)
-  precessingId       String?
+  nextState          String?
+  lockedAt           DateTime? @db.Timestamptz(3)
+  state              String    @default("CUSTOMER_PAID")
+  processingId       String?
+  lockedReason       String?
+  errors             Json?
   meta               Json?
   createdAt          DateTime  @default(now()) @db.Timestamptz(3)
   updatedAt          DateTime? @updatedAt @db.Timestamptz(3)
