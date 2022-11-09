@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { utcToZonedTime, formatInTimeZone } from 'date-fns-tz';
+import { utcToZonedTime, formatInTimeZone, format } from 'date-fns-tz';
 import { GetAvailableCalenderDto } from 'src/provider/dto/get.available.dto';
 import {
   throwBadRequestErrorCheck,
@@ -204,9 +204,9 @@ export class AvailabilityGetServcie {
     });
 
     dates.map((date) => {
-      const availableTime = formatInTimeZone(date, tz, 'yyyy-MM-dd');
+      const availableTime = format(date, 'yyyy-MM-dd');
       unavailablilty.map((un) => {
-        const ud = formatInTimeZone(un.date, tz, 'yyyy-MM-dd');
+        const ud = format(un.date,'yyyy-MM-dd');
         if (ud === availableTime) {
           unavailableDates.push(ud);
         }
