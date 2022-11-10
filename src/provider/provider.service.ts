@@ -212,6 +212,7 @@ export class ProviderService {
             totalCount: reviewStatistics?._count?.id ?? 0,
           },
           description: providerUser?.provider?.providerDetails?.headline,
+          providerDetails: providerUser?.provider?.providerDetails,
           address: providerUser?.basicInfo,
           latitude: providerUser?.basicInfo?.latitude,
           longitude: providerUser?.basicInfo?.longitude,
