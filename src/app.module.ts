@@ -45,6 +45,7 @@ import { ZoomModule } from './zoom/zoom.module';
 import { StripeConnectModule } from './stripe-connect/stripe-connect.module';
 import { CouponsModule } from './coupons/coupons.module';
 import { ReviewModule } from './review/review.module';
+import { PaymentDispatcherModule } from './payment-dispatcher/payment-dispatcher.module';
 
 @Module({
   imports: [
@@ -94,6 +95,7 @@ import { ReviewModule } from './review/review.module';
     StripeConnectModule,
     CouponsModule,
     ReviewModule,
+    PaymentDispatcherModule,
   ],
   controllers: [AppController],
   providers: [AppService, SecretService, PrismaService, SmsService],
