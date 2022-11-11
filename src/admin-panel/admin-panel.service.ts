@@ -119,6 +119,8 @@ export class AdminPanelService {
         createdAt: true,
         updatedAt: true,
         deletedAt: true,
+        contact: true,
+        basicInfo: true,
       },
     });
 
@@ -242,6 +244,8 @@ export class AdminPanelService {
             createdAt: true,
             updatedAt: true,
             deletedAt: true,
+            contact: true,
+            basicInfo: true,
           },
         },
       },
