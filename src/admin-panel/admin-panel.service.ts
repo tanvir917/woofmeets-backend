@@ -6,7 +6,7 @@ import { LoginDto } from 'src/auth/dto/login.dto';
 import {
   throwBadRequestErrorCheck,
   throwNotFoundErrorCheck,
-  throwUnauthorizedErrorCheck,
+  throwUnauthorizedErrorCheck
 } from 'src/global/exceptions/error-logic';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { SecretService } from 'src/secret/secret.service';
@@ -622,10 +622,54 @@ export class AdminPanelService {
         opk: opk ?? '',
       },
       include: {
-        user: true,
+        user: {
+          select: {
+            id: true,
+            opk: true,
+            email: true,
+            emailVerified: true,
+            firstName: true,
+            lastName: true,
+            zipcode: true,
+            image: true,
+            loginProvider: true,
+            timezone: true,
+            facebook: true,
+            google: true,
+            meta: true,
+            createdAt: true,
+            updatedAt: true,
+            deletedAt: true,
+            basicInfo: true,
+            contact: true,
+            emergencyContact: true,
+          },
+        },
         provider: {
           include: {
-            user: true,
+            user: {
+              select: {
+                id: true,
+                opk: true,
+                email: true,
+                emailVerified: true,
+                firstName: true,
+                lastName: true,
+                zipcode: true,
+                image: true,
+                loginProvider: true,
+                timezone: true,
+                facebook: true,
+                google: true,
+                meta: true,
+                createdAt: true,
+                updatedAt: true,
+                deletedAt: true,
+                basicInfo: true,
+                contact: true,
+                emergencyContact: true,
+              },
+            },
           },
         },
         providerService: {

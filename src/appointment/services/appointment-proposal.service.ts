@@ -763,7 +763,7 @@ export class AppointmentProposalService {
         },
         include: {
           user: {
-            include: {
+            select: {
               contact: true,
             },
           },
