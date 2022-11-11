@@ -143,6 +143,25 @@ export class EmailService {
     }
   }
 
+  async appointmentModifyEmail(email: string, templateValue: any) {
+    try {
+      return this.mailgunService.createEmail(
+        this.secretService.getMailgunCreds().domain,
+        {
+          from: `Woofmeets no-reply <${
+            this.secretService.getMailgunCreds().from
+          }>`,
+          to: email,
+          subject: 'Appointment modify notification',
+          template: 'appointment_modified',
+          ['h:X-Mailgun-Variables']: JSON.stringify(templateValue),
+        },
+      );
+    } catch (error) {
+      this.logger.error(error?.message);
+    }
+  }
+
   async appointmentPaymentEmail(email: string, templateValue?: any) {
     try {
       //const content = new PaymentAppointmentTemplate({ amount, txnId }).html();

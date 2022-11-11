@@ -39,13 +39,13 @@ import { PetsCheckDto } from '../dto/pet-check.dto';
 import { UpdateAppointmentProposalDto } from '../dto/update-appointment-proposal.dto';
 import {
   AppointmentProposalEnum,
-  AppointmentStatusEnum
+  AppointmentStatusEnum,
 } from '../helpers/appointment-enum';
 import {
   checkIfAnyDateHoliday,
   generateDatesFromProposalVisits,
   TimingType,
-  VisitType
+  VisitType,
 } from '../helpers/appointment-visits';
 
 @Injectable()
@@ -764,6 +764,23 @@ export class AppointmentProposalService {
         include: {
           user: {
             select: {
+              id: true,
+              opk: true,
+              email: true,
+              emailVerified: true,
+              firstName: true,
+              lastName: true,
+              zipcode: true,
+              image: true,
+              loginProvider: true,
+              timezone: true,
+              facebook: true,
+              google: true,
+              meta: true,
+              createdAt: true,
+              updatedAt: true,
+              deletedAt: true,
+              basicInfo: true,
               contact: true,
             },
           },
@@ -1031,12 +1048,14 @@ export class AppointmentProposalService {
       return item?.name;
     });
 
+    const service_name = updatedAppointment?.providerService?.serviceType?.name;
+
     try {
       //await this.emailService.appointmentCreationEmail(user?.email, 'PROPOSAL');
       await this.emailService.appointmentCreationEmail(provider?.user?.email, {
         first_name: user?.firstName,
         appointment_opk: appointment?.opk,
-        service_name: updatedAppointment?.providerService?.serviceType?.name,
+        service_name,
         appointment_dates: [...new Set(dates)]?.join(', '),
         pet_names: petsName.join(', '),
         sub_total: priceCalculationDetails?.subTotal,
@@ -1048,17 +1067,26 @@ export class AppointmentProposalService {
     /*
      * Dispatch sms notification
      */
+    const conversationUrl = `https://woofmeets.com/account/conversations/${appointment?.opk}`;
     try {
       if (user?.contact?.phone) {
         await this.smsService.sendText(
           user?.contact?.phone,
-          `Hi, ${user?.firstName}, your appointment is created successfuly.`,
+          `You've sent a booking request (${service_name}) to ${
+            provider?.user?.firstName
+          }: ${petsName.join(', ')} on ${[...new Set(dates)]?.join(', ')} • ${
+            length ? `${length} min` : ''
+          }. Book @${conversationUrl}`,
         );
       }
       if (provider?.user?.contact?.phone) {
         await this.smsService.sendText(
           provider?.user?.contact?.phone,
-          `Hi, ${provider?.user?.firstName}, you have a new appointment.`,
+          `You've received a booking request (${service_name}) from ${
+            user?.firstName
+          }: ${petsName.join(', ')} on ${[...new Set(dates)]?.join(', ')} • ${
+            length ? `${length} min` : ''
+          }. Book @${conversationUrl}`,
         );
       }
     } catch (error) {
@@ -1092,7 +1120,9 @@ export class AppointmentProposalService {
      * DB Data validation
      */
 
-    const [user, appointment] = await this.prismaService.$transaction([
+    const { petsId } = updateAppointmentProposalDto;
+
+    const [user, appointment, pets] = await this.prismaService.$transaction([
       this.prismaService.user.findFirst({
         where: { id: userId, deletedAt: null },
       }),
@@ -1100,6 +1130,53 @@ export class AppointmentProposalService {
         where: {
           opk,
           deletedAt: null,
+        },
+        include: {
+          user: {
+            include: {
+              contact: true,
+            },
+          },
+          provider: {
+            include: {
+              user: {
+                select: {
+                  id: true,
+                  opk: true,
+                  email: true,
+                  emailVerified: true,
+                  firstName: true,
+                  lastName: true,
+                  zipcode: true,
+                  image: true,
+                  loginProvider: true,
+                  timezone: true,
+                  meta: true,
+                  createdAt: true,
+                  updatedAt: true,
+                  deletedAt: true,
+                  basicInfo: true,
+                  contact: true,
+                },
+              },
+            },
+          },
+          providerService: {
+            include: {
+              serviceType: true,
+            },
+          },
+        },
+      }),
+      this.prismaService.pet.findMany({
+        where: {
+          id: {
+            in: petsId,
+          },
+          deletedAt: null,
+        },
+        select: {
+          name: true,
         },
       }),
     ]);
@@ -1113,6 +1190,11 @@ export class AppointmentProposalService {
       'Apointment is not in proposal state.',
     );
 
+    throwBadRequestErrorCheck(
+      petsId?.length <= 0,
+      'Atleast one pet should be selected',
+    );
+
     /**
      * Update Proposal
      */
@@ -1120,7 +1202,6 @@ export class AppointmentProposalService {
     const {
       proposedBy,
       appointmentserviceType,
-      petsId,
       length,
       additionalLengthPrice,
       regularPrice,
@@ -1219,6 +1300,89 @@ export class AppointmentProposalService {
         },
       }),
     ]);
+
+    /*
+     * Dispatch email notification
+     * First need to formatted data for email template
+     * Only to provider
+     */
+
+    const dates = [];
+
+    for (
+      let i = 0;
+      i < priceCalculationDetails?.formatedDatesByZone?.length;
+      i++
+    ) {
+      dates.push(
+        new Date(
+          priceCalculationDetails?.formatedDatesByZone[i]?.date,
+        ).toDateString(),
+      );
+    }
+
+    const petsName = pets.map((item) => {
+      return item?.name;
+    });
+
+    const service_name = appointment?.providerService?.serviceType?.name;
+    const sendEmail =
+      proposedBy == 'USER'
+        ? appointment?.provider?.user?.email
+        : appointment?.user?.email;
+
+    const emailFirstName =
+      proposedBy == 'USER'
+        ? appointment?.user?.firstName
+        : appointment?.provider?.user?.firstName;
+
+    try {
+      //await this.emailService.appointmentCreationEmail(user?.email, 'PROPOSAL');
+      await this.emailService.appointmentModifyEmail(sendEmail, {
+        first_name: emailFirstName,
+        appointment_opk: appointment?.opk,
+        service_name,
+        appointment_dates: [...new Set(dates)]?.join(', '),
+        pet_names: petsName.join(', '),
+        sub_total: priceCalculationDetails?.subTotal,
+      });
+    } catch (error) {
+      console.log(error?.message);
+    }
+
+    /*
+     * Dispatch sms notification
+     */
+    const smsUserFirstName =
+      proposedBy == 'USER' ? 'You' : appointment?.provider?.user?.firstName;
+
+    const smsProviderFirstName =
+      proposedBy == 'PROVIDER' ? 'You' : appointment?.user?.firstName;
+    const conversationUrl = `https://woofmeets.com/account/conversations/${appointment?.opk}`;
+    try {
+      if (appointment?.user?.contact?.phone) {
+        await this.smsService.sendText(
+          appointment?.user?.contact?.phone,
+          `${smsUserFirstName} sent a modified request (${service_name}) to ${smsProviderFirstName}: ${petsName.join(
+            ', ',
+          )} on ${[...new Set(dates)]?.join(', ')} • ${
+            length ? `${length} min` : ''
+          }. Book @${conversationUrl}`,
+        );
+      }
+      if (appointment?.provider?.user?.contact?.phone) {
+        await this.smsService.sendText(
+          appointment?.provider?.user?.contact?.phone,
+          `${smsProviderFirstName} sent a modified request (${service_name}) to ${smsUserFirstName}: ${petsName.join(
+            ', ',
+          )} on ${[...new Set(dates)]?.join(', ')} • ${
+            length ? `${length} min` : ''
+          }. Book @${conversationUrl}`,
+        );
+      }
+    } catch (error) {
+      console.log(error?.message);
+    }
 
     return {
       message: 'Appointment proposal updated successfully',
@@ -1395,17 +1559,24 @@ export class AppointmentProposalService {
     /*
      * Dispatch sms notification
      */
+    const conversationUrl = `https://woofmeets.com/account/conversations/${appointment?.opk}`;
     try {
       if (appointment?.user?.contact?.phone) {
         await this.smsService.sendText(
           appointment?.user?.contact?.phone,
-          `Hi, ${appointment?.user?.firstName}, your appointment is accepted.`,
+          `${
+            appointment?.provider?.user?.firstName
+          } agreed to care the ${petsName.join(
+            ', ',
+          )} on Woofmeets. See details @${conversationUrl}`,
         );
       }
       if (appointment?.provider?.user?.contact?.phone) {
         await this.smsService.sendText(
           appointment?.provider?.user?.contact?.phone,
-          `Hi, ${appointment?.provider?.user?.firstName}, your appointment is accepted.`,
+          `You agreed to care the ${petsName.join(
+            ', ',
+          )} on Woofmeets. See details @${conversationUrl}`,
         );
       }
     } catch (error) {
@@ -1793,36 +1964,36 @@ export class AppointmentProposalService {
       /*
        * Dispatch sms notification
        */
+      const conversationUrl = `https://woofmeets.com/account/conversations/${appointment?.opk}`;
+
       try {
         if (appointment?.user?.contact?.phone) {
           await this.smsService.sendText(
             appointment?.user?.contact?.phone,
-            `Hi, ${appointment?.user?.firstName}, your refund request is successful.`,
+            `${
+              lastStatusChangedBy == 'USER'
+                ? 'You'
+                : appointment?.provider?.user?.firstName
+            } cancelled the request to care for ${petsName.join(
+              ', ',
+            )}. See details @${conversationUrl}`,
           );
         }
         if (appointment?.provider?.user?.contact?.phone) {
           await this.smsService.sendText(
             appointment?.provider?.user?.contact?.phone,
-            `Hi, ${appointment?.provider?.user?.firstName}, your appointment is cancelled.`,
+            `${
+              lastStatusChangedBy == 'USER'
+                ? appointment?.user?.firstName
+                : 'You'
+            } cancelled the request to care for ${petsName.join(
+              ', ',
+            )}. See details @${conversationUrl}`,
           );
         }
       } catch (error) {
         console.log(error?.message);
       }
-
-      return {
-        message: 'Appointment cancelled successfully.',
-        data: {
-          ...updatedAppointment,
-          userAmount: userRefundAmount,
-          providerAmount: Math.max(
-            priceCalculationDetails?.providerFee?.providerTotal -
-              userRefundAmount,
-            0,
-          ),
-          providerFee: priceCalculationDetails?.providerFee,
-        },
-      };
     } else {
       await this.prismaService.cancelAppointment.create({
         data: {
@@ -1883,6 +2054,18 @@ export class AppointmentProposalService {
                 },
               },
             },
+            appointmentProposal: {
+              orderBy: {
+                createdAt: 'desc',
+              },
+              include: {
+                appointmentPet: {
+                  include: {
+                    pet: true,
+                  },
+                },
+              },
+            },
           },
         }),
       ]);
@@ -1922,6 +2105,12 @@ export class AppointmentProposalService {
        */
       const priceCalculation = await this.getProposalPrice(appointment?.opk);
 
+      const petsName = appointment?.appointmentProposal[0]?.appointmentPet?.map(
+        (item) => {
+          return item?.pet?.name;
+        },
+      );
+
       try {
         await this.emailService.appointmentRejectEmail(
           appointment?.user?.email,
@@ -1946,17 +2135,31 @@ export class AppointmentProposalService {
       /*
        * Dispatch sms notification
        */
+      const conversationUrl = `https://woofmeets.com/account/conversations/${appointment?.opk}`;
+
       try {
         if (appointment?.user?.contact?.phone) {
           await this.smsService.sendText(
             appointment?.user?.contact?.phone,
-            `Hi, ${appointment?.user?.firstName}, your appointment is rejected.`,
+            `${
+              lastStatusChangedBy == 'USER'
+                ? 'You'
+                : appointment?.provider?.user?.firstName
+            } cancelled the request to care for ${petsName.join(
+              ', ',
+            )}. See details @${conversationUrl}`,
           );
         }
         if (appointment?.provider?.user?.contact?.phone) {
           await this.smsService.sendText(
             appointment?.provider?.user?.contact?.phone,
-            `Hi, ${appointment?.provider?.user?.firstName}, your appointment is rejected.`,
+            `${
+              lastStatusChangedBy == 'USER'
+                ? appointment?.user?.firstName
+                : 'You'
+            } cancelled the request to care for ${petsName.join(
+              ', ',
+            )}. See details @${conversationUrl}`,
           );
         }
       } catch (error) {
@@ -2521,22 +2724,22 @@ export class AppointmentProposalService {
     /*
      * Dispatch sms notification
      */
-    try {
-      if (appointment?.user?.contact?.phone) {
-        await this.smsService.sendText(
-          appointment?.user?.contact?.phone,
-          `Hi, ${appointment?.user?.firstName}, your appointment is completed.`,
-        );
-      }
-      if (appointment?.provider?.user?.contact?.phone) {
-        await this.smsService.sendText(
-          appointment?.provider?.user?.contact?.phone,
-          `Hi, ${appointment?.provider?.user?.firstName}, your appointment is completed.`,
-        );
-      }
-    } catch (error) {
-      console.log(error?.message);
-    }
+    // try {
+    //   if (appointment?.user?.contact?.phone) {
+    //     await this.smsService.sendText(
+    //       appointment?.user?.contact?.phone,
+    //       `Hi, ${appointment?.user?.firstName}, your appointment is completed.`,
+    //     );
+    //   }
+    //   if (appointment?.provider?.user?.contact?.phone) {
+    //     await this.smsService.sendText(
+    //       appointment?.provider?.user?.contact?.phone,
+    //       `Hi, ${appointment?.provider?.user?.firstName}, your appointment is completed.`,
+    //     );
+    //   }
+    // } catch (error) {
+    //   console.log(error?.message);
+    // }
 
     return {
       message: 'Appointment completed successfully',

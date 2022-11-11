@@ -581,22 +581,22 @@ export class StripeWebhooksService {
       /*
        * Dispatch sms notification
        */
-      try {
-        if (billing?.appointment?.user?.contact?.phone) {
-          await this.smsService.sendText(
-            billing?.appointment?.user?.contact?.phone,
-            `Hi, ${billing?.appointment?.user?.firstName}, your appointment payment is successful.`,
-          );
-        }
-        if (billing?.appointment?.provider?.user?.contact?.phone) {
-          await this.smsService.sendText(
-            billing?.appointment?.provider?.user?.contact?.phone,
-            `Hi, ${billing?.appointment?.provider?.user?.firstName}, your appointment is paid by pet owner.`,
-          );
-        }
-      } catch (error) {
-        console.log(error?.message);
-      }
+      // try {
+      //   if (billing?.appointment?.user?.contact?.phone) {
+      //     await this.smsService.sendText(
+      //       billing?.appointment?.user?.contact?.phone,
+      //       `Hi, ${billing?.appointment?.user?.firstName}, your appointment payment is successful.`,
+      //     );
+      //   }
+      //   if (billing?.appointment?.provider?.user?.contact?.phone) {
+      //     await this.smsService.sendText(
+      //       billing?.appointment?.provider?.user?.contact?.phone,
+      //       `Hi, ${billing?.appointment?.provider?.user?.firstName}, your appointment is paid by pet owner.`,
+      //     );
+      //   }
+      // } catch (error) {
+      //   console.log(error?.message);
+      // }
 
       return {
         message: 'Charge Succeeded',
