@@ -153,6 +153,16 @@ export class SecretService {
       PUBLIC_GOOGLE_MAP_KEY: this.configService.get<string>(
         'PUBLIC_GOOGLE_MAP_KEY',
       ),
+      PUBLIC_GOOGLE_MAP_SEARCH_REGION: this.configService.get<string>(
+        'PUBLIC_GOOGLE_MAP_SEARCH_REGION',
+      ),
+
+      /**
+       * Admin panel Secret variable
+       */
+      ADMIN_PANEL_SEARCH_START_DATE: this.configService.get<string>(
+        'ADMIN_PANEL_SEARCH_START_DATE',
+      ),
     };
 
     this.#environment = plainToInstance(EnvironmentVariable, env);
@@ -293,6 +303,16 @@ export class SecretService {
 
   getGoogleMapsKey() {
     return this.#environment.PUBLIC_GOOGLE_MAP_KEY;
+  }
+
+  getGoogleMapsSearchRegion() {
+    return this.#environment.PUBLIC_GOOGLE_MAP_SEARCH_REGION;
+  }
+
+  getAdminPanelCreds(): { searchStartDate: string } {
+    return {
+      searchStartDate: this.#environment.ADMIN_PANEL_SEARCH_START_DATE,
+    };
   }
 
   // getCheckrCreds() {

@@ -6,7 +6,7 @@ import {
   Query,
   Request,
   Response,
-  UseGuards,
+  UseGuards
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { LoginDto } from 'src/auth/dto/login.dto';
@@ -145,5 +145,21 @@ export class AdminPanelController {
   async getAppointmentDetails(@Query('opk') opk: string, @Request() req: any) {
     const userId = BigInt(req.user?.id) ?? BigInt(-1);
     return await this.adminPanelService.getAppointmentDetails(userId, opk);
+  }
+
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard)
+  @Get('/transaction-count-details')
+  async getTransactionCountDetails(
+    @Query('startDate') startDate: string,
+    @Query('endDate') endDate: string,
+    @Request() req: any,
+  ) {
+    const userId = BigInt(req.user?.id) ?? BigInt(-1);
+    return await this.adminPanelService.getTransactionCountDetails(
+      userId,
+      startDate,
+      endDate,
+    );
   }
 }

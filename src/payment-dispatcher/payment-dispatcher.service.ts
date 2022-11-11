@@ -7,14 +7,12 @@ import Stripe from 'stripe';
 import { AdminPanelService } from '../admin-panel/admin-panel.service';
 import {
   throwBadRequestErrorCheck,
-  throwInternalServerErrorCheck,
-  throwUnauthorizedErrorCheck,
+  throwUnauthorizedErrorCheck
 } from '../global/exceptions/error-logic';
-import { PaymentDispatcherQueryDto } from './dto/payment-dispatcher-query.dto';
 import { PaymentDispatcherBlockedDto } from './dto/payment-dispatcher.dto';
 import {
   APPOINTMENT_BILLING_NEXT_STATE,
-  APPOINTMENT_BILLING_STATES,
+  APPOINTMENT_BILLING_STATES
 } from './types';
 
 type PayoutParams = {
@@ -514,7 +512,15 @@ export class PaymentDispatcherService {
     );
 
     const appointmentBillingTransaction =
-      await this.prisma.appointmentBillingTransactions.findMany();
+      await this.prisma.appointmentBillingTransactions.findMany({
+        include: {
+          provider: {
+            include: {
+              user: true,
+            },
+          },
+        },
+      });
 
     throwBadRequestErrorCheck(!appointmentBillingTransaction, 'No Data Found');
     return {
@@ -543,7 +549,11 @@ export class PaymentDispatcherService {
               appointment: true,
             },
           },
-          provider: true,
+          provider: {
+            include: {
+              user: true,
+            },
+          },
         },
       });
 

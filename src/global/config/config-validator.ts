@@ -243,6 +243,14 @@ export class EnvironmentVariable {
   @IsNotEmpty()
   @IsString()
   PUBLIC_GOOGLE_MAP_KEY: string;
+
+  @IsNotEmpty()
+  @IsString()
+  PUBLIC_GOOGLE_MAP_SEARCH_REGION: string;
+
+  @IsNotEmpty()
+  @IsString()
+  ADMIN_PANEL_SEARCH_START_DATE: string;
 }
 
 export function validateEnvironmentVariables(

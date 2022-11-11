@@ -1,4 +1,6 @@
+import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
+import axios from 'axios';
 import { FileService } from 'src/file/file.service';
 import { throwBadRequestErrorCheck } from 'src/global/exceptions/error-logic';
 import { PrismaService } from 'src/prisma/prisma.service';
@@ -12,6 +14,7 @@ export class UserProfileBasicInfoService {
     private prismaService: PrismaService,
     private fileService: FileService,
     private secretService: SecretService,
+    private httpService: HttpService,
   ) {}
 
   async createBasicInfo(
@@ -254,6 +257,71 @@ export class UserProfileBasicInfoService {
     return {
       message: 'Profile picture updated',
       data: userUpdated,
+    };
+  }
+
+  async getPredictedLocations(userId: bigint, inputPlace: string) {
+    const user = await this.prismaService.user.findFirst({
+      where: { id: userId, deletedAt: null },
+    });
+
+    throwBadRequestErrorCheck(!user, 'User not found');
+
+    let predictions;
+
+    try {
+      const url = `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${inputPlace}&region=${this.secretService.getGoogleMapsSearchRegion()}&key=${this.secretService.getGoogleMapsKey()}`;
+
+      const { data } = await axios.get(url);
+
+      predictions = data?.predictions?.map((pred) => ({
+        description: pred.description,
+        place_id: pred.place_id,
+      }));
+    } catch (error) {
+      console.log(error?.message);
+      return;
+    }
+
+    throwBadRequestErrorCheck(
+      !predictions,
+      'No predicted location is not found.',
+    );
+
+    return {
+      message: 'Location predictions found successfully.',
+      data: predictions,
+    };
+  }
+
+  async getPlaceIdToLatLong(userId: bigint, placeId: string) {
+    const user = await this.prismaService.user.findFirst({
+      where: { id: userId, deletedAt: null },
+    });
+
+    throwBadRequestErrorCheck(!user, 'User not found');
+
+    let result;
+
+    try {
+      const url = `https://maps.googleapis.com/maps/api/place/details/json?placeid=${placeId}&key=${this.secretService.getGoogleMapsKey()}`;
+      const { data } = await this.httpService.axiosRef.get(url);
+      result = data?.result?.geometry?.location;
+    } catch (error) {
+      console.log(error?.message);
+      return;
+    }
+
+    throwBadRequestErrorCheck(
+      !result,
+      'Wrong placeid. Please input a valid place id',
+    );
+
+    console.log(result?.data);
+
+    return {
+      message: 'Lat long found successfully.',
+      data: result,
     };
   }
 }

@@ -6,9 +6,10 @@ import { LoginDto } from 'src/auth/dto/login.dto';
 import {
   throwBadRequestErrorCheck,
   throwNotFoundErrorCheck,
-  throwUnauthorizedErrorCheck,
+  throwUnauthorizedErrorCheck
 } from 'src/global/exceptions/error-logic';
 import { PrismaService } from 'src/prisma/prisma.service';
+import { SecretService } from 'src/secret/secret.service';
 import { ProviderServiceToggleDto } from './dto/provider-service.toggle.dto';
 
 @Injectable()
@@ -16,6 +17,7 @@ export class AdminPanelService {
   constructor(
     private readonly prismaService: PrismaService,
     private readonly authService: AuthService,
+    private readonly secretService: SecretService,
   ) {}
 
   async adminCheck(userId: bigint) {
@@ -117,6 +119,8 @@ export class AdminPanelService {
         createdAt: true,
         updatedAt: true,
         deletedAt: true,
+        contact: true,
+        basicInfo: true,
       },
     });
 
@@ -240,6 +244,8 @@ export class AdminPanelService {
             createdAt: true,
             updatedAt: true,
             deletedAt: true,
+            contact: true,
+            basicInfo: true,
           },
         },
       },
@@ -616,8 +622,56 @@ export class AdminPanelService {
         opk: opk ?? '',
       },
       include: {
-        user: true,
-        provider: true,
+        user: {
+          select: {
+            id: true,
+            opk: true,
+            email: true,
+            emailVerified: true,
+            firstName: true,
+            lastName: true,
+            zipcode: true,
+            image: true,
+            loginProvider: true,
+            timezone: true,
+            facebook: true,
+            google: true,
+            meta: true,
+            createdAt: true,
+            updatedAt: true,
+            deletedAt: true,
+            basicInfo: true,
+            contact: true,
+            emergencyContact: true,
+          },
+        },
+        provider: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                opk: true,
+                email: true,
+                emailVerified: true,
+                firstName: true,
+                lastName: true,
+                zipcode: true,
+                image: true,
+                loginProvider: true,
+                timezone: true,
+                facebook: true,
+                google: true,
+                meta: true,
+                createdAt: true,
+                updatedAt: true,
+                deletedAt: true,
+                basicInfo: true,
+                contact: true,
+                emergencyContact: true,
+              },
+            },
+          },
+        },
         providerService: {
           include: {
             ServiceHasRates: {
@@ -642,6 +696,120 @@ export class AdminPanelService {
     return {
       messages: 'Appointment details found successfully.',
       data: appointment,
+    };
+  }
+
+  async getTransactionCountDetails(
+    userId: bigint,
+    startDate: string,
+    endDate: string,
+  ) {
+    throwUnauthorizedErrorCheck(
+      !(await this.adminCheck(userId)),
+      'Unauthorized',
+    );
+
+    const [user, provider, userSubscriptionInvoices] =
+      await this.prismaService.$transaction([
+        this.prismaService.user.findMany({
+          where: {
+            AND: [
+              {
+                createdAt: {
+                  gte: startDate
+                    ? new Date(startDate)
+                    : new Date(
+                        this.secretService.getAdminPanelCreds().searchStartDate,
+                      ),
+                },
+              },
+              {
+                createdAt: {
+                  lte: endDate ? new Date(endDate) : new Date(),
+                },
+              },
+            ],
+          },
+          select: {
+            id: true,
+            createdAt: true,
+          },
+        }),
+        this.prismaService.provider.findMany({
+          where: {
+            AND: [
+              {
+                createdAt: {
+                  gte: startDate
+                    ? new Date(startDate)
+                    : new Date(
+                        this.secretService.getAdminPanelCreds().searchStartDate,
+                      ),
+                },
+              },
+              {
+                createdAt: {
+                  lte: endDate ? new Date(endDate) : new Date(),
+                },
+              },
+            ],
+          },
+          select: {
+            id: true,
+            isApproved: true,
+            subscriptionType: true,
+            backGroundCheck: true,
+            profileSubmitted: true,
+            createdAt: true,
+          },
+        }),
+        this.prismaService.userSubscriptionInvoices.findMany({
+          where: {
+            AND: [
+              {
+                createdAt: {
+                  gte: startDate
+                    ? new Date(startDate)
+                    : new Date(
+                        this.secretService.getAdminPanelCreds().searchStartDate,
+                      ),
+                },
+              },
+              {
+                createdAt: {
+                  lte: endDate ? new Date(endDate) : new Date(),
+                },
+              },
+            ],
+          },
+          select: {
+            id: true,
+            stripeInvoiceId: true,
+            customerStripeId: true,
+            customerEmail: true,
+            customerName: true,
+            total: true,
+            subTotal: true,
+            amountDue: true,
+            amountPaid: true,
+            amountRemaining: true,
+            billingReason: true,
+            currency: true,
+            billingDate: true,
+            status: true,
+            invoicePdf: true,
+            createdAt: true,
+          },
+        }),
+      ]);
+
+    return {
+      messages: 'Appointment details found successfully.',
+      data: {
+        user,
+        provider,
+        userSubscriptionInvoices,
+      },
     };
   }
 }
