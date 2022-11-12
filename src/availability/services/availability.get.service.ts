@@ -36,9 +36,9 @@ export class AvailabilityGetServcie {
     const DAYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
 
     const start = new Date(startDate).getDate();
-    const till = new Date(endDate ?? startDate);
-    const from = new Date(startDate);
-    const to = new Date(till);
+    const tillDate = new Date(endDate ?? startDate);
+    const fromDate = new Date(startDate);
+    const to = new Date(tillDate);
 
     const initDates = [];
     const filtered = [];
@@ -57,7 +57,7 @@ export class AvailabilityGetServcie {
       );
     }
 
-    const dateRange = generateDatesFromAndTo(from, till, []);
+    const dateRange = generateDatesFromAndTo(fromDate, tillDate, []);
 
     for (var date of dateRange) {
       initDates.push(date);
@@ -73,7 +73,7 @@ export class AvailabilityGetServcie {
     const toDate = initDates[initDates.length - 1];
 
     const { availability, unavailablilty } =
-      await this.availableAndUnavailableDates(serviceId, startDate, toDate, tz);
+      await this.availableAndUnavailableDates(serviceId, fromDate, tillDate, tz);
 
     const dates = await this.availableDates(
       filtered,
@@ -158,35 +158,35 @@ export class AvailabilityGetServcie {
   }
 
   async availableAndUnavailableDates(serviceId: bigint, startDate, toDate, tz) {
+    const minDate = new Date(
+      extractZoneSpecificDateWithFirstHourTime(new Date(startDate), tz),
+    );
+
+    const maxDate = addDays(
+      new Date(extractZoneSpecificDateWithFirstHourTime(new Date(toDate), tz)),
+      1,
+    );
+
+    console.log({ minDate, maxDate });
+
     const availability = await this.prismaService.availableDate.findMany({
       where: {
         serviceId,
         deletedAt: null,
         date: {
-          gte: new Date(
-            extractZoneSpecificDateWithFirstHourTime(new Date(startDate), tz),
-          ),
-          lte: new Date(
-            extractZoneSpecificDateWithFirstHourTime(new Date(toDate), tz),
-          ),
+          gte: minDate,
+          lt: maxDate,
         },
       },
     });
-    // availability.map((a) => {
-    //   filtered.push(a.date);
-    // });
 
     const unavailablilty = await this.prismaService.unavailability.findMany({
       where: {
         serviceId,
         deletedAt: null,
         date: {
-          gte: new Date(
-            extractZoneSpecificDateWithFirstHourTime(new Date(startDate), tz),
-          ),
-          lte: new Date(
-            extractZoneSpecificDateWithFirstHourTime(new Date(toDate), tz),
-          ),
+          gte: minDate,
+          lt: maxDate,
         },
       },
     });
@@ -206,7 +206,7 @@ export class AvailabilityGetServcie {
     dates.map((date) => {
       const availableTime = format(date, 'yyyy-MM-dd');
       unavailablilty.map((un) => {
-        const ud = format(un.date,'yyyy-MM-dd');
+        const ud = format(un.date, 'yyyy-MM-dd');
         if (ud === availableTime) {
           unavailableDates.push(ud);
         }
