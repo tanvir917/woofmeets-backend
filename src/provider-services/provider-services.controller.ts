@@ -6,6 +6,7 @@ import {
   UseGuards,
   UseInterceptors,
   Param,
+  Patch,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
@@ -34,5 +35,19 @@ export class ProviderServicesController {
   findAll(@Request() req: any) {
     const userId = BigInt(req.user?.id) ?? BigInt(-1);
     return this.providerServicesService.findAll(userId);
+  }
+
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard)
+  @Patch('change-status/:providerServiceId')
+  changeStatus(
+    @Param('providerServiceId') providerServiceId: number,
+    @Request() req: any,
+  ) {
+    const userId = BigInt(req.user?.id) ?? BigInt(-1);
+    return this.providerServicesService.changeIsActiveStatus(
+      userId,
+      BigInt(providerServiceId),
+    );
   }
 }

@@ -195,4 +195,44 @@ export class ProviderServicesService {
       data: providerServices,
     };
   }
+
+  async changeIsActiveStatus(userId: bigint, providerServiceId: bigint) {
+    const user = await this.prismaService.user.findFirst({
+      where: { id: userId, deletedAt: null },
+      include: {
+        provider: true,
+      },
+    });
+
+    throwBadRequestErrorCheck(!user, 'User not found');
+
+    throwBadRequestErrorCheck(!user?.provider, 'User is not a provider');
+
+    const providerService = await this.prismaService.providerServices.findFirst(
+      {
+        where: {
+          id: providerServiceId,
+          providerId: user.provider.id,
+          deletedAt: null,
+        },
+      },
+    );
+
+    throwBadRequestErrorCheck(!providerService, 'Provider service not found');
+
+    const updatedProviderService =
+      await this.prismaService.providerServices.update({
+        where: {
+          id: providerServiceId,
+        },
+        data: {
+          isActive: !providerService.isActive,
+        },
+      });
+
+    return {
+      message: 'Provider service status changed successfully',
+      data: updatedProviderService,
+    };
+  }
 }

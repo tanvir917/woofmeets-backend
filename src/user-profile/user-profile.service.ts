@@ -161,6 +161,15 @@ export class UserProfileService {
       },
     });
 
+    await this.prismaService.providerServices.updateMany({
+      where: {
+        providerId: user?.provider?.id,
+      },
+      data: {
+        isActive: true,
+      },
+    });
+
     throwBadRequestErrorCheck(
       !providerProfileSubmitted,
       'Provider onboarding process can not be submitted. Please try again later.',
