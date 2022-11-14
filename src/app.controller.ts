@@ -1,5 +1,5 @@
-import { Controller, Get, Param, Post } from '@nestjs/common';
-import { ApiTags } from '@nestjs/swagger';
+import { Controller, Get, Param, Query } from '@nestjs/common';
+import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { GetLocationDto } from './app.dto';
 import { AppService } from './app.service';
 
@@ -17,5 +17,21 @@ export class AppController {
   async getLocation(@Param() data: GetLocationDto) {
     const { address } = data;
     return this.appService.getAddress(address);
+  }
+
+  @ApiOperation({
+    summary: 'To get predicted location of a certain place.',
+  })
+  @Get('predicted-locations')
+  async getPredictedLocations(@Query('inputPlace') inputPlace: string) {
+    return this.appService.getPredictedLocations(inputPlace);
+  }
+
+  @ApiOperation({
+    summary: 'To get latitude and longitude from a particular place id.',
+  })
+  @Get('latlong')
+  async getPlaceIdToLatLong(@Query('placeId') placeId: string) {
+    return this.appService.getPlaceIdToLatLong(placeId);
   }
 }

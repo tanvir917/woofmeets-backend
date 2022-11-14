@@ -5,7 +5,6 @@ import {
   Patch,
   Post,
   Put,
-  Query,
   Req,
   Request,
   UploadedFiles,
@@ -320,39 +319,5 @@ export class UserProfileController {
   async submitOnboardingProcess(@Req() req: any) {
     const userId = BigInt(req.user?.id) ?? BigInt(-1);
     return await this.userProfileService.submitOnboardingProcess(userId);
-  }
-
-  @ApiOperation({
-    summary: 'To get predicted location of a user.',
-  })
-  @ApiBearerAuth('access-token')
-  @UseGuards(JwtAuthGuard)
-  @Get('predicted-locations')
-  async getPredictedLocations(
-    @Query('inputPlace') inputPlace: string,
-    @Request() req: any,
-  ) {
-    const userId = BigInt(req.user?.id) ?? BigInt(-1);
-    return this.userProfileBasicInfoService.getPredictedLocations(
-      userId,
-      inputPlace,
-    );
-  }
-
-  @ApiOperation({
-    summary: 'To get predicted location of a user.',
-  })
-  @ApiBearerAuth('access-token')
-  @UseGuards(JwtAuthGuard)
-  @Get('latlong')
-  async getPlaceIdToLatLong(
-    @Query('placeId') placeId: string,
-    @Request() req: any,
-  ) {
-    const userId = BigInt(req.user?.id) ?? BigInt(-1);
-    return this.userProfileBasicInfoService.getPlaceIdToLatLong(
-      userId,
-      placeId,
-    );
   }
 }
