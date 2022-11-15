@@ -11,6 +11,7 @@ import {
   UploadedFiles,
   UseGuards,
   UseInterceptors,
+  Version,
 } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
 import {
@@ -36,6 +37,7 @@ import { PetsCheckDto } from './dto/pet-check.dto';
 import { UpdateAppointmentProposalDto } from './dto/update-appointment-proposal.dto';
 import { AppointmentPaymentService } from './services/appointment-payment.service';
 import { AppointmentProposalService } from './services/appointment-proposal.service';
+import { AppointmentProposalServiceV2 } from './services/appointment-proposal.service.V2';
 
 @ApiTags('Appointment')
 @Controller('appointment')
@@ -43,6 +45,7 @@ export class AppointmentController {
   constructor(
     private readonly appointmentProposalService: AppointmentProposalService,
     private readonly appointmentPaymentService: AppointmentPaymentService,
+    private readonly appointmentProposalServiceV2: AppointmentProposalServiceV2,
   ) {}
 
   @ApiBearerAuth('access-token')
@@ -400,6 +403,42 @@ export class AppointmentController {
       'Invalid appointment opk. Please, try again after sometime with valid appointment opk.',
     );
     return this.appointmentProposalService.recurringAppointmentBilling(
+      userId,
+      opk,
+    );
+  }
+
+  @Version('2')
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard)
+  @Put('/update/:opk/proposal')
+  async updateProposalV2(
+    @Param('opk') opk: string,
+    @Request() req: any,
+    @Body() updateAppointmentProposalDto: UpdateAppointmentProposalDto,
+  ) {
+    const userId = BigInt(req.user?.id) ?? BigInt(-1);
+    throwBadRequestErrorCheck(
+      !opk || opk == undefined,
+      'Invalid appointment opk. Please, try again after sometime with valid appointment opk.',
+    );
+    return await this.appointmentProposalServiceV2.updateAppointmentProposalV2(
+      userId,
+      opk,
+      updateAppointmentProposalDto,
+    );
+  }
+
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard)
+  @Get('/:opk/proposal')
+  async getlatestProposalV2(@Param('opk') opk: string, @Request() req: any) {
+    const userId = BigInt(req.user?.id) ?? BigInt(-1);
+    throwBadRequestErrorCheck(
+      !opk || opk == undefined,
+      'Invalid appointment opk. Please, try again after sometime with valid appointment opk.',
+    );
+    return await this.appointmentProposalServiceV2.getLatestAppointmentProposalV2(
       userId,
       opk,
     );

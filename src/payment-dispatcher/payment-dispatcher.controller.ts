@@ -11,7 +11,6 @@ import {
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { PaymentDispatcherQueryDto } from './dto/payment-dispatcher-query.dto';
 import { PaymentDispatcherBlockedDto } from './dto/payment-dispatcher.dto';
 import { PaymentDispatcherService } from './payment-dispatcher.service';
 

@@ -6,7 +6,7 @@ import {
   Query,
   Request,
   Response,
-  UseGuards
+  UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { LoginDto } from 'src/auth/dto/login.dto';

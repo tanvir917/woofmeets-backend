@@ -7,12 +7,12 @@ import Stripe from 'stripe';
 import { AdminPanelService } from '../admin-panel/admin-panel.service';
 import {
   throwBadRequestErrorCheck,
-  throwUnauthorizedErrorCheck
+  throwUnauthorizedErrorCheck,
 } from '../global/exceptions/error-logic';
 import { PaymentDispatcherBlockedDto } from './dto/payment-dispatcher.dto';
 import {
   APPOINTMENT_BILLING_NEXT_STATE,
-  APPOINTMENT_BILLING_STATES
+  APPOINTMENT_BILLING_STATES,
 } from './types';
 
 type PayoutParams = {
@@ -551,7 +551,26 @@ export class PaymentDispatcherService {
           },
           provider: {
             include: {
-              user: true,
+              user: {
+                select: {
+                  id: true,
+                  opk: true,
+                  email: true,
+                  emailVerified: true,
+                  firstName: true,
+                  lastName: true,
+                  zipcode: true,
+                  image: true,
+                  loginProvider: true,
+                  timezone: true,
+                  facebook: true,
+                  google: true,
+                  meta: true,
+                  createdAt: true,
+                  updatedAt: true,
+                  deletedAt: true,
+                },
+              },
             },
           },
         },

@@ -11,6 +11,7 @@ import { StripeDispatcherService } from '../stripe/stripe.dispatcher.service';
 import { AppointmentController } from './appointment.controller';
 import { AppointmentPaymentService } from './services/appointment-payment.service';
 import { AppointmentProposalService } from './services/appointment-proposal.service';
+import { AppointmentProposalServiceV2 } from './services/appointment-proposal.service.V2';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { AppointmentProposalService } from './services/appointment-proposal.serv
   ],
   providers: [
     AppointmentProposalService,
+    AppointmentProposalServiceV2,
     AppointmentPaymentService,
     StripeDispatcherService,
   ],
