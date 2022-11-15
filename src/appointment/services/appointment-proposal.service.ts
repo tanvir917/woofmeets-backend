@@ -92,6 +92,7 @@ export class AppointmentProposalService {
         where: {
           providerId: user.provider.id,
           isApproved: true,
+          isActive: true,
           deletedAt: null,
         },
         include: {
@@ -707,6 +708,19 @@ export class AppointmentProposalService {
     // And a proposal will have to be
     // created as a child of the appointment table with the original_propsal field set to true
 
+    /**
+     * As we create appointment first then message is sent
+     * So we need to check message server first
+     */
+    try {
+      await axios.get(`${this.configService.get<string>('MICROSERVICE_URL')}`);
+    } catch (error) {
+      throwBadRequestErrorCheck(
+        true,
+        'Appointment can not create now. Please, try again after some time.',
+      );
+    }
+
     const {
       providerServiceId,
       userId,
@@ -962,36 +976,41 @@ export class AppointmentProposalService {
      * First and formatted message will send to particular room
      */
 
-    const messageRoom = await this.messageService.createGroup(req, 'axios', {
-      sender: userId,
-      receiver: Number(provider?.user?.id),
-      appointmentId: appointment?.opk,
-    });
+    let messageRoom;
+    try {
+      messageRoom = await this.messageService.createGroup(req, 'axios', {
+        sender: userId,
+        receiver: Number(provider?.user?.id),
+        appointmentId: appointment?.opk,
+      });
 
-    const messagePromises = [];
+      const messagePromises = [];
 
-    messagePromises.push(
-      await axios.post(
-        `${this.configService.get<string>('MICROSERVICE_URL')}/v1/messages`,
-        {
-          sender: userId,
-          group: messageRoom?.data?._id,
-          content: firstMessage,
-        },
-      ),
-    );
+      messagePromises.push(
+        await axios.post(
+          `${this.configService.get<string>('MICROSERVICE_URL')}/v1/messages`,
+          {
+            sender: userId,
+            group: messageRoom?.data?._id,
+            content: firstMessage,
+          },
+        ),
+      );
 
-    messagePromises.push(
-      await axios.post(
-        `${this.configService.get<string>('MICROSERVICE_URL')}/v1/messages`,
-        {
-          sender: userId,
-          group: messageRoom?.data?._id,
-          content: formattedMessage,
-        },
-      ),
-    );
-    await Promise.allSettled(messagePromises);
+      messagePromises.push(
+        await axios.post(
+          `${this.configService.get<string>('MICROSERVICE_URL')}/v1/messages`,
+          {
+            sender: userId,
+            group: messageRoom?.data?._id,
+            content: formattedMessage,
+          },
+        ),
+      );
+      await Promise.allSettled(messagePromises);
+    } catch (error) {
+      console.log(error);
+    }
 
     const priceCalculationDetails = await this.getProposalPrice(
       appointment?.opk,

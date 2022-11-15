@@ -1,8 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import {
-  throwBadRequestErrorCheck,
-  throwNotFoundErrorCheck,
-} from 'src/global/exceptions/error-logic';
+import { throwNotFoundErrorCheck } from 'src/global/exceptions/error-logic';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { latlongDistanceCalculator } from 'src/utils/tools';
 
@@ -39,7 +36,13 @@ export class ProviderService {
         image: true,
         timezone: true,
         basicInfo: {
-          include: {
+          select: {
+            id: true,
+            city: true,
+            state: true,
+            zipCode: true,
+            longitude: true,
+            latitude: true,
             country: true,
           },
         },
@@ -90,7 +93,11 @@ export class ProviderService {
                         timezone: true,
                         meta: true,
                         basicInfo: {
-                          include: {
+                          select: {
+                            id: true,
+                            city: true,
+                            state: true,
+                            zipCode: true,
                             country: true,
                           },
                         },
@@ -156,7 +163,11 @@ export class ProviderService {
               timezone: true,
               meta: true,
               basicInfo: {
-                include: {
+                select: {
+                  id: true,
+                  city: true,
+                  state: true,
+                  zipCode: true,
                   country: true,
                 },
               },
@@ -203,7 +214,7 @@ export class ProviderService {
         provider: {
           firstName: providerUser?.firstName,
           lastName: providerUser?.lastName,
-          email: providerUser?.email,
+          //email: providerUser?.email,
           avatar: providerUser?.image,
           timezone: providerUser?.timezone,
           rating: {
@@ -217,7 +228,7 @@ export class ProviderService {
           address: providerUser?.basicInfo,
           latitude: providerUser?.basicInfo?.latitude,
           longitude: providerUser?.basicInfo?.longitude,
-          contact: providerUser?.contact,
+          contact: null, //providerUser?.contact,
           badge: null,
         },
         services,
@@ -257,43 +268,6 @@ export class ProviderService {
         },
         reviews,
         recomendedSitters: [],
-      },
-    };
-  }
-
-  async getUnavailability(opk: string) {
-    const user = await this.prismaService.user.findFirst({
-      where: {
-        opk,
-        deletedAt: null,
-      },
-      include: {
-        provider: true,
-      },
-    });
-
-    throwBadRequestErrorCheck(!user || !user?.provider, 'Provider not found.');
-
-    const appoinntmentDates =
-      await this.prismaService.appointmentDates.findMany({
-        where: {
-          appointment: {
-            providerId: user?.provider?.id,
-            deletedAt: null,
-          },
-          paymentStatus: 'PAID',
-          deletedAt: null,
-        },
-      });
-
-    const unavailability = appoinntmentDates?.map((item) => {
-      return item?.date?.toISOString();
-    });
-
-    return {
-      message: 'Provder unavailability found successfully.',
-      data: {
-        unavailability: [...new Set(unavailability)],
       },
     };
   }
