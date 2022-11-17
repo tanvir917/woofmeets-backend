@@ -4,10 +4,10 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { latlongDistanceCalculator } from 'src/utils/tools';
 
 @Injectable()
-export class ProviderService {
+export class ProviderServiceV2 {
   constructor(private readonly prismaService: PrismaService) {}
 
-  async getProviderDetails(viewerOpk: string, providerOpk: string) {
+  async getProviderDetailsV2(viewerOpk: string, providerOpk: string) {
     const viewerUser = await this.prismaService.user.findFirst({
       where: {
         opk: viewerOpk,

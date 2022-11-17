@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Query } from '@nestjs/common';
+import { Controller, Get, Param, Query, Version } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { GetLocationDto } from './app.dto';
 import { AppService } from './app.service';
@@ -33,5 +33,11 @@ export class AppController {
   @Get('latlong')
   async getPlaceIdToLatLong(@Query('placeId') placeId: string) {
     return this.appService.getPlaceIdToLatLong(placeId);
+  }
+
+  @Version('2')
+  @Get('/location')
+  async getLocationV2(@Query('address') address: string) {
+    return this.appService.getAddress(address);
   }
 }
