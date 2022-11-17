@@ -6,7 +6,7 @@ import { LoginDto } from 'src/auth/dto/login.dto';
 import {
   throwBadRequestErrorCheck,
   throwNotFoundErrorCheck,
-  throwUnauthorizedErrorCheck
+  throwUnauthorizedErrorCheck,
 } from 'src/global/exceptions/error-logic';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { SecretService } from 'src/secret/secret.service';
@@ -709,7 +709,7 @@ export class AdminPanelService {
       'Unauthorized',
     );
 
-    const [user, provider, userSubscriptionInvoices] =
+    const [user, provider, userSubscriptionInvoices, appointmentTransactions] =
       await this.prismaService.$transaction([
         this.prismaService.user.findMany({
           where: {
@@ -801,6 +801,34 @@ export class AdminPanelService {
             createdAt: true,
           },
         }),
+        this.prismaService.appointmentBillingTransactions.findMany({
+          where: {
+            AND: [
+              {
+                createdAt: {
+                  gte: startDate
+                    ? new Date(startDate)
+                    : new Date(
+                        this.secretService.getAdminPanelCreds().searchStartDate,
+                      ),
+                },
+              },
+              {
+                createdAt: {
+                  lte: endDate ? new Date(endDate) : new Date(),
+                },
+              },
+            ],
+          },
+          select: {
+            id: true,
+            billingId: true,
+            paidAmount: true,
+            providerAmount: true,
+            currency: true,
+            createdAt: true,
+          },
+        }),
       ]);
 
     return {
@@ -809,6 +837,50 @@ export class AdminPanelService {
         user,
         provider,
         userSubscriptionInvoices,
+        appointmentTransactions,
+      },
+    };
+  }
+
+  async getCountryWiseProviderCount(userId: bigint) {
+    throwUnauthorizedErrorCheck(
+      !(await this.adminCheck(userId)),
+      'Unauthorized',
+    );
+
+    const [providerUSACount, providerCACount] =
+      await this.prismaService.$transaction([
+        this.prismaService.provider.count({
+          where: {
+            isApproved: true,
+            user: {
+              basicInfo: {
+                country: {
+                  name: 'USA',
+                },
+              },
+            },
+          },
+        }),
+        this.prismaService.provider.count({
+          where: {
+            isApproved: true,
+            user: {
+              basicInfo: {
+                country: {
+                  name: 'CANADA',
+                },
+              },
+            },
+          },
+        }),
+      ]);
+
+    return {
+      messages: 'Country wise provider count found successfully.',
+      data: {
+        providerUSACount,
+        providerCACount,
       },
     };
   }

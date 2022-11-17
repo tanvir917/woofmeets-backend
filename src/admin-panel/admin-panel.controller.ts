@@ -162,4 +162,12 @@ export class AdminPanelController {
       endDate,
     );
   }
+
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard)
+  @Get('/country-wise-provider-count')
+  async getCountryWiseProviderCount(@Request() req: any) {
+    const userId = BigInt(req.user?.id) ?? BigInt(-1);
+    return await this.adminPanelService.getCountryWiseProviderCount(userId);
+  }
 }
