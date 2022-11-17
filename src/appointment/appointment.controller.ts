@@ -429,6 +429,7 @@ export class AppointmentController {
     );
   }
 
+  @Version('2')
   @ApiBearerAuth('access-token')
   @UseGuards(JwtAuthGuard)
   @Get('/:opk/proposal')

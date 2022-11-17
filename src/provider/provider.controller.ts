@@ -6,6 +6,7 @@ import {
   Post,
   Query,
   Request,
+  Version,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
@@ -19,12 +20,14 @@ import { ProviderCreationService } from './provider-creation.service';
 import { ProviderListService } from './provider-list.service';
 import { ProviderRecommendedService } from './provider-recommended.service';
 import { ProviderService } from './provider.service';
+import { ProviderServiceV2 } from './provider.serviceV2';
 
 @ApiTags('Provider')
 @Controller('provider')
 export class ProviderController {
   constructor(
     private readonly providerService: ProviderService,
+    private readonly providerServiceV2: ProviderServiceV2,
     private readonly jwtService: JwtService,
     private readonly availableGetService: AvailabilityGetServcie,
     private readonly providerCreationService: ProviderCreationService,
@@ -107,5 +110,34 @@ export class ProviderController {
       'Invalid user opk. Please, try again after sometime with valid user opk.',
     );
     return this.providerService.getUnavailability(opk);
+  }
+
+  @Version('2')
+  @ApiOperation({
+    summary: 'Get all information of provider for landing page.',
+  })
+  @Get('/:opk/details')
+  async getV2(@Param('opk') opk: string, @Request() req: any) {
+    let viewer: any;
+    if (
+      req?.cookies &&
+      'token' in req?.cookies &&
+      req?.cookies?.token?.length > 0
+    ) {
+      viewer = this.jwtService.decode(req?.cookies?.token);
+    } else if (req?.headers?.authorization) {
+      viewer = this.jwtService.decode(
+        req?.headers?.authorization?.substring(
+          7,
+          req?.headers?.authorization?.length,
+        ),
+      );
+    }
+
+    throwBadRequestErrorCheck(
+      !opk || opk == undefined,
+      'Invalid provider opk. Please, try again after sometime with valid provider opk.',
+    );
+    return this.providerServiceV2.getProviderDetailsV2(viewer?.opk ?? '', opk);
   }
 }

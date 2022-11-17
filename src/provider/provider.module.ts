@@ -13,6 +13,7 @@ import { SecretModule } from 'src/secret/secret.module';
 import { ProviderListService } from './provider-list.service';
 import { AvailabilityModule } from 'src/availability/availability.module';
 import { ProviderRecommendedService } from './provider-recommended.service';
+import { ProviderServiceV2 } from './provider.serviceV2';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { ProviderRecommendedService } from './provider-recommended.service';
   controllers: [ProviderController],
   providers: [
     ProviderService,
+    ProviderServiceV2,
     AvailabilityGetServcie,
     ProviderCreationService,
     PasswordService,
