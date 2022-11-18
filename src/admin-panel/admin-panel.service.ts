@@ -825,8 +825,31 @@ export class AdminPanelService {
             billingId: true,
             paidAmount: true,
             providerAmount: true,
+            userRefundAmount: true,
+            state: true,
             currency: true,
             createdAt: true,
+            billing: {
+              select: {
+                id: true,
+                subtotal: true,
+                serviceCharge: true,
+                serviceChargePercentage: true,
+                total: true,
+                paid: true,
+                appointment: {
+                  select: {
+                    cancelAppointment: {
+                      select: {
+                        id: true,
+                        userRefundAmount: true,
+                        userRefundPercentage: true,
+                      },
+                    },
+                  },
+                },
+              },
+            },
           },
         }),
       ]);
