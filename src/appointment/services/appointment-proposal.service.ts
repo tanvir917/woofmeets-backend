@@ -27,6 +27,7 @@ import {
   throwNotFoundErrorCheck
 } from 'src/global/exceptions/error-logic';
 import { MessagingProxyService } from 'src/messaging/messaging.service';
+import { APPOINTMENT_BILLING_STATES } from 'src/payment-dispatcher/types';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { SecretService } from 'src/secret/secret.service';
 import { ServiceRatesService } from 'src/service-rates/service-rates.service';
@@ -1866,6 +1867,8 @@ export class AppointmentProposalService {
                   ?.providerAmount - userRefundAmount
               ).toFixed(2),
             ),
+            userRefundAmount,
+            state: APPOINTMENT_BILLING_STATES.PARTIAL_REFUND,
             meta: Object({
               type: 'appointment_refund',
               appointmentId: appointment?.id,
@@ -1881,6 +1884,8 @@ export class AppointmentProposalService {
           },
           data: {
             deletedAt: new Date(),
+            userRefundAmount,
+            state: APPOINTMENT_BILLING_STATES.FULL_REFUND,
             meta: Object({
               type: 'appointment_refund',
               appointmentId: appointment?.id,
