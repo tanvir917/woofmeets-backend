@@ -1,5 +1,7 @@
-import { Body, Controller, Post } from '@nestjs/common';
-import { ApiTags } from '@nestjs/swagger';
+import { Body, Controller, Post, Request, UseGuards } from '@nestjs/common';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
+import { NewMessageDto } from './dto/new-notification.email.dto';
 import { TestEmailDto } from './dto/test.email.dto';
 import { EmailService } from './email.service';
 
@@ -11,5 +13,16 @@ export class EmailController {
   @Post()
   async sendEmail(@Body() testEmailDto: TestEmailDto) {
     return this.emailService.sendEmail(testEmailDto);
+  }
+
+  @Post('/notification')
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard)
+  async sendNotification(@Request() req, @Body() message: NewMessageDto) {
+    const user = req.user;
+    return this.emailService.newMessageReceivedEmail(
+      Number(user?.id ?? -1),
+      message,
+    );
   }
 }
