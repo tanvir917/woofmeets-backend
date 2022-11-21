@@ -1,12 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { MailgunService } from '@nextnm/nestjs-mailgun';
 import { PinoLogger } from 'nestjs-pino';
+import { throwNotFoundErrorCheck } from 'src/global/exceptions/error-logic';
+import { PrismaService } from 'src/prisma/prisma.service';
 import { SecretService } from 'src/secret/secret.service';
+import { NewMessageDto } from './dto/new-notification.email.dto';
 import { TestEmailDto } from './dto/test.email.dto';
 import { ForgetPasswordTemplate } from './template/forget-password.template.dto';
-import { PaymentAppointmentForProviderTemplate } from './template/paid-appointment-for-provider.template';
-import { PaymentAppointmentTemplate } from './template/paid-appointment.template';
-import { TempAppointmentTemplate } from './template/temp-appointment.tepmlate';
 import { UpdatePasswordTemplate } from './template/update-password.template.dto';
 
 @Injectable()
@@ -14,9 +14,80 @@ export class EmailService {
   constructor(
     private mailgunService: MailgunService,
     private secretService: SecretService,
+    private prismaService: PrismaService,
     private logger: PinoLogger,
   ) {
     this.logger.setContext(EmailService.name);
+  }
+
+  async newMessageReceivedEmail(userId: number, newMessage: NewMessageDto) {
+    const { opk, message } = newMessage;
+
+    const appointment = await this.prismaService.appointment.findFirst({
+      where: {
+        opk: opk,
+      },
+      select: {
+        providerId: true,
+        userId: true,
+        user: {
+          select: {
+            email: true,
+            firstName: true,
+          },
+        },
+        provider: {
+          select: {
+            user: {
+              select: {
+                email: true,
+                firstName: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    throwNotFoundErrorCheck(!appointment, `No appointment with ${opk} found`);
+
+    const senderIsProvider = BigInt(userId) === appointment?.providerId;
+
+    const [providerEmail, userEmail] = [
+      appointment?.provider?.user?.email,
+      appointment?.user?.email,
+    ];
+
+    // const senderEmail = senderIsProvider ? providerEmail : userEmail;
+    const sendTo = senderIsProvider ? userEmail : providerEmail;
+
+    try {
+      return this.mailgunService.createEmail(
+        this.secretService.getMailgunCreds().domain,
+        {
+          from: `Woofmeets Message <${
+            this.secretService.getMailgunCreds().messageFrom
+          }>`,
+          to: sendTo,
+          subject: 'Appointment new message notification!',
+          template: 'appointment_messaging_notification',
+          ['h:X-Mailgun-Variables']: JSON.stringify({
+            appointment_opk: opk,
+            receiver_firstname: senderIsProvider
+              ? appointment?.user?.firstName
+              : appointment?.provider?.user?.firstName,
+            sender_firstname: senderIsProvider
+              ? appointment?.provider?.user?.firstName
+              : appointment?.user?.firstName,
+            message: message,
+          }),
+        },
+      );
+    } catch (error) {
+      this.logger.error(error?.message);
+    }
+
+    return 'Completed';
   }
 
   async sendEmail(param: TestEmailDto) {

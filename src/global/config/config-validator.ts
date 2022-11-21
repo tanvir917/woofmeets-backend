@@ -99,6 +99,10 @@ export class EnvironmentVariable {
   @IsString()
   MAILGUN_MAIL_FROM: string;
 
+  @IsOptional()
+  @IsString()
+  MAILGUN_MESSAGE_MAIL_FROM: string;
+
   @IsNotEmpty()
   @IsString()
   TWILIO_ACCOUNT_SID: string;

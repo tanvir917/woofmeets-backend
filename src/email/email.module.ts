@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { MailgunModule } from '@nextnm/nestjs-mailgun';
+import { PrismaModule } from 'src/prisma/prisma.module';
 import { SecretModule } from 'src/secret/secret.module';
 import { SecretService } from 'src/secret/secret.service';
 import { EmailController } from './email.controller';
@@ -16,6 +17,7 @@ import { EmailService } from './email.service';
         key: secretService.getMailgunCreds().apiKey,
       }),
     }),
+    PrismaModule,
   ],
   controllers: [EmailController],
   providers: [EmailService],

@@ -50,6 +50,9 @@ export class SecretService {
       MAILGUN_API_KEY: this.configService.get<string>('MAILGUN_API_KEY'),
       MAILGUN_DOMAIN: this.configService.get<string>('MAILGUN_DOMAIN'),
       MAILGUN_MAIL_FROM: this.configService.get<string>('MAILGUN_MAIL_FROM'),
+      MAILGUN_MESSAGE_MAIL_FROM:
+        this.configService.get<string>('MAILGUN_MAIL_FROM') ??
+        'notification-no-reply@woofmeets.com',
       TWILIO_ACCOUNT_SID: this.configService.get<string>('TWILIO_ACCOUNT_SID'),
       TWILIO_AUTH_TOKEN: this.configService.get<string>('TWILIO_AUTH_TOKEN'),
       TWILIO_FROM_NUMBER: this.configService.get<string>('TWILIO_FROM_NUMBER'),
@@ -224,6 +227,7 @@ export class SecretService {
       apiKey: this.#environment.MAILGUN_API_KEY,
       domain: this.#environment.MAILGUN_DOMAIN,
       from: this.#environment.MAILGUN_MAIL_FROM,
+      messageFrom: this.#environment.MAILGUN_MESSAGE_MAIL_FROM,
     };
   }
 
