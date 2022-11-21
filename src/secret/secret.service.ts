@@ -166,6 +166,19 @@ export class SecretService {
       ADMIN_PANEL_SEARCH_START_DATE: this.configService.get<string>(
         'ADMIN_PANEL_SEARCH_START_DATE',
       ),
+
+      /**
+       * 100ms Secret
+       */
+      HMS_ACCESS_KEY: this.configService.get<string>('HMS_ACCESS_KEY'),
+      HMS_SECRET_KEY: this.configService.get<string>('HMS_SECRET_KEY'),
+      HMS_AUDIO_TEMP: this.configService.get<string>('HMS_AUDIO_TEMP'),
+      HMS_VIDEO_TEMP: this.configService.get<string>('HMS_VIDEO_TEMP'),
+      HMS_API_URL: this.configService.get<string>('HMS_API_URL'),
+      HMS_DASHBOARD_URL: this.configService.get<string>(
+        'HMS_DASHBOARD_URL',
+        'https://prod-in2.100ms.live/hmsapi',
+      ),
     };
 
     this.#environment = plainToInstance(EnvironmentVariable, env);
@@ -316,6 +329,17 @@ export class SecretService {
   getAdminPanelCreds(): { searchStartDate: string } {
     return {
       searchStartDate: this.#environment.ADMIN_PANEL_SEARCH_START_DATE,
+    };
+  }
+
+  getHmsCreds() {
+    return {
+      hmsAccess: this.#environment.HMS_ACCESS_KEY,
+      hmsSecret: this.#environment.HMS_SECRET_KEY,
+      hmsAudioTemp: this.#environment.HMS_AUDIO_TEMP,
+      hmsVideoTemp: this.#environment.HMS_VIDEO_TEMP,
+      hmsApiUrl: this.#environment.HMS_API_URL,
+      hmsDashboardUrl: this.#environment.HMS_DASHBOARD_URL,
     };
   }
 

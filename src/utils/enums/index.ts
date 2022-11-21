@@ -48,3 +48,8 @@ export enum HavePetsTypeEnum {
   YES = 'YES',
   NO = 'NO',
 }
+
+export enum HmsRoomTypeEnum {
+  VIDEO = 'VIDEO',
+  AUDIO = 'AUDIO',
+}

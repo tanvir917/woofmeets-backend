@@ -255,6 +255,30 @@ export class EnvironmentVariable {
   @IsNotEmpty()
   @IsString()
   ADMIN_PANEL_SEARCH_START_DATE: string;
+
+  @IsNotEmpty()
+  @IsString()
+  HMS_ACCESS_KEY: string;
+
+  @IsNotEmpty()
+  @IsString()
+  HMS_SECRET_KEY: string;
+
+  @IsNotEmpty()
+  @IsString()
+  HMS_AUDIO_TEMP: string;
+
+  @IsNotEmpty()
+  @IsString()
+  HMS_VIDEO_TEMP: string;
+
+  @IsNotEmpty()
+  @IsString()
+  HMS_API_URL: string;
+
+  @IsOptional()
+  @IsString()
+  HMS_DASHBOARD_URL: string;
 }
 
 export function validateEnvironmentVariables(
