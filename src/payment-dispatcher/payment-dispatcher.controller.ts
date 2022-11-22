@@ -10,6 +10,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { PaginationQueryParamsDto } from 'src/admin-panel/dto/pagination-query.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { PaymentDispatcherBlockedDto } from './dto/payment-dispatcher.dto';
 import { PaymentDispatcherService } from './payment-dispatcher.service';
@@ -24,10 +25,14 @@ export class PaymentDispatcherController {
   @ApiBearerAuth('access-token')
   @UseGuards(JwtAuthGuard)
   @Get('get-all-transactions')
-  async getAllTransactions(@Request() req: any) {
+  async getAllTransactions(
+    @Request() req: any,
+    @Query() query: PaginationQueryParamsDto,
+  ) {
     const userId: string = req.user.id ?? '-1';
     return await this.paymentDispatcherService.getAllAppointmentBillingTransactions(
       BigInt(userId),
+      query,
     );
   }
 
