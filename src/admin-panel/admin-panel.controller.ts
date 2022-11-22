@@ -12,6 +12,7 @@ import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { LoginDto } from 'src/auth/dto/login.dto';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 import { AdminPanelService } from './admin-panel.service';
+import { PaginationQueryParamsDto } from './dto/pagination-query.dto';
 import { ProviderServiceToggleDto } from './dto/provider-service.toggle.dto';
 
 @ApiTags('Admin-Panel')
@@ -38,9 +39,13 @@ export class AdminPanelController {
   @ApiBearerAuth('access-token')
   @UseGuards(JwtAuthGuard)
   @Get('/all-users')
-  async getAllUsers(@Query('email') email: string, @Request() req: any) {
+  async getAllUsers(
+    @Query('email') email: string,
+    @Request() req: any,
+    @Query() query: PaginationQueryParamsDto,
+  ) {
     const userId = BigInt(req.user?.id) ?? BigInt(-1);
-    return await this.adminPanelService.getAllUsers(userId, email);
+    return await this.adminPanelService.getAllUsers(userId, email, query);
   }
 
   @ApiBearerAuth('access-token')
@@ -62,9 +67,13 @@ export class AdminPanelController {
   @ApiBearerAuth('access-token')
   @UseGuards(JwtAuthGuard)
   @Get('/all-providers')
-  async getAllProviders(@Query('email') email: string, @Request() req: any) {
+  async getAllProviders(
+    @Query('email') email: string,
+    @Request() req: any,
+    @Query() query: PaginationQueryParamsDto,
+  ) {
     const userId = BigInt(req.user?.id) ?? BigInt(-1);
-    return await this.adminPanelService.getAllProviders(userId, email);
+    return await this.adminPanelService.getAllProviders(userId, email, query);
   }
 
   @ApiBearerAuth('access-token')
@@ -134,9 +143,15 @@ export class AdminPanelController {
     @Query('opk') opk: string,
     @Query('status') status: string,
     @Request() req: any,
+    @Query() query: PaginationQueryParamsDto,
   ) {
     const userId = BigInt(req.user?.id) ?? BigInt(-1);
-    return await this.adminPanelService.getAllAppointments(userId, opk, status);
+    return await this.adminPanelService.getAllAppointments(
+      userId,
+      opk,
+      status,
+      query,
+    );
   }
 
   @ApiBearerAuth('access-token')

@@ -10,6 +10,7 @@ import {
 } from 'src/global/exceptions/error-logic';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { SecretService } from 'src/secret/secret.service';
+import { PaginationQueryParamsDto } from './dto/pagination-query.dto';
 import { ProviderServiceToggleDto } from './dto/provider-service.toggle.dto';
 
 @Injectable()
@@ -93,11 +94,27 @@ export class AdminPanelService {
     };
   }
 
-  async getAllUsers(userId: bigint, email: string) {
+  async getAllUsers(
+    userId: bigint,
+    email: string,
+    query: PaginationQueryParamsDto,
+  ) {
     throwUnauthorizedErrorCheck(
       !(await this.adminCheck(userId)),
       'Unauthorized',
     );
+
+    let { page, limit, sortBy, sortOrder } = query;
+    const orderbyObj = {};
+
+    if (!page || page < 1) page = 1;
+    if (!limit) limit = 20;
+    if (!sortOrder && sortOrder != 'asc' && sortOrder != 'desc')
+      sortOrder = 'desc';
+    if (!sortBy) sortBy = 'createdAt';
+
+    orderbyObj[sortBy] = sortOrder;
+
     const users = await this.prismaService.user.findMany({
       where: {
         email,
@@ -122,6 +139,9 @@ export class AdminPanelService {
         contact: true,
         basicInfo: true,
       },
+      skip: (page - 1) * limit,
+      take: limit,
+      orderBy: orderbyObj,
     });
 
     throwNotFoundErrorCheck(users?.length <= 0, 'Users not found.');
@@ -129,6 +149,11 @@ export class AdminPanelService {
     return {
       messages: 'Users found successfully.',
       data: users,
+      meta: {
+        total: users?.length,
+        currentPage: page,
+        limit,
+      },
     };
   }
 
@@ -214,11 +239,27 @@ export class AdminPanelService {
     };
   }
 
-  async getAllProviders(userId: bigint, email: string) {
+  async getAllProviders(
+    userId: bigint,
+    email: string,
+    query: PaginationQueryParamsDto,
+  ) {
     throwUnauthorizedErrorCheck(
       !(await this.adminCheck(userId)),
       'Unauthorized',
     );
+
+    let { page, limit, sortBy, sortOrder } = query;
+    const orderbyObj = {};
+
+    if (!page || page < 1) page = 1;
+    if (!limit) limit = 20;
+    if (!sortOrder && sortOrder != 'asc' && sortOrder != 'desc')
+      sortOrder = 'desc';
+    if (!sortBy) sortBy = 'createdAt';
+
+    orderbyObj[sortBy] = sortOrder;
+
     const providers = await this.prismaService.provider.findMany({
       where: {
         user: {
@@ -249,6 +290,9 @@ export class AdminPanelService {
           },
         },
       },
+      skip: (page - 1) * limit,
+      take: limit,
+      orderBy: orderbyObj,
     });
 
     throwNotFoundErrorCheck(providers?.length <= 0, 'Providers not found.');
@@ -256,6 +300,11 @@ export class AdminPanelService {
     return {
       messages: 'Providers found successfully.',
       data: providers,
+      meta: {
+        total: providers?.length,
+        currentPage: page,
+        limit,
+      },
     };
   }
 
@@ -570,7 +619,12 @@ export class AdminPanelService {
     };
   }
 
-  async getAllAppointments(userId: bigint, opk: string, status: string) {
+  async getAllAppointments(
+    userId: bigint,
+    opk: string,
+    status: string,
+    query: PaginationQueryParamsDto,
+  ) {
     throwUnauthorizedErrorCheck(
       !(await this.adminCheck(userId)),
       'Unauthorized',
@@ -581,16 +635,65 @@ export class AdminPanelService {
       'Enter a valid status enum value.',
     );
 
+    let { page, limit, sortBy, sortOrder } = query;
+    const orderbyObj = {};
+
+    if (!page || page < 1) page = 1;
+    if (!limit) limit = 20;
+    if (!sortOrder && sortOrder != 'asc' && sortOrder != 'desc')
+      sortOrder = 'desc';
+    if (!sortBy) sortBy = 'createdAt';
+
+    orderbyObj[sortBy] = sortOrder;
+
     const appointments = await this.prismaService.appointment.findMany({
       where: {
         opk,
         status: status as AppointmentStatusEnum,
       },
       include: {
-        user: true,
+        user: {
+          select: {
+            id: true,
+            opk: true,
+            email: true,
+            emailVerified: true,
+            firstName: true,
+            lastName: true,
+            zipcode: true,
+            image: true,
+            loginProvider: true,
+            timezone: true,
+            facebook: true,
+            google: true,
+            meta: true,
+            createdAt: true,
+            updatedAt: true,
+            deletedAt: true,
+          },
+        },
         provider: {
           include: {
-            user: true,
+            user: {
+              select: {
+                id: true,
+                opk: true,
+                email: true,
+                emailVerified: true,
+                firstName: true,
+                lastName: true,
+                zipcode: true,
+                image: true,
+                loginProvider: true,
+                timezone: true,
+                facebook: true,
+                google: true,
+                meta: true,
+                createdAt: true,
+                updatedAt: true,
+                deletedAt: true,
+              },
+            },
           },
         },
         providerService: {
@@ -599,6 +702,9 @@ export class AdminPanelService {
           },
         },
       },
+      skip: (page - 1) * limit,
+      take: limit,
+      orderBy: orderbyObj,
     });
 
     throwNotFoundErrorCheck(
@@ -609,6 +715,11 @@ export class AdminPanelService {
     return {
       messages: 'Appointments found successfully.',
       data: appointments,
+      meta: {
+        total: appointments?.length,
+        currentPage: page,
+        limit,
+      },
     };
   }
 
