@@ -994,6 +994,7 @@ model AppointmentProposal {
   proposalVisits           Json[]
   isRecurring              Boolean?
   recurringStartDate       DateTime                  @default(now()) @db.Timestamptz(3)
+  skipRecurringStartDate   Boolean                   @default(true)
   recurringSelectedDay     String[]
   refundDetails            Json?
   meta                     Json?
