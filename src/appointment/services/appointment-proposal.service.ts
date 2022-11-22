@@ -5,7 +5,7 @@ import {
   appointmentStatusEnum,
   petTypeEnum,
   Prisma,
-  subscriptionTypeEnum
+  subscriptionTypeEnum,
 } from '@prisma/client';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime';
 import axios from 'axios';
@@ -20,11 +20,11 @@ import {
   DaysOfWeek,
   extractDay,
   generateDatesFromAndTo,
-  generateDays
+  generateDays,
 } from 'src/global';
 import {
   throwBadRequestErrorCheck,
-  throwNotFoundErrorCheck
+  throwNotFoundErrorCheck,
 } from 'src/global/exceptions/error-logic';
 import { MessagingProxyService } from 'src/messaging/messaging.service';
 import { APPOINTMENT_BILLING_STATES } from 'src/payment-dispatcher/types';
@@ -40,13 +40,13 @@ import { PetsCheckDto } from '../dto/pet-check.dto';
 import { UpdateAppointmentProposalDto } from '../dto/update-appointment-proposal.dto';
 import {
   AppointmentProposalEnum,
-  AppointmentStatusEnum
+  AppointmentStatusEnum,
 } from '../helpers/appointment-enum';
 import {
   checkIfAnyDateHoliday,
   generateDatesFromProposalVisits,
   TimingType,
-  VisitType
+  VisitType,
 } from '../helpers/appointment-visits';
 
 @Injectable()
@@ -858,6 +858,35 @@ export class AppointmentProposalService {
       'Atleast one pet should be selected',
     );
 
+    if (isRecurring) {
+      const providerServiceType =
+        provider.providerServices?.[0]?.serviceType.slug;
+      let daysOfWeek: string[] = [];
+      if (
+        providerServiceType === 'drop-in-visits' ||
+        providerServiceType === 'dog-walking'
+      ) {
+        for (let i = 0; i < proposalVisits.length; i++) {
+          const proposalVisit = proposalVisits[i] as Prisma.JsonObject;
+          daysOfWeek.push(proposalVisit?.name as string);
+        }
+      } else if (providerServiceType === 'doggy-day-care') {
+        daysOfWeek = [...(recurringSelectedDay as string[])];
+      }
+
+      const recurringDays = daysOfWeek.map(
+        (item) => item[0].toUpperCase() + item.slice(1),
+      );
+      const currentDay = extractDay(
+        new Date(recurringStartDate),
+        provider.user.timezone,
+      );
+      const isSelectedDay = recurringDays?.includes(currentDay);
+      throwBadRequestErrorCheck(
+        !isSelectedDay,
+        `Invalid Request! Day of recurringStartDate ${currentDay} must be included recurringSelecteDays`,
+      );
+    }
     //TODO: pets id validation if needed
 
     /**
@@ -941,6 +970,7 @@ export class AppointmentProposalService {
             proposalVisits,
             isRecurring,
             recurringStartDate,
+            skipRecurringStartDate: false,
             recurringSelectedDay,
             meta: { formattedMessage },
           },
@@ -1267,6 +1297,7 @@ export class AppointmentProposalService {
         proposalVisits,
         isRecurring,
         recurringStartDate,
+        skipRecurringStartDate: false,
         recurringSelectedDay,
         meta: { formattedMessage },
       },
@@ -2291,6 +2322,7 @@ export class AppointmentProposalService {
         appointment.appointmentProposal?.[0].isRecurring,
         appointment.appointmentProposal?.[0].recurringStartDate,
         appointment.appointmentProposal?.[0].recurringSelectedDay,
+        appointment.appointmentProposal?.[0].skipRecurringStartDate,
       );
     } else if (
       providerService === 'house-sitting' ||
@@ -2331,6 +2363,7 @@ export class AppointmentProposalService {
         formattedProposalVisits,
         appointment.providerTimeZone,
         BigInt(appointment.appointmentProposal?.[0].length),
+        appointment.appointmentProposal?.[0].skipRecurringStartDate,
       );
     } else {
       // throwBadRequestErrorCheck(true, 'Invalid Provider Service');
@@ -2357,6 +2390,7 @@ export class AppointmentProposalService {
     isRecurring: boolean,
     recurringStartDate: Date,
     recurringSelectedDays: string[],
+    skipRecurringStartDate = false,
   ) {
     let generatedDates: Date[] = [];
     if (isRecurring) {
@@ -2367,12 +2401,14 @@ export class AppointmentProposalService {
       const recurringDays = recurringSelectedDays.map(
         (item) => item[0].toUpperCase() + item.slice(1),
       );
-      const currentDay = extractDay(recurringStartDate, timeZone);
-      const isSelectedDay = recurringDays?.includes(currentDay);
-      throwBadRequestErrorCheck(
-        !isSelectedDay,
-        `Invalid Request! Day of recurringStartDate ${currentDay} must be included recurringSelecteDays`,
-      );
+      if (!skipRecurringStartDate) {
+        const currentDay = extractDay(recurringStartDate, timeZone);
+        const isSelectedDay = recurringDays?.includes(currentDay);
+        throwBadRequestErrorCheck(
+          !isSelectedDay,
+          `Invalid Request! Day of recurringStartDate ${currentDay} must be included recurringSelecteDays`,
+        );
+      }
 
       generatedDates = generateDays(
         {
@@ -2430,6 +2466,7 @@ export class AppointmentProposalService {
     proposalVisits: VisitType[],
     timeZone: string,
     length: bigint,
+    skipRecurringStartDate = false,
     timing?: TimingType,
   ) {
     throwBadRequestErrorCheck(
@@ -2447,13 +2484,15 @@ export class AppointmentProposalService {
         );
         recurringDays.push(proposalVisits[i]?.day);
       }
-      const currentDay = extractDay(recurringStartDate, timeZone);
-      const isSelectedDay = recurringDays?.includes(currentDay.toLowerCase());
+      if (!skipRecurringStartDate) {
+        const currentDay = extractDay(recurringStartDate, timeZone);
+        const isSelectedDay = recurringDays?.includes(currentDay.toLowerCase());
 
-      throwBadRequestErrorCheck(
-        !isSelectedDay,
-        `Invalid Request! Day of recurringStartDate ${currentDay} must be included recurringSelecteDays`,
-      );
+        throwBadRequestErrorCheck(
+          !isSelectedDay,
+          `Invalid Request! Day of recurringStartDate ${currentDay} must be included recurringSelecteDays`,
+        );
+      }
     } else {
       for (let i = 0; i < proposalVisits?.length; i++) {
         throwBadRequestErrorCheck(

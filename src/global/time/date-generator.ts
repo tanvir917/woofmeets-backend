@@ -1,5 +1,5 @@
 import { addDays } from 'date-fns';
-
+import { format } from 'date-fns-tz';
 export type DaysOfWeek = 'Sun' | 'Mon' | 'Tue' | 'Wed' | 'Thu' | 'Fri' | 'Sat';
 
 export class DateGeneratorOpts {
@@ -19,11 +19,13 @@ export class DateGeneratorOpts {
   skipOffset = true;
 }
 
-export const extractDay = (date: Date, timezone: string) =>
-  Intl.DateTimeFormat('en-US', {
-    timeZone: timezone,
-    weekday: 'short',
-  }).format(date) as DaysOfWeek;
+export const extractDay = (date: Date, timezone: string) => {
+  return format(date, 'E', { timeZone: timezone }) as DaysOfWeek;
+  // Intl.DateTimeFormat('en-US', {
+  //   timeZone: timezone,
+  //   weekday: 'short',
+  // }).format(date) as DaysOfWeek;
+};
 
 export function generateRemainingDaysInWeek(
   offset: Date,

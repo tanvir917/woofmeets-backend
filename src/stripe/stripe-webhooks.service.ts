@@ -490,6 +490,7 @@ export class StripeWebhooksService {
               ),
               billing?.appointment?.providerTimeZone,
             ),
+            skipRecurringStartDate: true,
           },
         });
       }
