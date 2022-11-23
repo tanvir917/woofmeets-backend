@@ -1,5 +1,6 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
 import {
+  clientSubscriptonsInvoiceStatus,
   UserStripeCard,
   UserSubscriptions,
   userSubscriptionStatusEnum,
@@ -17,6 +18,7 @@ import { CreateSubscriptionQueryDto } from './dto/create-subscription.dto';
 import {
   SubscriptionListsForUserQueryParamsDto,
   SubscriptionListsQueryParamsDto,
+  SubscriptionPaymentListsAdminQueryParamsDto,
 } from './dto/subscription-list-query-params.dto';
 import {
   ProviderBackgourndCheckEnum,
@@ -1827,6 +1829,83 @@ export class SubscriptionV2Service {
         currentPage: page,
         limit,
       },
+    };
+  }
+
+  async getSubscriptionPaymentListsAdmin(
+    userId: bigint,
+    query: SubscriptionPaymentListsAdminQueryParamsDto,
+  ) {
+    throwUnauthorizedErrorCheck(
+      !(await this.adminPanelService.adminCheck(userId)),
+      'Unauthorized access!',
+    );
+
+    let { page, limit, sortBy, sortOrder } = query;
+    const { status } = query;
+    const orderbyObj = {};
+
+    const statusQuery = status
+      ? { status: clientSubscriptonsInvoiceStatus[status] }
+      : {};
+    if (!page || page < 1) page = 1;
+    if (!limit) limit = 20;
+    if (!sortOrder && sortOrder != 'asc' && sortOrder != 'desc')
+      sortOrder = 'desc';
+    if (!sortBy) sortBy = 'createdAt';
+
+    orderbyObj[sortBy] = sortOrder;
+
+    const [count, userSubscriptionInvoices] =
+      await this.prismaService.$transaction([
+        this.prismaService.userSubscriptionInvoices.findMany({
+          where: {
+            ...statusQuery,
+          },
+          orderBy: orderbyObj,
+        }),
+        this.prismaService.userSubscriptionInvoices.findMany({
+          where: {
+            ...statusQuery,
+          },
+          select: {
+            id: true,
+            userId: true,
+            userSubscriptionId: true,
+            customerName: true,
+            total: true,
+            subTotal: true,
+            amountDue: true,
+            amountPaid: true,
+            amountRemaining: true,
+            currency: true,
+            status: true,
+            billingDate: true,
+            meta: true,
+            user: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                email: true,
+              },
+            },
+          },
+          orderBy: orderbyObj,
+          skip: (page - 1) * limit,
+          take: limit,
+        }),
+      ]);
+
+    throwBadRequestErrorCheck(
+      !count.length || !userSubscriptionInvoices.length,
+      'No subscription payment found.',
+    );
+
+    return {
+      message: 'Subscription payment lists.',
+      data: userSubscriptionInvoices,
+      meta: { total: count.length, currentPage: page, limit },
     };
   }
 }
