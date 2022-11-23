@@ -35,6 +35,7 @@ import { SubscriptionV2Service } from './subscription-v2.service';
 import {
   SubscriptionListsForUserQueryParamsDto,
   SubscriptionListsQueryParamsDto,
+  SubscriptionPaymentListsAdminQueryParamsDto,
 } from './dto/subscription-list-query-params.dto';
 import { CreateSubscriptionQueryDto } from './dto/create-subscription.dto';
 
@@ -312,6 +313,20 @@ export class SubscriptionsController {
   ) {
     const userId = BigInt(req.user?.id) ?? BigInt(-1);
     return await this.subscriptionV2Service.getSubscriptionLists(userId, query);
+  }
+
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard)
+  @Get('subscription-payment-lists')
+  async getSubscriptionPaymentLists(
+    @Request() req: any,
+    @Query() query: SubscriptionPaymentListsAdminQueryParamsDto,
+  ) {
+    const userId = BigInt(req.user?.id) ?? BigInt(-1);
+    return await this.subscriptionV2Service.getSubscriptionPaymentListsAdmin(
+      userId,
+      query,
+    );
   }
 
   /**
