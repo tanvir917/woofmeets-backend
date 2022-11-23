@@ -9,6 +9,7 @@ import { ServiceRatesModule } from 'src/service-rates/service-rates.module';
 import { SmsModule } from 'src/sms/sms.module';
 import { StripeDispatcherService } from '../stripe/stripe.dispatcher.service';
 import { AppointmentController } from './appointment.controller';
+import { AppointmentCardService } from './services/appointment-card.service';
 import { AppointmentPaymentService } from './services/appointment-payment.service';
 import { AppointmentProposalService } from './services/appointment-proposal.service';
 import { AppointmentProposalServiceV2 } from './services/appointment-proposal.service.V2';
@@ -29,6 +30,7 @@ import { AppointmentProposalServiceV2 } from './services/appointment-proposal.se
     AppointmentProposalService,
     AppointmentProposalServiceV2,
     AppointmentPaymentService,
+    AppointmentCardService,
     StripeDispatcherService,
   ],
   controllers: [AppointmentController],

@@ -31,10 +31,17 @@ import {
   GetModifiedVisitWalkPriceDTO,
 } from './dto/appointment-pricing.dto';
 import { AppointmentListsQueryParamsDto } from './dto/appointment-query.dto';
+import {
+  AppointmentStartDto,
+  AppointmentStopDto,
+} from './dto/appointment-start-stop.dto';
 import { CancelAppointmentDto } from './dto/cancel-appointment.dto';
+import { CreateAppointmentCardDto } from './dto/create-appointment-card.dto';
 import { CreateAppointmentProposalDto } from './dto/create-appointment-proposal.dto';
 import { PetsCheckDto } from './dto/pet-check.dto';
+import { UpdateAppointmentCardDto } from './dto/update-appointment-card.dto';
 import { UpdateAppointmentProposalDto } from './dto/update-appointment-proposal.dto';
+import { AppointmentCardService } from './services/appointment-card.service';
 import { AppointmentPaymentService } from './services/appointment-payment.service';
 import { AppointmentProposalService } from './services/appointment-proposal.service';
 import { AppointmentProposalServiceV2 } from './services/appointment-proposal.service.V2';
@@ -46,6 +53,7 @@ export class AppointmentController {
     private readonly appointmentProposalService: AppointmentProposalService,
     private readonly appointmentPaymentService: AppointmentPaymentService,
     private readonly appointmentProposalServiceV2: AppointmentProposalServiceV2,
+    private readonly appointmentCardService: AppointmentCardService,
   ) {}
 
   @ApiBearerAuth('access-token')
@@ -442,6 +450,156 @@ export class AppointmentController {
     return await this.appointmentProposalServiceV2.getLatestAppointmentProposalV2(
       userId,
       opk,
+    );
+  }
+
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard)
+  @Get('/card/all-dates/:opk')
+  async getAppointmentDates(@Param('opk') opk: string, @Request() req: any) {
+    const userId = BigInt(req.user?.id) ?? BigInt(-1);
+    throwBadRequestErrorCheck(
+      !opk || opk == undefined,
+      'Invalid appointment opk. Please, try again after sometime with valid appointment opk.',
+    );
+    return await this.appointmentCardService.getAppointmentDates(userId, opk);
+  }
+
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard)
+  @Put('/card/start-appointment/:appointmentDateId')
+  async startAppointment(
+    @Param('appointmentDateId') appointmentDateId: string,
+    @Request() req: any,
+    @Body() appointmentStartDto: AppointmentStartDto,
+  ) {
+    const userId = BigInt(req.user?.id) ?? BigInt(-1);
+    throwBadRequestErrorCheck(
+      !appointmentDateId || appointmentDateId == undefined,
+      'Invalid appointment date id. Please, try again after sometime with valid appointment date id.',
+    );
+    return await this.appointmentCardService.startAppointment(
+      userId,
+      BigInt(appointmentDateId),
+      appointmentStartDto?.startTime,
+    );
+  }
+
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard)
+  @Put('/card/stop-appointment/:appointmentDateId')
+  async stopAppointment(
+    @Param('appointmentDateId') appointmentDateId: string,
+    @Request() req: any,
+    @Body() appointmentStopDto: AppointmentStopDto,
+  ) {
+    const userId = BigInt(req.user?.id) ?? BigInt(-1);
+    throwBadRequestErrorCheck(
+      !appointmentDateId || appointmentDateId == undefined,
+      'Invalid appointment date id. Please, try again after sometime with valid appointment date id.',
+    );
+    return await this.appointmentCardService.stopAppointment(
+      userId,
+      BigInt(appointmentDateId),
+      appointmentStopDto?.stopTime,
+    );
+  }
+
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard)
+  @Get('/:opk/card/find/pets')
+  async findAppointmentCardPets(
+    @Param('opk') opk: string,
+    @Request() req: any,
+  ) {
+    const userId = BigInt(req.user?.id) ?? BigInt(-1);
+    throwBadRequestErrorCheck(
+      !opk || opk == undefined,
+      'Invalid appointment opk. Please, try again after sometime with valid appointment opk.',
+    );
+    return await this.appointmentCardService.findAppointmentCardPets(
+      userId,
+      opk,
+    );
+  }
+
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard)
+  @ApiConsumes('multipart/form-data')
+  @UseInterceptors(FilesInterceptor('files', 50))
+  @Post('/card/upload-file/:opk/:appointmentDateId')
+  async appointmentCardUploadFile(
+    @UploadedFiles() files: Express.Multer.File[],
+    @Param('opk') opk: string,
+    @Param('appointmentDateId') appointmentDateId: string,
+    @Body() body: FileUploadBody,
+    @Request() req: any,
+  ): Promise<SuccessfulUploadResponse[]> {
+    const userId = BigInt(req.user?.id) ?? BigInt(-1);
+    throwBadRequestErrorCheck(
+      !opk || opk == undefined,
+      'Invalid appointment opk. Please, try again after sometime with valid appointment opk.',
+    );
+    throwBadRequestErrorCheck(
+      !appointmentDateId || appointmentDateId == undefined,
+      'Invalid appointment date id. Please, try again after sometime with valid appointment date id.',
+    );
+    throwBadRequestErrorCheck(!files?.length, 'No files uploaded');
+
+    return this.appointmentCardService.appointmentCardUploadFile(
+      userId,
+      opk,
+      BigInt(appointmentDateId),
+      files,
+    );
+  }
+
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard)
+  @Get('/card/find/:id')
+  async findAppointmentCardById(@Param('id') id: string, @Request() req: any) {
+    const userId = BigInt(req.user?.id) ?? BigInt(-1);
+    throwBadRequestErrorCheck(
+      !id || id == undefined,
+      'Invalid appointment card id. Please, try again after sometime with valid appointment card id.',
+    );
+    return await this.appointmentCardService.fiindAppointmentCardById(
+      userId,
+      BigInt(id),
+    );
+  }
+
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard)
+  @Post('/card/create')
+  async createAppointmentCard(
+    @Request() req: any,
+    @Body() createAppointmentCardDto: CreateAppointmentCardDto,
+  ) {
+    const userId = BigInt(req.user?.id) ?? BigInt(-1);
+    return await this.appointmentCardService.createAppointmentCard(
+      userId,
+      createAppointmentCardDto,
+    );
+  }
+
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard)
+  @Put('/card/update/:id')
+  async updateAppointmentCard(
+    @Param('id') id: string,
+    @Request() req: any,
+    @Body() updateAppointmentCardDto: UpdateAppointmentCardDto,
+  ) {
+    const userId = BigInt(req.user?.id) ?? BigInt(-1);
+    throwBadRequestErrorCheck(
+      !id || id == undefined,
+      'Invalid appointment card id. Please, try again after sometime with valid appointment card id.',
+    );
+    return await this.appointmentCardService.updateAppointmentCard(
+      userId,
+      BigInt(id),
+      updateAppointmentCardDto,
     );
   }
 }
