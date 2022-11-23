@@ -1890,6 +1890,28 @@ export class SubscriptionV2Service {
                 email: true,
               },
             },
+            userSubscription: {
+              select: {
+                membershipPlanPrice: {
+                  select: {
+                    id: true,
+                    rate: true,
+                    cropRate: true,
+                    validity: true,
+                    membershipPlan: {
+                      select: {
+                        id: true,
+                        slug: true,
+                        name: true,
+                        active: true,
+                        details: true,
+                        displayName: true,
+                      },
+                    },
+                  },
+                },
+              },
+            },
           },
           orderBy: orderbyObj,
           skip: (page - 1) * limit,
