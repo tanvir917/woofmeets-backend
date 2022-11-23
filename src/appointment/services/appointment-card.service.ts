@@ -58,7 +58,7 @@ export class AppointmentCardService {
 
     return {
       message: 'Appointment dates found successfully.',
-      data: appointment,
+      data: appointmentDates,
     };
   }
 
