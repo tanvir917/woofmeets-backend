@@ -962,6 +962,7 @@ model Appointment {
   review              Review[]
   billing             Billing[]
   cancelAppointment   CancelAppointment[]
+  appointmentCard     AppointmentCard[]
 }
 
 model AppointmentProposal {
@@ -1021,9 +1022,12 @@ model AppointmentDates {
   visitEndTimeInDateTime DateTime?           @db.Timestamptz(3)
   durationInMinutes      Int?
   paymentStatus          String              @default("PAID")
+  startTime              DateTime?           @db.Timestamptz(3)
+  stopTime               DateTime?           @db.Timestamptz(3)
   createdAt              DateTime            @default(now()) @db.Timestamptz(3)
   updatedAt              DateTime?           @updatedAt @db.Timestamptz(3)
   deletedAt              DateTime?           @db.Timestamptz(3)
+  appointmentCard        AppointmentCard[]
 }
 
 model Holidays {
@@ -1265,4 +1269,25 @@ model BasicPayments {
   createdAt DateTime  @default(now()) @db.Timestamptz(3)
   updatedAt DateTime? @updatedAt @db.Timestamptz(3)
   deletedAt DateTime? @db.Timestamptz(3)
+}
+
+model AppointmentCard {
+  id                BigInt            @id @default(autoincrement())
+  appointmentId     BigInt
+  appointment       Appointment       @relation(fields: [appointmentId], references: [id])
+  appointmentDateId BigInt?
+  appointmentDates  AppointmentDates? @relation(fields: [appointmentDateId], references: [id])
+  images            Json[]
+  petsData          Json[]
+  medication        String?
+  additionalNotes   String?
+  totalWalkTime     String?
+  distance          Float?
+  distanceUnit      String?           @default("mi")
+  generateTime      DateTime?
+  submitTime        DateTime?
+  meta              Json?
+  createdAt         DateTime          @default(now()) @db.Timestamptz(3)
+  updatedAt         DateTime?         @updatedAt @db.Timestamptz(3)
+  deletedAt         DateTime?         @db.Timestamptz(3)
 }
