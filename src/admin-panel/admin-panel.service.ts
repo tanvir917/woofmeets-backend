@@ -115,34 +115,41 @@ export class AdminPanelService {
 
     orderbyObj[sortBy] = sortOrder;
 
-    const users = await this.prismaService.user.findMany({
-      where: {
-        email,
-      },
-      select: {
-        id: true,
-        opk: true,
-        email: true,
-        emailVerified: true,
-        firstName: true,
-        lastName: true,
-        zipcode: true,
-        image: true,
-        loginProvider: true,
-        timezone: true,
-        facebook: true,
-        google: true,
-        meta: true,
-        createdAt: true,
-        updatedAt: true,
-        deletedAt: true,
-        contact: true,
-        basicInfo: true,
-      },
-      skip: (page - 1) * limit,
-      take: limit,
-      orderBy: orderbyObj,
-    });
+    const [usersCount, users] = await this.prismaService.$transaction([
+      this.prismaService.user.count({
+        where: {
+          email,
+        },
+      }),
+      this.prismaService.user.findMany({
+        where: {
+          email,
+        },
+        select: {
+          id: true,
+          opk: true,
+          email: true,
+          emailVerified: true,
+          firstName: true,
+          lastName: true,
+          zipcode: true,
+          image: true,
+          loginProvider: true,
+          timezone: true,
+          facebook: true,
+          google: true,
+          meta: true,
+          createdAt: true,
+          updatedAt: true,
+          deletedAt: true,
+          contact: true,
+          basicInfo: true,
+        },
+        skip: (page - 1) * limit,
+        take: limit,
+        orderBy: orderbyObj,
+      }),
+    ]);
 
     throwNotFoundErrorCheck(users?.length <= 0, 'Users not found.');
 
@@ -150,7 +157,7 @@ export class AdminPanelService {
       messages: 'Users found successfully.',
       data: users,
       meta: {
-        total: users?.length,
+        total: usersCount,
         currentPage: page,
         limit,
       },
@@ -260,40 +267,49 @@ export class AdminPanelService {
 
     orderbyObj[sortBy] = sortOrder;
 
-    const providers = await this.prismaService.provider.findMany({
-      where: {
-        user: {
-          email,
-        },
-      },
-      include: {
-        user: {
-          select: {
-            id: true,
-            opk: true,
-            email: true,
-            emailVerified: true,
-            firstName: true,
-            lastName: true,
-            zipcode: true,
-            image: true,
-            loginProvider: true,
-            timezone: true,
-            facebook: true,
-            google: true,
-            meta: true,
-            createdAt: true,
-            updatedAt: true,
-            deletedAt: true,
-            contact: true,
-            basicInfo: true,
+    const [providersCount, providers] = await this.prismaService.$transaction([
+      this.prismaService.provider.findMany({
+        where: {
+          user: {
+            email,
           },
         },
-      },
-      skip: (page - 1) * limit,
-      take: limit,
-      orderBy: orderbyObj,
-    });
+      }),
+      this.prismaService.provider.findMany({
+        where: {
+          user: {
+            email,
+          },
+        },
+        include: {
+          user: {
+            select: {
+              id: true,
+              opk: true,
+              email: true,
+              emailVerified: true,
+              firstName: true,
+              lastName: true,
+              zipcode: true,
+              image: true,
+              loginProvider: true,
+              timezone: true,
+              facebook: true,
+              google: true,
+              meta: true,
+              createdAt: true,
+              updatedAt: true,
+              deletedAt: true,
+              contact: true,
+              basicInfo: true,
+            },
+          },
+        },
+        skip: (page - 1) * limit,
+        take: limit,
+        orderBy: orderbyObj,
+      }),
+    ]);
 
     throwNotFoundErrorCheck(providers?.length <= 0, 'Providers not found.');
 
@@ -301,7 +317,7 @@ export class AdminPanelService {
       messages: 'Providers found successfully.',
       data: providers,
       meta: {
-        total: providers?.length,
+        total: providersCount,
         currentPage: page,
         limit,
       },
@@ -646,33 +662,19 @@ export class AdminPanelService {
 
     orderbyObj[sortBy] = sortOrder;
 
-    const appointments = await this.prismaService.appointment.findMany({
-      where: {
-        opk,
-        status: status as AppointmentStatusEnum,
-      },
-      include: {
-        user: {
-          select: {
-            id: true,
-            opk: true,
-            email: true,
-            emailVerified: true,
-            firstName: true,
-            lastName: true,
-            zipcode: true,
-            image: true,
-            loginProvider: true,
-            timezone: true,
-            facebook: true,
-            google: true,
-            meta: true,
-            createdAt: true,
-            updatedAt: true,
-            deletedAt: true,
+    const [appointmentsCount, appointments] =
+      await this.prismaService.$transaction([
+        this.prismaService.appointment.findMany({
+          where: {
+            opk,
+            status: status as AppointmentStatusEnum,
           },
-        },
-        provider: {
+        }),
+        this.prismaService.appointment.findMany({
+          where: {
+            opk,
+            status: status as AppointmentStatusEnum,
+          },
           include: {
             user: {
               select: {
@@ -694,18 +696,41 @@ export class AdminPanelService {
                 deletedAt: true,
               },
             },
+            provider: {
+              include: {
+                user: {
+                  select: {
+                    id: true,
+                    opk: true,
+                    email: true,
+                    emailVerified: true,
+                    firstName: true,
+                    lastName: true,
+                    zipcode: true,
+                    image: true,
+                    loginProvider: true,
+                    timezone: true,
+                    facebook: true,
+                    google: true,
+                    meta: true,
+                    createdAt: true,
+                    updatedAt: true,
+                    deletedAt: true,
+                  },
+                },
+              },
+            },
+            providerService: {
+              include: {
+                serviceType: true,
+              },
+            },
           },
-        },
-        providerService: {
-          include: {
-            serviceType: true,
-          },
-        },
-      },
-      skip: (page - 1) * limit,
-      take: limit,
-      orderBy: orderbyObj,
-    });
+          skip: (page - 1) * limit,
+          take: limit,
+          orderBy: orderbyObj,
+        }),
+      ]);
 
     throwNotFoundErrorCheck(
       appointments?.length <= 0,
@@ -716,7 +741,7 @@ export class AdminPanelService {
       messages: 'Appointments found successfully.',
       data: appointments,
       meta: {
-        total: appointments?.length,
+        total: appointmentsCount,
         currentPage: page,
         limit,
       },

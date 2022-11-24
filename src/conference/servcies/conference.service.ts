@@ -1,15 +1,13 @@
-import { Injectable } from '@nestjs/common';
-import { SecretService } from 'src/secret/secret.service';
-import { CreateRoomDto } from '../dto/create-room.dto';
-import { UpdateConferenceDto } from '../dto/update-conference.dto';
 import { HttpService } from '@nestjs/axios';
+import { Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import axios from 'axios';
-import { HmsRoomTypeEnum } from 'src/utils/enums';
 import {
   throwBadRequestErrorCheck,
-  throwNotFoundErrorCheck,
+  throwNotFoundErrorCheck
 } from 'src/global/exceptions/error-logic';
+import { SecretService } from 'src/secret/secret.service';
+import { HmsRoomTypeEnum } from 'src/utils/enums';
+import { CreateRoomDto } from '../dto/create-room.dto';
 import { FindRoomDto, JoinRoomDto, LeaveRoomDto } from '../dto/room.dto';
 
 @Injectable()
@@ -28,7 +26,7 @@ export class ConferenceService {
     const { hmsAccess, hmsSecret } = this.secretService.getHmsCreds();
     const currentTimestamp = Math.floor(Date.now() / 1000);
 
-    var data = {
+    const data = {
       iat: currentTimestamp,
       jti: 'jwt_nonce',
       type: 'management',
@@ -44,7 +42,7 @@ export class ConferenceService {
     const { hmsAccess } = this.secretService.getHmsCreds();
     const currentTimestamp = Math.floor(Date.now() / 1000);
 
-    var data = {
+    const data = {
       access_key: hmsAccess,
       room_id: roomId,
       user_id: userId.toString(),
@@ -103,7 +101,7 @@ export class ConferenceService {
       },
     });
 
-    console.log(room);
+    //console.log(room);
     console.log(room.status);
     throwBadRequestErrorCheck(+room.status >= 400, 'Room can not be created.');
 

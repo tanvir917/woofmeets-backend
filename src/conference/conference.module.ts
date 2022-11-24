@@ -28,5 +28,6 @@ import { JwtModule } from '@nestjs/jwt';
   ],
   controllers: [ConferenceController],
   providers: [ConferenceService],
+  exports: [ConferenceService],
 })
 export class ConferenceModule {}

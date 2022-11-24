@@ -526,45 +526,48 @@ export class PaymentDispatcherService {
 
     orderbyObj[sortBy] = sortOrder;
 
-    const appointmentBillingTransaction =
-      await this.prisma.appointmentBillingTransactions.findMany({
-        include: {
-          provider: {
-            include: {
-              user: {
-                select: {
-                  id: true,
-                  opk: true,
-                  email: true,
-                  emailVerified: true,
-                  firstName: true,
-                  lastName: true,
-                  zipcode: true,
-                  image: true,
-                  loginProvider: true,
-                  timezone: true,
-                  facebook: true,
-                  google: true,
-                  meta: true,
-                  createdAt: true,
-                  updatedAt: true,
-                  deletedAt: true,
+    const [appointmentBillingTransactionCount, appointmentBillingTransaction] =
+      await this.prisma.$transaction([
+        this.prisma.appointmentBillingTransactions.findMany({}),
+        this.prisma.appointmentBillingTransactions.findMany({
+          include: {
+            provider: {
+              include: {
+                user: {
+                  select: {
+                    id: true,
+                    opk: true,
+                    email: true,
+                    emailVerified: true,
+                    firstName: true,
+                    lastName: true,
+                    zipcode: true,
+                    image: true,
+                    loginProvider: true,
+                    timezone: true,
+                    facebook: true,
+                    google: true,
+                    meta: true,
+                    createdAt: true,
+                    updatedAt: true,
+                    deletedAt: true,
+                  },
                 },
               },
             },
           },
-        },
-        skip: (page - 1) * limit,
-        take: limit,
-        orderBy: orderbyObj,
-      });
+          skip: (page - 1) * limit,
+          take: limit,
+          orderBy: orderbyObj,
+        }),
+      ]);
 
     throwBadRequestErrorCheck(!appointmentBillingTransaction, 'No Data Found');
     return {
       message: 'Appointment Billing Transactions',
       data: { billingTransactions: appointmentBillingTransaction },
       meta: {
-        total: appointmentBillingTransaction?.length,
+        total: appointmentBillingTransactionCount,
         currentPage: page,
         limit,
       },
