@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { CommonModule } from 'src/common/common.module';
+import { ConferenceModule } from 'src/conference/conference.module';
 import { EmailModule } from 'src/email/email.module';
 import { FileModule } from 'src/file/file.module';
 import { MessagingModule } from 'src/messaging/messaging.module';
@@ -24,6 +25,7 @@ import { AppointmentProposalServiceV2 } from './services/appointment-proposal.se
     ServiceRatesModule,
     EmailModule,
     SmsModule,
+    ConferenceModule,
     // StripeModule,
   ],
   providers: [

@@ -5,7 +5,7 @@ import {
   appointmentStatusEnum,
   petTypeEnum,
   Prisma,
-  subscriptionTypeEnum,
+  subscriptionTypeEnum
 } from '@prisma/client';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime';
 import axios from 'axios';
@@ -13,6 +13,7 @@ import { differenceInDays } from 'date-fns';
 import { toDate, utcToZonedTime } from 'date-fns-tz';
 import { PinoLogger } from 'nestjs-pino';
 import { CommonService } from 'src/common/common.service';
+import { ConferenceService } from 'src/conference/servcies/conference.service';
 import { EmailService } from 'src/email/email.service';
 import { SuccessfulUploadResponse } from 'src/file/dto/upload-flie.dto';
 import { MulterFileUploadService } from 'src/file/multer-file-upload-service';
@@ -20,11 +21,11 @@ import {
   DaysOfWeek,
   extractDay,
   generateDatesFromAndTo,
-  generateDays,
+  generateDays
 } from 'src/global';
 import {
   throwBadRequestErrorCheck,
-  throwNotFoundErrorCheck,
+  throwNotFoundErrorCheck
 } from 'src/global/exceptions/error-logic';
 import { MessagingProxyService } from 'src/messaging/messaging.service';
 import { APPOINTMENT_BILLING_STATES } from 'src/payment-dispatcher/types';
@@ -33,6 +34,7 @@ import { SecretService } from 'src/secret/secret.service';
 import { ServiceRatesService } from 'src/service-rates/service-rates.service';
 import { SmsService } from 'src/sms/sms.service';
 import { StripeDispatcherService } from 'src/stripe/stripe.dispatcher.service';
+import { HmsRoomTypeEnum } from 'src/utils/enums';
 import { latlongDistanceCalculator } from 'src/utils/tools';
 import { CancelAppointmentDto } from '../dto/cancel-appointment.dto';
 import { CreateAppointmentProposalDto } from '../dto/create-appointment-proposal.dto';
@@ -40,13 +42,13 @@ import { PetsCheckDto } from '../dto/pet-check.dto';
 import { UpdateAppointmentProposalDto } from '../dto/update-appointment-proposal.dto';
 import {
   AppointmentProposalEnum,
-  AppointmentStatusEnum,
+  AppointmentStatusEnum
 } from '../helpers/appointment-enum';
 import {
   checkIfAnyDateHoliday,
   generateDatesFromProposalVisits,
   TimingType,
-  VisitType,
+  VisitType
 } from '../helpers/appointment-visits';
 
 @Injectable()
@@ -63,6 +65,7 @@ export class AppointmentProposalService {
     private readonly stripeService: StripeDispatcherService,
     private readonly emailService: EmailService,
     private readonly smsService: SmsService,
+    private readonly conferenceService: ConferenceService,
   ) {
     this.logger.setContext(AppointmentProposalService.name);
   }
@@ -1001,6 +1004,29 @@ export class AppointmentProposalService {
     }
 
     await Promise.allSettled(promises);
+
+    /**
+     * AUDIO & VIDEO SERVICE: a group will have to be created with the appointment opk
+     * Formated group object
+     */
+
+    try {
+      const conferenceObject = {
+        appointmentOpk: appointment?.opk,
+        roomType: HmsRoomTypeEnum.VIDEO,
+        provider: provider?.user?.firstName + ' ' + provider?.user?.lastName,
+        owner: user?.firstName + ' ' + user?.lastName,
+        createdAt: new Date().toISOString(),
+      };
+
+      await this.conferenceService.createRoom(conferenceObject);
+
+      conferenceObject.roomType = HmsRoomTypeEnum?.AUDIO;
+
+      await this.conferenceService.createRoom(conferenceObject);
+    } catch (error) {
+      console.log(error?.message);
+    }
 
     /**
      * MESSAGING SERVICE: a message group will have to be created with the appointment id

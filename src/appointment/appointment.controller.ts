@@ -556,6 +556,24 @@ export class AppointmentController {
 
   @ApiBearerAuth('access-token')
   @UseGuards(JwtAuthGuard)
+  @Get('/card/find-all/:appointmentOpk')
+  async fiindAllCardOfAppointment(
+    @Param('appointmentOpk') appointmentOpk: string,
+    @Request() req: any,
+  ) {
+    const userId = BigInt(req.user?.id) ?? BigInt(-1);
+    throwBadRequestErrorCheck(
+      !appointmentOpk || appointmentOpk == undefined,
+      'Invalid appointment opk. Please, try again after sometime with valid appointment opk.',
+    );
+    return await this.appointmentCardService.fiindAllCardOfAppointment(
+      userId,
+      appointmentOpk,
+    );
+  }
+
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard)
   @Get('/card/find/:id')
   async findAppointmentCardById(@Param('id') id: string, @Request() req: any) {
     const userId = BigInt(req.user?.id) ?? BigInt(-1);
