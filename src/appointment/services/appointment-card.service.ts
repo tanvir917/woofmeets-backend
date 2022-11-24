@@ -38,6 +38,13 @@ export class AppointmentCardService {
         opk,
         deletedAt: null,
       },
+      include: {
+        providerService: {
+          include: {
+            serviceType: true,
+          },
+        },
+      },
     });
 
     throwNotFoundErrorCheck(!appointment, 'Appointment not found.');
@@ -56,9 +63,25 @@ export class AppointmentCardService {
       'Appointment dates not found.',
     );
 
+    const sortDateByTime = appointmentDates?.sort(function (x, y) {
+      return new Date(x?.date).getTime() - new Date(y?.date).getTime();
+    });
+
+    let updateAppointmentDates = [];
+
+    if (
+      appointment?.providerService?.serviceType?.slug === 'boarding' ||
+      appointment?.providerService?.serviceType?.slug === 'house-sitting'
+    ) {
+      updateAppointmentDates.push(sortDateByTime[0]);
+      updateAppointmentDates.push(sortDateByTime[sortDateByTime?.length - 1]);
+    } else {
+      updateAppointmentDates = sortDateByTime;
+    }
+
     return {
       message: 'Appointment dates found successfully.',
-      data: appointmentDates,
+      data: updateAppointmentDates,
     };
   }
 
