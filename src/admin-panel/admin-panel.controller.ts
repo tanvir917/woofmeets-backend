@@ -185,4 +185,52 @@ export class AdminPanelController {
     const userId = BigInt(req.user?.id) ?? BigInt(-1);
     return await this.adminPanelService.getCountryWiseProviderCount(userId);
   }
+
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard)
+  @Get('/search/all-users')
+  async getAllUsersBySearch(
+    @Query('searchString') searchString: string,
+    @Request() req: any,
+    @Query() query: PaginationQueryParamsDto,
+  ) {
+    const userId = BigInt(req.user?.id) ?? BigInt(-1);
+    return await this.adminPanelService.getAllUsersBySearch(
+      userId,
+      searchString,
+      query,
+    );
+  }
+
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard)
+  @Get('/search/all-providers')
+  async getAllProvidersBySearch(
+    @Query('searchString') searchString: string,
+    @Request() req: any,
+    @Query() query: PaginationQueryParamsDto,
+  ) {
+    const userId = BigInt(req.user?.id) ?? BigInt(-1);
+    return await this.adminPanelService.getAllProvidersBySearch(
+      userId,
+      searchString,
+      query,
+    );
+  }
+
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard)
+  @Get('/search/all-appointments')
+  async getAllAppointmentsBySearch(
+    @Query('searchString') searchString: string,
+    @Request() req: any,
+    @Query() query: PaginationQueryParamsDto,
+  ) {
+    const userId = BigInt(req.user?.id) ?? BigInt(-1);
+    return await this.adminPanelService.getAllAppointmentsBySearch(
+      userId,
+      searchString,
+      query,
+    );
+  }
 }

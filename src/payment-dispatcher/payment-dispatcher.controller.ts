@@ -79,4 +79,20 @@ export class PaymentDispatcherController {
       body,
     );
   }
+
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard)
+  @Get('/search/get-all-transactions')
+  async getAllTransactionsBySearch(
+    @Query('searchString') searchString: string,
+    @Request() req: any,
+    @Query() query: PaginationQueryParamsDto,
+  ) {
+    const userId: string = req.user.id ?? '-1';
+    return await this.paymentDispatcherService.getAllAppointmentBillingTransactionsBySearch(
+      BigInt(userId),
+      searchString,
+      query,
+    );
+  }
 }
