@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { backGroundCheckEnum, subscriptionTypeEnum } from '@prisma/client';
 import { format } from 'date-fns';
 import { AppointmentStatusEnum } from 'src/appointment/helpers/appointment-enum';
 import { AuthService } from 'src/auth/auth.service';
@@ -268,7 +269,7 @@ export class AdminPanelService {
     orderbyObj[sortBy] = sortOrder;
 
     const [providersCount, providers] = await this.prismaService.$transaction([
-      this.prismaService.provider.findMany({
+      this.prismaService.provider.count({
         where: {
           user: {
             email,
@@ -1040,6 +1041,486 @@ export class AdminPanelService {
       data: {
         providerUSACount,
         providerCACount,
+      },
+    };
+  }
+
+  async getAllUsersBySearch(
+    userId: bigint,
+    searchString: string,
+    query: PaginationQueryParamsDto,
+  ) {
+    throwUnauthorizedErrorCheck(
+      !(await this.adminCheck(userId)),
+      'Unauthorized',
+    );
+
+    let { page, limit, sortBy, sortOrder } = query;
+    const orderbyObj = {};
+
+    if (!page || page < 1) page = 1;
+    if (!limit) limit = 20;
+    if (!sortOrder && sortOrder != 'asc' && sortOrder != 'desc')
+      sortOrder = 'desc';
+    if (!sortBy) sortBy = 'createdAt';
+
+    orderbyObj[sortBy] = sortOrder;
+
+    const [usersCount, users] = await this.prismaService.$transaction([
+      this.prismaService.user.count({
+        where: {
+          OR: [
+            {
+              email: {
+                contains: searchString,
+                mode: 'insensitive',
+              },
+            },
+            { firstName: { contains: searchString, mode: 'insensitive' } },
+            { lastName: { contains: searchString, mode: 'insensitive' } },
+          ],
+        },
+      }),
+      this.prismaService.user.findMany({
+        where: {
+          OR: [
+            {
+              email: {
+                contains: searchString,
+                mode: 'insensitive',
+              },
+            },
+            { firstName: { contains: searchString, mode: 'insensitive' } },
+            { lastName: { contains: searchString, mode: 'insensitive' } },
+          ],
+        },
+        select: {
+          id: true,
+          opk: true,
+          email: true,
+          emailVerified: true,
+          firstName: true,
+          lastName: true,
+          zipcode: true,
+          image: true,
+          loginProvider: true,
+          timezone: true,
+          facebook: true,
+          google: true,
+          meta: true,
+          createdAt: true,
+          updatedAt: true,
+          deletedAt: true,
+          contact: true,
+          basicInfo: true,
+        },
+        skip: (page - 1) * limit,
+        take: limit,
+        orderBy: orderbyObj,
+      }),
+    ]);
+
+    throwNotFoundErrorCheck(users?.length <= 0, 'Users not found.');
+
+    return {
+      messages: 'Search users found successfully.',
+      data: users,
+      meta: {
+        total: usersCount,
+        currentPage: page,
+        limit,
+      },
+    };
+  }
+
+  async getAllProvidersBySearch(
+    userId: bigint,
+    searchString: string,
+    query: PaginationQueryParamsDto,
+  ) {
+    throwUnauthorizedErrorCheck(
+      !(await this.adminCheck(userId)),
+      'Unauthorized',
+    );
+
+    let { page, limit, sortBy, sortOrder } = query;
+    const orderbyObj = {};
+
+    if (!page || page < 1) page = 1;
+    if (!limit) limit = 20;
+    if (!sortOrder && sortOrder != 'asc' && sortOrder != 'desc')
+      sortOrder = 'desc';
+    if (!sortBy) sortBy = 'createdAt';
+
+    orderbyObj[sortBy] = sortOrder;
+
+    const backGroundCheck =
+      searchString in backGroundCheckEnum
+        ? {
+            in: searchString as backGroundCheckEnum,
+          }
+        : {};
+
+    const subscriptionType =
+      searchString in subscriptionTypeEnum
+        ? {
+            in: searchString as subscriptionTypeEnum,
+          }
+        : {};
+
+    const [providersCount, providers] = await this.prismaService.$transaction([
+      this.prismaService.provider.count({
+        where: {
+          OR: [
+            {
+              user: {
+                OR: [
+                  {
+                    email: {
+                      contains: searchString,
+                      mode: 'insensitive',
+                    },
+                  },
+                  {
+                    firstName: { contains: searchString, mode: 'insensitive' },
+                  },
+                  { lastName: { contains: searchString, mode: 'insensitive' } },
+                  {
+                    contact: {
+                      phone: { contains: searchString, mode: 'insensitive' },
+                    },
+                  },
+                ],
+              },
+            },
+            {
+              backGroundCheck,
+            },
+            {
+              subscriptionType,
+            },
+          ],
+        },
+      }),
+      this.prismaService.provider.findMany({
+        where: {
+          OR: [
+            {
+              user: {
+                OR: [
+                  {
+                    email: {
+                      contains: searchString,
+                      mode: 'insensitive',
+                    },
+                  },
+                  {
+                    firstName: { contains: searchString, mode: 'insensitive' },
+                  },
+                  { lastName: { contains: searchString, mode: 'insensitive' } },
+                  {
+                    contact: {
+                      phone: { contains: searchString, mode: 'insensitive' },
+                    },
+                  },
+                ],
+              },
+            },
+            {
+              backGroundCheck,
+            },
+            {
+              subscriptionType,
+            },
+          ],
+        },
+        include: {
+          user: {
+            select: {
+              id: true,
+              opk: true,
+              email: true,
+              emailVerified: true,
+              firstName: true,
+              lastName: true,
+              zipcode: true,
+              image: true,
+              loginProvider: true,
+              timezone: true,
+              facebook: true,
+              google: true,
+              meta: true,
+              createdAt: true,
+              updatedAt: true,
+              deletedAt: true,
+              contact: true,
+              basicInfo: true,
+            },
+          },
+        },
+        skip: (page - 1) * limit,
+        take: limit,
+        orderBy: orderbyObj,
+      }),
+    ]);
+
+    throwNotFoundErrorCheck(providers?.length <= 0, 'Providers not found.');
+
+    return {
+      messages: 'Search providers found successfully.',
+      data: providers,
+      meta: {
+        total: providersCount,
+        currentPage: page,
+        limit,
+      },
+    };
+  }
+
+  async getAllAppointmentsBySearch(
+    userId: bigint,
+    searchString: string,
+    query: PaginationQueryParamsDto,
+  ) {
+    throwUnauthorizedErrorCheck(
+      !(await this.adminCheck(userId)),
+      'Unauthorized',
+    );
+
+    let { page, limit, sortBy, sortOrder } = query;
+    const orderbyObj = {};
+
+    if (!page || page < 1) page = 1;
+    if (!limit) limit = 20;
+    if (!sortOrder && sortOrder != 'asc' && sortOrder != 'desc')
+      sortOrder = 'desc';
+    if (!sortBy) sortBy = 'createdAt';
+
+    orderbyObj[sortBy] = sortOrder;
+
+    const status =
+      searchString in AppointmentStatusEnum
+        ? {
+            in: searchString as AppointmentStatusEnum,
+          }
+        : {};
+
+    const [appointmentsCount, appointments] =
+      await this.prismaService.$transaction([
+        this.prismaService.appointment.findMany({
+          where: {
+            OR: [
+              {
+                OR: [
+                  {
+                    user: {
+                      OR: [
+                        {
+                          email: {
+                            contains: searchString,
+                            mode: 'insensitive',
+                          },
+                        },
+                        {
+                          firstName: {
+                            contains: searchString,
+                            mode: 'insensitive',
+                          },
+                        },
+                        {
+                          lastName: {
+                            contains: searchString,
+                            mode: 'insensitive',
+                          },
+                        },
+                      ],
+                    },
+                  },
+                  {
+                    provider: {
+                      user: {
+                        OR: [
+                          {
+                            email: {
+                              contains: searchString,
+                              mode: 'insensitive',
+                            },
+                          },
+                          {
+                            firstName: {
+                              contains: searchString,
+                              mode: 'insensitive',
+                            },
+                          },
+                          {
+                            lastName: {
+                              contains: searchString,
+                              mode: 'insensitive',
+                            },
+                          },
+                        ],
+                      },
+                    },
+                  },
+                ],
+              },
+              {
+                opk: { contains: searchString, mode: 'insensitive' },
+              },
+              {
+                status,
+              },
+              {
+                providerService: {
+                  serviceType: {
+                    name: { contains: searchString, mode: 'insensitive' },
+                  },
+                },
+              },
+            ],
+          },
+        }),
+        this.prismaService.appointment.findMany({
+          where: {
+            OR: [
+              {
+                OR: [
+                  {
+                    user: {
+                      OR: [
+                        {
+                          email: {
+                            contains: searchString,
+                            mode: 'insensitive',
+                          },
+                        },
+                        {
+                          firstName: {
+                            contains: searchString,
+                            mode: 'insensitive',
+                          },
+                        },
+                        {
+                          lastName: {
+                            contains: searchString,
+                            mode: 'insensitive',
+                          },
+                        },
+                      ],
+                    },
+                  },
+                  {
+                    provider: {
+                      user: {
+                        OR: [
+                          {
+                            email: {
+                              contains: searchString,
+                              mode: 'insensitive',
+                            },
+                          },
+                          {
+                            firstName: {
+                              contains: searchString,
+                              mode: 'insensitive',
+                            },
+                          },
+                          {
+                            lastName: {
+                              contains: searchString,
+                              mode: 'insensitive',
+                            },
+                          },
+                        ],
+                      },
+                    },
+                  },
+                ],
+              },
+              {
+                opk: { contains: searchString, mode: 'insensitive' },
+              },
+              {
+                status,
+              },
+              {
+                providerService: {
+                  serviceType: {
+                    name: { contains: searchString, mode: 'insensitive' },
+                  },
+                },
+              },
+            ],
+          },
+          include: {
+            user: {
+              select: {
+                id: true,
+                opk: true,
+                email: true,
+                emailVerified: true,
+                firstName: true,
+                lastName: true,
+                zipcode: true,
+                image: true,
+                loginProvider: true,
+                timezone: true,
+                facebook: true,
+                google: true,
+                meta: true,
+                createdAt: true,
+                updatedAt: true,
+                deletedAt: true,
+              },
+            },
+            provider: {
+              include: {
+                user: {
+                  select: {
+                    id: true,
+                    opk: true,
+                    email: true,
+                    emailVerified: true,
+                    firstName: true,
+                    lastName: true,
+                    zipcode: true,
+                    image: true,
+                    loginProvider: true,
+                    timezone: true,
+                    facebook: true,
+                    google: true,
+                    meta: true,
+                    createdAt: true,
+                    updatedAt: true,
+                    deletedAt: true,
+                  },
+                },
+              },
+            },
+            providerService: {
+              include: {
+                serviceType: true,
+              },
+            },
+          },
+          skip: (page - 1) * limit,
+          take: limit,
+          orderBy: orderbyObj,
+        }),
+      ]);
+
+    throwNotFoundErrorCheck(
+      appointments?.length <= 0,
+      'Appointments not found.',
+    );
+
+    return {
+      messages: 'Search appointments found successfully.',
+      data: appointments,
+      meta: {
+        total: appointmentsCount,
+        currentPage: page,
+        limit,
       },
     };
   }

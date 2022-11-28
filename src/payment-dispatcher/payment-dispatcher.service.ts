@@ -678,4 +678,73 @@ export class PaymentDispatcherService {
       };
     }
   }
+
+  async getAllAppointmentBillingTransactionsBySearch(
+    userId: bigint,
+    searchString: string,
+    query: PaginationQueryParamsDto,
+  ) {
+    throwUnauthorizedErrorCheck(
+      !(await this.adminPanelService.adminCheck(userId)),
+      'Unauthorized access!',
+    );
+
+    let { page, limit, sortBy, sortOrder } = query;
+    const orderbyObj = {};
+
+    if (!page || page < 1) page = 1;
+    if (!limit) limit = 20;
+    if (!sortOrder && sortOrder != 'asc' && sortOrder != 'desc')
+      sortOrder = 'desc';
+    if (!sortBy) sortBy = 'createdAt';
+
+    orderbyObj[sortBy] = sortOrder;
+
+    const [appointmentBillingTransactionCount, appointmentBillingTransaction] =
+      await this.prisma.$transaction([
+        this.prisma.appointmentBillingTransactions.findMany({}),
+        this.prisma.appointmentBillingTransactions.findMany({
+          include: {
+            provider: {
+              include: {
+                user: {
+                  select: {
+                    id: true,
+                    opk: true,
+                    email: true,
+                    emailVerified: true,
+                    firstName: true,
+                    lastName: true,
+                    zipcode: true,
+                    image: true,
+                    loginProvider: true,
+                    timezone: true,
+                    facebook: true,
+                    google: true,
+                    meta: true,
+                    createdAt: true,
+                    updatedAt: true,
+                    deletedAt: true,
+                  },
+                },
+              },
+            },
+          },
+          skip: (page - 1) * limit,
+          take: limit,
+          orderBy: orderbyObj,
+        }),
+      ]);
+
+    throwBadRequestErrorCheck(!appointmentBillingTransaction, 'No Data Found');
+    return {
+      message: 'Appointment Billing Transactions',
+      data: { billingTransactions: appointmentBillingTransaction },
+      meta: {
+        total: appointmentBillingTransactionCount,
+        currentPage: page,
+        limit,
+      },
+    };
+  }
 }

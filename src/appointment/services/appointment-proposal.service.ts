@@ -5,7 +5,7 @@ import {
   appointmentStatusEnum,
   petTypeEnum,
   Prisma,
-  subscriptionTypeEnum
+  subscriptionTypeEnum,
 } from '@prisma/client';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime';
 import axios from 'axios';
@@ -21,11 +21,11 @@ import {
   DaysOfWeek,
   extractDay,
   generateDatesFromAndTo,
-  generateDays
+  generateDays,
 } from 'src/global';
 import {
   throwBadRequestErrorCheck,
-  throwNotFoundErrorCheck
+  throwNotFoundErrorCheck,
 } from 'src/global/exceptions/error-logic';
 import { MessagingProxyService } from 'src/messaging/messaging.service';
 import { APPOINTMENT_BILLING_STATES } from 'src/payment-dispatcher/types';
@@ -42,13 +42,13 @@ import { PetsCheckDto } from '../dto/pet-check.dto';
 import { UpdateAppointmentProposalDto } from '../dto/update-appointment-proposal.dto';
 import {
   AppointmentProposalEnum,
-  AppointmentStatusEnum
+  AppointmentStatusEnum,
 } from '../helpers/appointment-enum';
 import {
   checkIfAnyDateHoliday,
   generateDatesFromProposalVisits,
   TimingType,
-  VisitType
+  VisitType,
 } from '../helpers/appointment-visits';
 
 @Injectable()
@@ -1430,19 +1430,35 @@ export class AppointmentProposalService {
     /*
      * Dispatch sms notification
      */
-    const smsUserFirstName =
-      proposedBy == 'USER' ? 'You' : appointment?.provider?.user?.firstName;
+    // let smsUserFirstName: string;
+    // let smsProviderFirstName: string;
+    // if (proposedBy == 'USER') {
+    //   smsUserFirstNameForUserSms = 'You';
+    //   smsProviderFirstNameForUserSms = appointment?.provider?.user?.firstName;
+    // } else {
+    //   smsUserFirstName = appointment?.user?.firstName;
+    //   smsProviderFirstName = 'You';
+    // }
 
-    const smsProviderFirstName =
-      proposedBy == 'PROVIDER' ? 'You' : appointment?.user?.firstName;
+    // smsUserFirstName =
+    //   proposedBy == 'USER' ? 'You' : appointment?.provider?.user?.firstName;
+
+    // smsProviderFirstName =
+    //   proposedBy == 'PROVIDER' ? 'You' : appointment?.user?.firstName;
     const conversationUrl = `https://woofmeets.com/account/conversations/${appointment?.opk}`;
     try {
       if (appointment?.user?.contact?.phone) {
         await this.smsService.sendText(
           appointment?.user?.contact?.phone,
-          `${smsUserFirstName} sent a modified request (${service_name}) to ${smsProviderFirstName}: ${petsName.join(
-            ', ',
-          )} on ${[...new Set(dates)]?.join(', ')} • ${
+          `${
+            proposedBy == 'USER'
+              ? 'You'
+              : appointment?.provider?.user?.firstName
+          } sent a modified request (${service_name}) to ${
+            proposedBy == 'USER'
+              ? appointment?.provider?.user?.firstName
+              : 'you'
+          } : ${petsName.join(', ')} on ${[...new Set(dates)]?.join(', ')} • ${
             length ? `${length} min` : ''
           }. Book @${conversationUrl}`,
         );
@@ -1450,9 +1466,11 @@ export class AppointmentProposalService {
       if (appointment?.provider?.user?.contact?.phone) {
         await this.smsService.sendText(
           appointment?.provider?.user?.contact?.phone,
-          `${smsProviderFirstName} sent a modified request (${service_name}) to ${smsUserFirstName}: ${petsName.join(
-            ', ',
-          )} on ${[...new Set(dates)]?.join(', ')} • ${
+          `${
+            proposedBy == 'USER' ? appointment?.user?.firstName : 'You'
+          } sent a modified request (${service_name}) to ${
+            proposedBy == 'USER' ? 'you' : appointment?.user?.firstName
+          } : ${petsName.join(', ')} on ${[...new Set(dates)]?.join(', ')} • ${
             length ? `${length} min` : ''
           }. Book @${conversationUrl}`,
         );
