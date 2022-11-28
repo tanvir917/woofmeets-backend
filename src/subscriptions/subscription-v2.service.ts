@@ -20,6 +20,7 @@ import {
   SubscriptionListsQueryParamsDto,
   SubscriptionPaymentListsAdminQueryParamsDto,
 } from './dto/subscription-list-query-params.dto';
+import { UpdateBasicPaymentInfoDto } from './dto/update-basic-payment-info.dto';
 import {
   ProviderBackgourndCheckEnum,
   ProviderSubscriptionTypeEnum,
@@ -1928,6 +1929,49 @@ export class SubscriptionV2Service {
       message: 'Subscription payment lists.',
       data: userSubscriptionInvoices,
       meta: { total: count.length, currentPage: page, limit },
+    };
+  }
+
+  async getBasicPaymentInfo() {
+    const basicPayment = await this.prismaService.basicPayments.findFirst({
+      where: {
+        deletedAt: null,
+      },
+    });
+    throwBadRequestErrorCheck(!basicPayment, 'No basic payment found.');
+    return {
+      message: 'Basic payment info.',
+      data: basicPayment,
+    };
+  }
+
+  async updateBasicPaymentInfo(
+    userId: bigint,
+    basicPaymentId: bigint,
+    data: UpdateBasicPaymentInfoDto,
+  ) {
+    const { amount } = data;
+
+    const basicPayment = await this.prismaService.basicPayments.findFirst({
+      where: {
+        id: basicPaymentId,
+        deletedAt: null,
+      },
+    });
+    throwBadRequestErrorCheck(!basicPayment, 'No basic payment found.');
+
+    const updatedBasicPayment = await this.prismaService.basicPayments.update({
+      where: {
+        id: basicPayment.id,
+      },
+      data: {
+        amount: amount,
+      },
+    });
+
+    return {
+      message: 'Basic payment info updated.',
+      data: updatedBasicPayment,
     };
   }
 }

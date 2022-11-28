@@ -38,6 +38,7 @@ import {
   SubscriptionPaymentListsAdminQueryParamsDto,
 } from './dto/subscription-list-query-params.dto';
 import { CreateSubscriptionQueryDto } from './dto/create-subscription.dto';
+import { UpdateBasicPaymentInfoDto } from './dto/update-basic-payment-info.dto';
 
 @ApiTags('Subscriptions')
 @UseInterceptors(TransformInterceptor)
@@ -346,6 +347,31 @@ export class SubscriptionsController {
     return await this.subscriptionV2Service.getUserSubscriptionLists(
       userId,
       query,
+    );
+  }
+
+  /**
+   * Admin Route (Basic Verification Payment)
+   */
+
+  @Get('basic-verification-payment-info')
+  async getBasicVerificationPaymentInfo() {
+    return await this.subscriptionV2Service.getBasicPaymentInfo();
+  }
+
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard)
+  @Patch('update-basic-verification-payment/:basicPaymentId')
+  async updateBasicVerificationPaymentInfo(
+    @Request() req: any,
+    @Param('basicPaymentId') basicPaymentId: string,
+    @Body() body: UpdateBasicPaymentInfoDto,
+  ) {
+    const userId = BigInt(req.user?.id) ?? BigInt(-1);
+    return await this.subscriptionV2Service.updateBasicPaymentInfo(
+      userId,
+      BigInt(basicPaymentId),
+      body,
     );
   }
 }
