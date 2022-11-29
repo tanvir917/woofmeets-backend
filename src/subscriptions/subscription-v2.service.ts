@@ -5,11 +5,17 @@ import {
   UserSubscriptions,
   userSubscriptionStatusEnum,
 } from '@prisma/client';
+import { PaginationQueryParamsDto } from 'src/admin-panel/dto/pagination-query.dto';
+import {
+  isStringDate,
+  isStringNumeric,
+} from 'src/utils/tools/date-number.checker';
 import Stripe from 'stripe';
 import { AdminPanelService } from '../admin-panel/admin-panel.service';
 import {
   throwBadRequestErrorCheck,
   throwConflictErrorCheck,
+  throwNotFoundErrorCheck,
   throwUnauthorizedErrorCheck,
 } from '../global/exceptions/error-logic';
 import { PrismaService } from '../prisma/prisma.service';
@@ -1859,11 +1865,10 @@ export class SubscriptionV2Service {
 
     const [count, userSubscriptionInvoices] =
       await this.prismaService.$transaction([
-        this.prismaService.userSubscriptionInvoices.findMany({
+        this.prismaService.userSubscriptionInvoices.count({
           where: {
             ...statusQuery,
           },
-          orderBy: orderbyObj,
         }),
         this.prismaService.userSubscriptionInvoices.findMany({
           where: {
@@ -1921,14 +1926,192 @@ export class SubscriptionV2Service {
       ]);
 
     throwBadRequestErrorCheck(
-      !count.length || !userSubscriptionInvoices.length,
+      !count || !userSubscriptionInvoices.length,
       'No subscription payment found.',
     );
 
     return {
       message: 'Subscription payment lists.',
       data: userSubscriptionInvoices,
-      meta: { total: count.length, currentPage: page, limit },
+      meta: { total: count, currentPage: page, limit },
+    };
+  }
+
+  async getSubscriptionPaymentListsAdminBySearch(
+    userId: bigint,
+    searchString: string,
+    query: PaginationQueryParamsDto,
+  ) {
+    throwUnauthorizedErrorCheck(
+      !(await this.adminPanelService.adminCheck(userId)),
+      'Unauthorized access!',
+    );
+
+    let { page, limit, sortBy, sortOrder } = query;
+    const orderbyObj = {};
+
+    const statusQuery = searchString
+      ? { status: clientSubscriptonsInvoiceStatus[searchString.toLowerCase()] }
+      : {};
+
+    if (!page || page < 1) page = 1;
+    if (!limit) limit = 20;
+    if (!sortOrder && sortOrder != 'asc' && sortOrder != 'desc')
+      sortOrder = 'desc';
+    if (!sortBy) sortBy = 'createdAt';
+
+    orderbyObj[sortBy] = sortOrder;
+
+    let billingDate: object;
+
+    if (isStringDate(searchString) && !isStringNumeric(searchString)) {
+      const startDate = new Date(searchString);
+      // seconds * minutes * hours * milliseconds = 1 day
+      const day = 60 * 60 * 24 * 1000;
+      const endDate = new Date(startDate.getTime() + day);
+      billingDate = {
+        AND: [
+          {
+            billingDate: {
+              gte: startDate,
+            },
+          },
+          {
+            billingDate: {
+              lte: endDate,
+            },
+          },
+        ],
+      };
+    } else {
+      billingDate = {};
+    }
+
+    const [count, userSubscriptionInvoices] =
+      await this.prismaService.$transaction([
+        this.prismaService.userSubscriptionInvoices.count({
+          where: {
+            OR: [
+              {
+                user: {
+                  email: {
+                    contains: searchString,
+                    mode: 'insensitive',
+                  },
+                },
+              },
+              {
+                ...billingDate,
+              },
+              {
+                ...statusQuery,
+              },
+              {
+                userSubscription: {
+                  membershipPlanPrice: {
+                    membershipPlan: {
+                      displayName: {
+                        contains: searchString,
+                        mode: 'insensitive',
+                      },
+                    },
+                  },
+                },
+              },
+            ],
+          },
+        }),
+        this.prismaService.userSubscriptionInvoices.findMany({
+          where: {
+            OR: [
+              {
+                user: {
+                  email: {
+                    contains: searchString,
+                    mode: 'insensitive',
+                  },
+                },
+              },
+              {
+                ...billingDate,
+              },
+              {
+                ...statusQuery,
+              },
+              {
+                userSubscription: {
+                  membershipPlanPrice: {
+                    membershipPlan: {
+                      displayName: {
+                        contains: searchString,
+                        mode: 'insensitive',
+                      },
+                    },
+                  },
+                },
+              },
+            ],
+          },
+          select: {
+            id: true,
+            userId: true,
+            userSubscriptionId: true,
+            customerName: true,
+            total: true,
+            subTotal: true,
+            amountDue: true,
+            amountPaid: true,
+            amountRemaining: true,
+            currency: true,
+            status: true,
+            billingDate: true,
+            meta: true,
+            user: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                email: true,
+              },
+            },
+            userSubscription: {
+              select: {
+                membershipPlanPrice: {
+                  select: {
+                    id: true,
+                    rate: true,
+                    cropRate: true,
+                    validity: true,
+                    membershipPlan: {
+                      select: {
+                        id: true,
+                        slug: true,
+                        name: true,
+                        active: true,
+                        details: true,
+                        displayName: true,
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          orderBy: orderbyObj,
+          skip: (page - 1) * limit,
+          take: limit,
+        }),
+      ]);
+
+    throwNotFoundErrorCheck(
+      !count || !userSubscriptionInvoices.length,
+      'No subscription payment found.',
+    );
+
+    return {
+      message: 'Subscription payment lists.',
+      data: userSubscriptionInvoices,
+      meta: { total: count, currentPage: page, limit },
     };
   }
 

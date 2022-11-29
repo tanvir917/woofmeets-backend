@@ -1,20 +1,20 @@
 import {
-  Controller,
-  Post,
   Body,
+  Controller,
+  Delete,
+  Get,
+  Headers,
   Param,
+  Patch,
+  Post,
+  Query,
+  Request,
+  UploadedFiles,
   UseGuards,
   UseInterceptors,
-  Request,
-  Get,
-  UploadedFiles,
-  Patch,
-  Delete,
-  Query,
   Version,
-  Headers,
 } from '@nestjs/common';
-import { SubscriptionsService } from './subscriptions.service';
+import { FilesInterceptor } from '@nestjs/platform-express';
 import {
   ApiBearerAuth,
   ApiConsumes,
@@ -22,23 +22,24 @@ import {
   ApiOperation,
   ApiTags,
 } from '@nestjs/swagger';
+import { PaginationQueryParamsDto } from 'src/admin-panel/dto/pagination-query.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { TransformInterceptor } from '../transform.interceptor';
-import { FilesInterceptor } from '@nestjs/platform-express';
-import { CreateUserBasicVerificationDto } from './dto/create-user-basic-verification.dto';
-import { CreateMembershipPlanDto } from './dto/create-membership-plan.dto';
-import { MembershipPlanService } from './membership-plan.service';
-import { UpdateMembershipPlanDto } from './dto/update-membership-plan-dto';
-import { MembershipPlanPricesService } from './membership-plan-prices-service';
 import { CreateMembershipPlanPricesDto } from './dto/create-membership-plan-prices.dto';
-import { SubscriptionV2Service } from './subscription-v2.service';
+import { CreateMembershipPlanDto } from './dto/create-membership-plan.dto';
+import { CreateSubscriptionQueryDto } from './dto/create-subscription.dto';
+import { CreateUserBasicVerificationDto } from './dto/create-user-basic-verification.dto';
 import {
   SubscriptionListsForUserQueryParamsDto,
   SubscriptionListsQueryParamsDto,
   SubscriptionPaymentListsAdminQueryParamsDto,
 } from './dto/subscription-list-query-params.dto';
-import { CreateSubscriptionQueryDto } from './dto/create-subscription.dto';
 import { UpdateBasicPaymentInfoDto } from './dto/update-basic-payment-info.dto';
+import { UpdateMembershipPlanDto } from './dto/update-membership-plan-dto';
+import { MembershipPlanPricesService } from './membership-plan-prices-service';
+import { MembershipPlanService } from './membership-plan.service';
+import { SubscriptionV2Service } from './subscription-v2.service';
+import { SubscriptionsService } from './subscriptions.service';
 
 @ApiTags('Subscriptions')
 @UseInterceptors(TransformInterceptor)
@@ -326,6 +327,22 @@ export class SubscriptionsController {
     const userId = BigInt(req.user?.id) ?? BigInt(-1);
     return await this.subscriptionV2Service.getSubscriptionPaymentListsAdmin(
       userId,
+      query,
+    );
+  }
+
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard)
+  @Get('/search/subscription-payment-lists')
+  async getSubscriptionPaymentListsBySearch(
+    @Query('searchString') searchString: string,
+    @Request() req: any,
+    @Query() query: PaginationQueryParamsDto,
+  ) {
+    const userId = BigInt(req.user?.id) ?? BigInt(-1);
+    return await this.subscriptionV2Service.getSubscriptionPaymentListsAdminBySearch(
+      userId,
+      searchString,
       query,
     );
   }
