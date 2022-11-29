@@ -7,7 +7,7 @@ import { LoginDto } from 'src/auth/dto/login.dto';
 import {
   throwBadRequestErrorCheck,
   throwNotFoundErrorCheck,
-  throwUnauthorizedErrorCheck,
+  throwUnauthorizedErrorCheck
 } from 'src/global/exceptions/error-logic';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { SecretService } from 'src/secret/secret.service';
@@ -1168,6 +1168,19 @@ export class AdminPanelService {
           }
         : {};
 
+    let profileSubmitted: object = {};
+    if (searchString?.toLowerCase() === 'completed') {
+      profileSubmitted = {
+        profileSubmitted: true,
+      };
+    } else if (searchString.toLowerCase() === 'in-complete') {
+      profileSubmitted = {
+        profileSubmitted: false,
+      };
+    }
+
+    console.log(profileSubmitted);
+
     const [providersCount, providers] = await this.prismaService.$transaction([
       this.prismaService.provider.count({
         where: {
@@ -1198,6 +1211,9 @@ export class AdminPanelService {
             },
             {
               subscriptionType,
+            },
+            {
+              ...profileSubmitted,
             },
           ],
         },
@@ -1231,6 +1247,9 @@ export class AdminPanelService {
             },
             {
               subscriptionType,
+            },
+            {
+              ...profileSubmitted,
             },
           ],
         },

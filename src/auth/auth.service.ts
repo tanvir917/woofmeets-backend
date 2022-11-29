@@ -12,6 +12,7 @@ import { SecretService } from 'src/secret/secret.service';
 import { LoginProviderEnum } from 'src/utils/enums';
 import { LoginDto } from './dto/login.dto';
 import { SignupDto } from './dto/signup.dto';
+import { SignupDtoV2 } from './dto/signupV2.dto';
 import { SocialAuthDto } from './dto/social.auth.dto';
 import { PasswordService } from './password.service';
 
@@ -348,6 +349,101 @@ export class AuthService {
         ...others,
         zoomAuthorized: zoomInfo?.refreshToken?.length > 0 ? true : false,
       },
+    };
+  }
+
+  async signupV2(userInfo: SignupDtoV2, res: any) {
+    const { email, firstName, lastName, password } = userInfo;
+
+    const emails = [...new Set([email, email.toLowerCase()])];
+
+    //Check unique email
+    const emailTaken = await this.prismaService.user.findFirst({
+      where: {
+        email: {
+          in: emails,
+        },
+      },
+    });
+
+    //check if the user is block or not
+    throwBadRequestErrorCheck(
+      !!emailTaken && emailTaken?.deletedAt != null,
+      'Your account is blocked.',
+    );
+
+    //check if email is taken or not
+    throwConflictErrorCheck(!!emailTaken, 'Email already taken');
+
+    const hashedPassword = await this.passwordService.getHashedPassword(
+      password,
+    );
+
+    let opk = this.commonService.getOpk();
+    let opkGenerated = false;
+    while (!opkGenerated) {
+      const checkOpk = await this.prismaService.user.findFirst({
+        where: {
+          opk,
+        },
+      });
+      if (checkOpk) {
+        opk = this.commonService.getOpk();
+      } else {
+        opkGenerated = true;
+      }
+    }
+
+    const user = await this.prismaService.user.create({
+      data: {
+        opk,
+        firstName,
+        lastName,
+        password: hashedPassword,
+        email: email.toLowerCase(),
+        loginProvider: LoginProviderEnum.LOCAL,
+      },
+      include: {
+        provider: {
+          select: {
+            isApproved: true,
+          },
+        },
+      },
+    });
+
+    throwBadRequestErrorCheck(!user, 'User is not created');
+
+    //Sending welcome email
+    try {
+      await this.emailService.signupWelcomeEmail(email);
+    } catch (error) {
+      console.log(error?.message);
+    }
+
+    const {
+      password: ignoredPassword,
+      provider: ignoredProvider,
+      ...others
+    } = user;
+
+    const response = await this.login({
+      ...others,
+      provider: user?.provider?.isApproved ? true : false,
+    });
+
+    res.cookie('token', response?.access_token, {
+      expires: new Date(
+        new Date().getTime() + this.secretService.getCookieCreds().cookieExpire,
+      ),
+      httpOnly: true,
+      domain: this.secretService.getCookieCreds().cookieDomain,
+      secure: true,
+    });
+
+    return {
+      message: 'Signup is successful.',
+      data: response,
     };
   }
 }
