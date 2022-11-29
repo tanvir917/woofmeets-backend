@@ -4,6 +4,10 @@ import { PinoLogger } from 'nestjs-pino';
 import { PaginationQueryParamsDto } from 'src/admin-panel/dto/pagination-query.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { SecretService } from 'src/secret/secret.service';
+import {
+  isStringDate,
+  isStringNumeric,
+} from 'src/utils/tools/date-number.checker';
 import Stripe from 'stripe';
 import { AdminPanelService } from '../admin-panel/admin-panel.service';
 import {
@@ -528,7 +532,7 @@ export class PaymentDispatcherService {
 
     const [appointmentBillingTransactionCount, appointmentBillingTransaction] =
       await this.prisma.$transaction([
-        this.prisma.appointmentBillingTransactions.findMany({}),
+        this.prisma.appointmentBillingTransactions.count({}),
         this.prisma.appointmentBillingTransactions.findMany({
           include: {
             provider: {
@@ -700,10 +704,68 @@ export class PaymentDispatcherService {
 
     orderbyObj[sortBy] = sortOrder;
 
+    const billingId = isStringNumeric(searchString)
+      ? {
+          equals: BigInt(searchString),
+        }
+      : {};
+
+    let releaseDate: object;
+
+    if (isStringDate(searchString) && !isStringNumeric(searchString)) {
+      const startDate = new Date(searchString);
+      // seconds * minutes * hours * milliseconds = 1 day
+      const day = 60 * 60 * 24 * 1000;
+      const endDate = new Date(startDate.getTime() + day);
+      releaseDate = {
+        AND: [
+          {
+            releaseDate: {
+              gte: startDate,
+            },
+          },
+          {
+            releaseDate: {
+              lte: endDate,
+            },
+          },
+        ],
+      };
+    } else {
+      releaseDate = {};
+    }
+
     const [appointmentBillingTransactionCount, appointmentBillingTransaction] =
       await this.prisma.$transaction([
-        this.prisma.appointmentBillingTransactions.findMany({}),
+        this.prisma.appointmentBillingTransactions.count({
+          where: {
+            OR: [
+              {
+                billingId,
+              },
+              {
+                state: { contains: searchString, mode: 'insensitive' },
+              },
+              {
+                ...releaseDate,
+              },
+            ],
+          },
+        }),
         this.prisma.appointmentBillingTransactions.findMany({
+          where: {
+            OR: [
+              {
+                billingId,
+              },
+              {
+                state: { contains: searchString, mode: 'insensitive' },
+              },
+              {
+                ...releaseDate,
+              },
+            ],
+          },
           include: {
             provider: {
               include: {

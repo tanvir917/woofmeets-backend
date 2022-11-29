@@ -665,7 +665,7 @@ export class AdminPanelService {
 
     const [appointmentsCount, appointments] =
       await this.prismaService.$transaction([
-        this.prismaService.appointment.findMany({
+        this.prismaService.appointment.count({
           where: {
             opk,
             status: status as AppointmentStatusEnum,
@@ -1307,7 +1307,7 @@ export class AdminPanelService {
 
     const [appointmentsCount, appointments] =
       await this.prismaService.$transaction([
-        this.prismaService.appointment.findMany({
+        this.prismaService.appointment.count({
           where: {
             OR: [
               {
