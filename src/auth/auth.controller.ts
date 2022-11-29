@@ -7,6 +7,7 @@ import {
   Response,
   UseGuards,
   UseInterceptors,
+  Version,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { SecretService } from 'src/secret/secret.service';
@@ -16,6 +17,7 @@ import { CheckOtpForgetPasswordDto } from './dto/forget.otp.dto';
 import { ForgetPasswordOtpDto } from './dto/forgetpass.otp.dto';
 import { LoginDto } from './dto/login.dto';
 import { SignupDto } from './dto/signup.dto';
+import { SignupDtoV2 } from './dto/signupV2.dto';
 import { SocialAuthDto } from './dto/social.auth.dto';
 import { UpdatePasswordOtpToken } from './dto/tokenpassword.dto';
 import { UpdatePasswordDto } from './dto/update.pass.dto';
@@ -112,5 +114,14 @@ export class AuthController {
     return {
       message: 'Log out successful.',
     };
+  }
+
+  @Version('2')
+  @Post('/signup')
+  async signupV2(
+    @Body() signupDtoV2: SignupDtoV2,
+    @Response({ passthrough: true }) res: any,
+  ) {
+    return await this.authService.signupV2(signupDtoV2, res);
   }
 }
