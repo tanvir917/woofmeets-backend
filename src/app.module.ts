@@ -47,6 +47,7 @@ import { CouponsModule } from './coupons/coupons.module';
 import { ReviewModule } from './review/review.module';
 import { PaymentDispatcherModule } from './payment-dispatcher/payment-dispatcher.module';
 import { ConferenceModule } from './conference/conference.module';
+import { UserModule } from './user/user.module';
 
 @Module({
   imports: [
@@ -98,6 +99,7 @@ import { ConferenceModule } from './conference/conference.module';
     ReviewModule,
     PaymentDispatcherModule,
     ConferenceModule,
+    UserModule,
   ],
   controllers: [AppController],
   providers: [AppService, SecretService, PrismaService, SmsService],
