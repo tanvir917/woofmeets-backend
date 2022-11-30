@@ -122,15 +122,19 @@ export class UserService {
       data: {
         email: `DELETED-${user?.opk}-${user?.email}`,
         deletedAt: new Date(),
-        provider: {
-          update: {
-            deletedAt: new Date(),
-          },
-        },
       },
     });
 
     throwBadRequestErrorCheck(!deletedUser, 'User can not be deleted!');
+
+    if (!!user?.provider) {
+      await this.prismaService.provider.update({
+        where: { id: user?.provider?.id },
+        data: {
+          deletedAt: new Date(),
+        },
+      });
+    }
 
     if (user?.userStripeCustomerAccount?.stripeCustomerId) {
       await this.stripe.customers.del(
