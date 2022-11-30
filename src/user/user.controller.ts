@@ -4,9 +4,11 @@ import {
   UseInterceptors,
   UseGuards,
   Request,
+  Response,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { SecretService } from '../secret/secret.service';
 import { TransformInterceptor } from '../transform.interceptor';
 import { UserService } from './user.service';
 
@@ -14,13 +16,24 @@ import { UserService } from './user.service';
 @UseInterceptors(TransformInterceptor)
 @Controller('user')
 export class UserController {
-  constructor(private readonly userService: UserService) {}
+  constructor(
+    private readonly userService: UserService,
+    private readonly secretService: SecretService,
+  ) {}
 
   @ApiBearerAuth('access-token')
   @UseGuards(JwtAuthGuard)
   @Delete()
-  remove(@Request() req: any) {
+  remove(@Request() req: any, @Response({ passthrough: true }) res: any) {
     const userId = BigInt(req.user?.id) ?? BigInt(-1);
+
+    res.cookie('token', '', {
+      maxAge: 0,
+      httpOnly: true,
+      domain: this.secretService.getCookieCreds().cookieDomain,
+      secure: true,
+    });
+
     return this.userService.removeUserAccount(userId);
   }
 }
