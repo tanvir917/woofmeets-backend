@@ -2346,7 +2346,12 @@ export class AppointmentProposalService {
 
     const proposalDates =
       appointment.appointmentProposal?.[0].proposalOtherDate?.map((item) => {
-        return new Date((item as { date: string }).date);
+        return utcToZonedTime(
+          toDate((item as { date: string }).date, {
+            timeZone: appointment.providerTimeZone,
+          }),
+          appointment.providerTimeZone,
+        );
       });
     const providerService = appointment.providerService.serviceType.slug;
     const timing = {
@@ -2460,6 +2465,9 @@ export class AppointmentProposalService {
           timezone: timeZone,
         },
         recurringDays as DaysOfWeek[],
+      );
+      generatedDates = generatedDates.map((date) =>
+        utcToZonedTime(toDate(date, { timeZone }), timeZone),
       );
     } else {
       throwBadRequestErrorCheck(
