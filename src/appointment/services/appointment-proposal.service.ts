@@ -27,6 +27,7 @@ import {
   throwBadRequestErrorCheck,
   throwNotFoundErrorCheck,
 } from 'src/global/exceptions/error-logic';
+import { convertToZoneSpecificDateTime } from 'src/global/time/time-coverters';
 import { MessagingProxyService } from 'src/messaging/messaging.service';
 import { APPOINTMENT_BILLING_STATES } from 'src/payment-dispatcher/types';
 import { PrismaService } from 'src/prisma/prisma.service';
@@ -2357,7 +2358,6 @@ export class AppointmentProposalService {
       pickUpStartTime: appointment.appointmentProposal?.[0].pickUpStartTime,
       pickUpEndTime: appointment.appointmentProposal?.[0].pickUpEndTime,
     };
-
     if (providerService === 'doggy-day-care') {
       return this.calculateDayCarePrice(
         appointment.providerServiceId,
@@ -2489,11 +2489,19 @@ export class AppointmentProposalService {
     timeZone: string,
     timing: TimingType,
   ) {
-    const dates: Date[] = generateDatesFromAndTo(
-      toDate(proposalStartDate, { timeZone }),
-      toDate(proposalEndDate, { timeZone }),
-      [],
+    const startDate = convertToZoneSpecificDateTime(
+      toDate(proposalStartDate, {
+        timeZone,
+      }),
+      timeZone,
     );
+    const endDate = convertToZoneSpecificDateTime(
+      toDate(proposalEndDate, {
+        timeZone,
+      }),
+      timeZone,
+    );
+    const dates: Date[] = generateDatesFromAndTo(startDate, endDate, []);
     return this.calculateProposalPrice(
       serviceId,
       petIds,
