@@ -539,6 +539,7 @@ export class StripeWebhooksService {
       const dateDatas = date.formatedDatesByZone.map((item) => {
         return {
           date: new Date(item?.date),
+          localDate: item?.localDate,
           appointmentId: billing?.appointment?.id,
           appointmentProposalId:
             billing?.appointment?.appointmentProposal[0]?.id,
@@ -547,6 +548,14 @@ export class StripeWebhooksService {
           holidayNames: item?.holidayNames,
           durationInMinutes:
             billing?.appointment?.appointmentProposal[0]?.length ?? null,
+          visitStartTimeString: billing?.appointment?.appointmentProposal[0]
+            ?.length
+            ? item?.startTime
+            : null,
+          visitEndTimeString: billing?.appointment?.appointmentProposal[0]
+            ?.length
+            ? item?.endTime
+            : null,
         };
       });
 
