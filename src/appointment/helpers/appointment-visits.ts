@@ -1,5 +1,5 @@
 import { Holidays } from '@prisma/client';
-import { isAfter, isBefore, isSameDay } from 'date-fns';
+import { addMinutes, isAfter, isBefore, isSameDay } from 'date-fns';
 import { format, toDate, utcToZonedTime, zonedTimeToUtc } from 'date-fns-tz';
 import { DaysOfWeek, extractDay, generateDays } from 'src/global';
 import { convertToZoneSpecificDateTime } from 'src/global/time/time-coverters';
@@ -56,6 +56,7 @@ export const checkIfAnyDateHoliday = (
   dates: Date[],
   holidays: Holidays[],
   timeZone: string,
+  minutes: number,
 ) => {
   let isThereAnyHoliday = false;
   const formattedDatesWithHolidays = [];
@@ -69,7 +70,16 @@ export const checkIfAnyDateHoliday = (
 
     const formatedDate = {
       date: dates[i],
-      localTime: format(dates[i], 'yyyy-MM-dd HH:mm:ssxxx KK:mma', {
+      localDateTime: format(dates[i], 'yyyy-MM-dd HH:mm:ssxxx KK:mma', {
+        timeZone,
+      }),
+      localDate: format(dates[i], 'yyyy-MM-dd', {
+        timeZone,
+      }),
+      startTime: format(dates[i], 'KK:mma', {
+        timeZone,
+      }),
+      endTime: format(addMinutes(dates[i], minutes), 'KK:mma', {
         timeZone,
       }),
       monthDay: format(dates[i], 'LLL d', {

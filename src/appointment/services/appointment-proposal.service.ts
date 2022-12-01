@@ -2592,7 +2592,12 @@ export class AppointmentProposalService {
     const holidays = await this.prismaService.holidays.findMany({});
 
     const { isThereAnyHoliday, formattedDatesWithHolidays } =
-      checkIfAnyDateHoliday(dates, holidays, timeZone);
+      checkIfAnyDateHoliday(
+        dates,
+        holidays,
+        timeZone,
+        isSixtyMinuteRate ? 60 : 30,
+      );
 
     const petsRates = [];
     const numberOfNights = dates.length;
