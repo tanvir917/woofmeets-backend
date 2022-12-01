@@ -210,6 +210,7 @@ model User {
   reviewedByUser             Review[]                     @relation("reviewedBy")
   reviewedForUser            Review[]                     @relation("reviewedFor")
   appointmentBillingPayments AppointmentBillingPayments[]
+  userApplicationVersion     UserApplicationVersion?
 }
 
 model UserContact {
@@ -1291,4 +1292,15 @@ model AppointmentCard {
   createdAt         DateTime          @default(now()) @db.Timestamptz(3)
   updatedAt         DateTime?         @updatedAt @db.Timestamptz(3)
   deletedAt         DateTime?         @db.Timestamptz(3)
+}
+
+model UserApplicationVersion {
+  id        BigInt    @id @default(autoincrement())
+  userId    BigInt    @unique
+  user      User      @relation(fields: [userId], references: [id])
+  version   String
+  meta      Json?
+  createdAt DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime? @updatedAt @db.Timestamptz(3)
+  deletedAt DateTime? @db.Timestamptz(3)
 }
