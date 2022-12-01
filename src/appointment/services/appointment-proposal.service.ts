@@ -2346,7 +2346,9 @@ export class AppointmentProposalService {
 
     const proposalDates =
       appointment.appointmentProposal?.[0].proposalOtherDate?.map((item) => {
-        return new Date((item as { date: string }).date);
+        return toDate((item as { date: string }).date, {
+          timeZone: appointment.providerTimeZone,
+        });
       });
     const providerService = appointment.providerService.serviceType.slug;
     const timing = {
@@ -2488,8 +2490,8 @@ export class AppointmentProposalService {
     timing: TimingType,
   ) {
     const dates: Date[] = generateDatesFromAndTo(
-      new Date(proposalStartDate),
-      new Date(proposalEndDate),
+      toDate(proposalStartDate, { timeZone }),
+      toDate(proposalEndDate, { timeZone }),
       [],
     );
     return this.calculateProposalPrice(
