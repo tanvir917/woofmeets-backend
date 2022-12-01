@@ -189,7 +189,7 @@ export function generateDatesFromProposalVisits(
     proposalVisits?.forEach((visit) => {
       visit.visits.forEach((time) => {
         const countryDate = convertToZoneSpecificDateTime(
-          zonedTimeToUtc(visit?.date, timeZone),
+          toDate(visit?.date, { timeZone }),
           timeZone,
           formatTimeFromMeridien(time),
         );
