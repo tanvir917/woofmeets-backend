@@ -3,6 +3,7 @@ import {
   Controller,
   Get,
   Post,
+  Put,
   Request,
   Response,
   UseGuards,
@@ -13,6 +14,7 @@ import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { SecretService } from 'src/secret/secret.service';
 import { TransformInterceptor } from 'src/transform.interceptor';
 import { AuthService } from './auth.service';
+import { AppleSignUpDto } from './dto/apple.signup.dto';
 import { CheckOtpForgetPasswordDto } from './dto/forget.otp.dto';
 import { ForgetPasswordOtpDto } from './dto/forgetpass.otp.dto';
 import { LoginDto } from './dto/login.dto';
@@ -123,5 +125,15 @@ export class AuthController {
     @Response({ passthrough: true }) res: any,
   ) {
     return await this.authService.signupV2(signupDtoV2, res);
+  }
+
+  @Put('/dummy/apple/signup')
+  async dummyAppleSignup(@Body() appleSignupDto: AppleSignUpDto) {
+    return await this.authService.dummyAppleSignup(appleSignupDto);
+  }
+
+  @Get('/dummy/apple/signup/data')
+  async dummyAppleSignupData() {
+    return await this.authService.getDummyAppleSignupData();
   }
 }

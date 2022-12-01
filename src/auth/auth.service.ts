@@ -5,11 +5,12 @@ import { EmailService } from 'src/email/email.service';
 import {
   throwBadRequestErrorCheck,
   throwConflictErrorCheck,
-  throwNotFoundErrorCheck
+  throwNotFoundErrorCheck,
 } from 'src/global/exceptions/error-logic';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { SecretService } from 'src/secret/secret.service';
 import { LoginProviderEnum } from 'src/utils/enums';
+import { AppleSignUpDto } from './dto/apple.signup.dto';
 import { LoginDto } from './dto/login.dto';
 import { SignupDto } from './dto/signup.dto';
 import { SignupDtoV2 } from './dto/signupV2.dto';
@@ -444,6 +445,45 @@ export class AuthService {
     return {
       message: 'Signup is successful.',
       data: response,
+    };
+  }
+
+  async dummyAppleSignup(appleSignupDto: AppleSignUpDto) {
+    const user = await this.prismaService.user.update({
+      where: {
+        email: 'meer@algosolver.com',
+      },
+      data: {
+        meta: Object({
+          appleToken: appleSignupDto?.appleToken,
+        }),
+      },
+    });
+
+    throwBadRequestErrorCheck(!user, 'User is not updated');
+
+    const { password: ignoredPassword, ...others } = user;
+
+    return {
+      message: 'Dummy apple signup is successful.',
+      data: { ...others },
+    };
+  }
+
+  async getDummyAppleSignupData() {
+    const user = await this.prismaService.user.findFirst({
+      where: {
+        email: 'meer@algosolver.com',
+      },
+    });
+
+    throwBadRequestErrorCheck(!user, 'User not found.');
+
+    const { password: ignoredPassword, ...others } = user;
+
+    return {
+      message: 'Dummy apple signup is successful.',
+      data: { ...others },
     };
   }
 }
