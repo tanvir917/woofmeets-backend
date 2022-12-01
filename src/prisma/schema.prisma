@@ -1009,6 +1009,7 @@ model AppointmentProposal {
 model AppointmentDates {
   id                     BigInt              @id @default(autoincrement())
   date                   DateTime
+  localDate              String?
   appointmentId          BigInt
   appointment            Appointment         @relation(fields: [appointmentId], references: [id])
   appointmentProposalId  BigInt
