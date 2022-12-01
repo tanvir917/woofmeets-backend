@@ -27,7 +27,6 @@ import {
   throwBadRequestErrorCheck,
   throwNotFoundErrorCheck,
 } from 'src/global/exceptions/error-logic';
-import { convertToZoneSpecificDateTime } from 'src/global/time/time-coverters';
 import { MessagingProxyService } from 'src/messaging/messaging.service';
 import { APPOINTMENT_BILLING_STATES } from 'src/payment-dispatcher/types';
 import { PrismaService } from 'src/prisma/prisma.service';
@@ -2347,9 +2346,7 @@ export class AppointmentProposalService {
 
     const proposalDates =
       appointment.appointmentProposal?.[0].proposalOtherDate?.map((item) => {
-        return toDate((item as { date: string }).date, {
-          timeZone: appointment.providerTimeZone,
-        });
+        return new Date((item as { date: string }).date);
       });
     const providerService = appointment.providerService.serviceType.slug;
     const timing = {
@@ -2489,19 +2486,12 @@ export class AppointmentProposalService {
     timeZone: string,
     timing: TimingType,
   ) {
-    const startDate = convertToZoneSpecificDateTime(
-      toDate(proposalStartDate, {
-        timeZone,
-      }),
-      timeZone,
+    const dates: Date[] = generateDatesFromAndTo(
+      new Date(proposalStartDate),
+      new Date(proposalEndDate),
+      [],
     );
-    const endDate = convertToZoneSpecificDateTime(
-      toDate(proposalEndDate, {
-        timeZone,
-      }),
-      timeZone,
-    );
-    const dates: Date[] = generateDatesFromAndTo(startDate, endDate, []);
+
     return this.calculateProposalPrice(
       serviceId,
       petIds,
