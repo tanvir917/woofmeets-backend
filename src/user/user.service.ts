@@ -117,10 +117,15 @@ export class UserService {
       );
     }
 
+    const newAppleId = !!user?.appleAccountId
+      ? `DELETED-${user?.appleAccountId}`
+      : null;
+
     const deletedUser = await this.prismaService.user.update({
       where: { id: userId },
       data: {
         email: `DELETED-${user?.opk}-${user?.email}`,
+        appleAccountId: newAppleId,
         deletedAt: new Date(),
       },
     });
