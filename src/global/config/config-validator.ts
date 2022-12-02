@@ -280,6 +280,13 @@ export class EnvironmentVariable {
   @IsString()
   HMS_DASHBOARD_URL: string;
 
+  @IsNotEmpty()
+  @IsString()
+  APP_GOOGLE_STORE_ID: string;
+
+  @IsNotEmpty()
+  @IsString()
+  APP_APPLE_STORE_ID: string;
   @IsOptional()
   //@IsNotEmpty()
   @IsString()

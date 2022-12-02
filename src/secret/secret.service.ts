@@ -191,7 +191,14 @@ export class SecretService {
       ),
 
       /**
-       * apple auth secrets
+       * App store ids
+       */
+      APP_GOOGLE_STORE_ID: this.configService.get<string>(
+        'APP_GOOGLE_STORE_ID',
+      ),
+      APP_APPLE_STORE_ID: this.configService.get<string>('APP_APPLE_STORE_ID'),
+
+      /** apple auth secrets
        */
       APPLE_CLIENTID: this.configService.get<string>('APPLE_CLIENT_ID'),
       APPLE_TEAMID: this.configService.get<string>('APPLE_TEAMID'),
@@ -359,6 +366,13 @@ export class SecretService {
       hmsVideoTemp: this.#environment.HMS_VIDEO_TEMP,
       hmsApiUrl: this.#environment.HMS_API_URL,
       hmsDashboardUrl: this.#environment.HMS_DASHBOARD_URL,
+    };
+  }
+
+  getAppStoreCreds() {
+    return {
+      googleStoreId: this.#environment.APP_GOOGLE_STORE_ID,
+      appleStoreId: this.#environment.APP_APPLE_STORE_ID,
     };
   }
 
