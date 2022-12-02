@@ -15,6 +15,7 @@ enum loginProvider {
   LOCAL
   FACEBOOK
   GOOGLE
+  APPLE
 }
 
 enum otpType {
@@ -179,6 +180,7 @@ model User {
   loginProvider              loginProvider
   timezone                   String?
   facebook                   String?
+  appleAccountId             String?
   google                     Boolean?
   meta                       Json?
   contact                    UserContact?

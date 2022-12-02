@@ -12,6 +12,9 @@ yarn-debug.log*
 yarn-error.log*
 lerna-debug.log*
 
+Caddyfile
+*.p8
+
 # OS
 .DS_Store
 
