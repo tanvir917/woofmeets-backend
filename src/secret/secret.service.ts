@@ -13,6 +13,16 @@ export class SecretService {
     }
   }
 
+  getAppleCreds() {
+    return {
+      clientID: this.#environment.APPLE_CLIENTID,
+      teamID: this.#environment.APPLE_TEAMID,
+      keyID: this.#environment.APPLE_KEYID,
+      keyFilePath: this.#environment.APPLE_KEYFILE_PATH,
+      callbackURL: this.#environment.APPLE_CALLBACK,
+    };
+  }
+
   prepare() {
     const env: EnvironmentVariable = {
       DATABASE_URL: this.configService.get<string>('DATABASE_URL'),
@@ -179,6 +189,15 @@ export class SecretService {
         'HMS_DASHBOARD_URL',
         'https://prod-in2.100ms.live/hmsapi',
       ),
+
+      /**
+       * apple auth secrets
+       */
+      APPLE_CLIENTID: this.configService.get<string>('APPLE_CLIENT_ID'),
+      APPLE_TEAMID: this.configService.get<string>('APPLE_TEAMID'),
+      APPLE_KEYID: this.configService.get<string>('APPLE_KEYID'),
+      APPLE_CALLBACK: this.configService.get<string>('APPLE_CALLBACK'),
+      APPLE_KEYFILE_PATH: this.configService.get<string>('APPLE_KEYFILE_PATH'),
     };
 
     this.#environment = plainToInstance(EnvironmentVariable, env);

@@ -279,6 +279,31 @@ export class EnvironmentVariable {
   @IsOptional()
   @IsString()
   HMS_DASHBOARD_URL: string;
+
+  @IsOptional()
+  //@IsNotEmpty()
+  @IsString()
+  APPLE_CLIENTID?: string;
+
+  @IsOptional()
+  //@IsNotEmpty()
+  @IsString()
+  APPLE_TEAMID?: string;
+
+  @IsOptional()
+  //@IsNotEmpty()
+  @IsString()
+  APPLE_KEYID?: string;
+
+  @IsOptional()
+  //@IsNotEmpty()
+  @IsString()
+  APPLE_CALLBACK?: string;
+
+  @IsOptional()
+  // @IsNotEmpty()
+  @IsString()
+  APPLE_KEYFILE_PATH?: string;
 }
 
 export function validateEnvironmentVariables(

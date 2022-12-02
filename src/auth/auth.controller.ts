@@ -2,18 +2,28 @@ import {
   Body,
   Controller,
   Get,
+  HttpStatus,
   Post,
   Put,
   Request,
   Response,
+  UnauthorizedException,
   UseGuards,
   UseInterceptors,
   Version,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { AuthGuard } from '@nestjs/passport';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import { SecretService } from 'src/secret/secret.service';
 import { TransformInterceptor } from 'src/transform.interceptor';
 import { AuthService } from './auth.service';
+
+import { AppleTokenDto, OAuthResponseDto } from './dto/apple.token.dto';
 import { AppleSignUpDto } from './dto/apple.signup.dto';
 import { CheckOtpForgetPasswordDto } from './dto/forget.otp.dto';
 import { ForgetPasswordOtpDto } from './dto/forgetpass.otp.dto';
@@ -24,6 +34,7 @@ import { SocialAuthDto } from './dto/social.auth.dto';
 import { UpdatePasswordOtpToken } from './dto/tokenpassword.dto';
 import { UpdatePasswordDto } from './dto/update.pass.dto';
 import { JwtAuthGuard } from './jwt-auth.guard';
+import { OAuthService } from './oauth.service';
 import { PasswordService } from './password.service';
 
 @ApiTags('Auth')
@@ -34,6 +45,7 @@ export class AuthController {
     private readonly authService: AuthService,
     private readonly secretService: SecretService,
     private readonly passwordService: PasswordService,
+    private readonly oauthService: OAuthService,
   ) {}
 
   @Post('/signup')
@@ -59,6 +71,35 @@ export class AuthController {
   ) {
     return await this.authService.OAuthSignup(signupDto, res);
   }
+
+  @Post('/apple/oauth')
+  @ApiResponse({
+    type: () => OAuthResponseDto,
+  })
+  async extractAppleOAuth(
+    @Body() data: AppleTokenDto,
+    @Response({ passthrough: true }) res,
+  ) {
+    return this.oauthService.appleSignIn(data, res);
+  }
+
+  // @Get('/apple/login')
+  // @UseGuards(AuthGuard('apple'))
+  // async appleLogin(@Response({ passthrough: true }) res: any): Promise<any> {
+  //   return 'Ok';
+  // }
+
+  // @Post('/apple/redirect')
+  // async appleSignInRedirect(
+  //   @Body() payload,
+  //   @Response({ passthrough: true }) res: any,
+  // ): Promise<any> {
+  //   if (payload.id_token) {
+  //     return this.authService.appleSignIn(payload);
+  //   }
+
+  //   throw new UnauthorizedException('Unauthorized');
+  // }
 
   @ApiBearerAuth('access-token')
   @UseGuards(JwtAuthGuard)

@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { CommonService } from 'src/common/common.service';
 import { EmailService } from 'src/email/email.service';
@@ -32,6 +32,41 @@ export class AuthService {
     private passwordService: PasswordService,
     private emailService: EmailService,
   ) {}
+
+  async appleSignIn(payload: any) {
+    if (payload.hasOwnProperty('id_token')) {
+      let email = '';
+      let tfirstName,
+        tlastName = '';
+
+      // Apple Account Id
+      const decodedObj = await this.jwtService.decode(payload.id_token);
+
+      const accountId = decodedObj.sub || '';
+      console.info(`Apple Account ID: ${accountId}`);
+
+      // Extract User Email
+      if (decodedObj.hasOwnProperty('email')) {
+        email = decodedObj['email'];
+        console.info(`Apple Email: ${email}`);
+      }
+
+      // Extract user first name and lastname
+      if (payload.hasOwnProperty('user')) {
+        const userData = JSON.parse(payload.user);
+        const { firstName, lastName } = userData.name || {};
+
+        tfirstName = firstName;
+        tlastName = lastName;
+      }
+
+      //.... you logic for registration and login here
+
+      return 'OK';
+    }
+
+    throw new UnauthorizedException('Unauthorized');
+  }
 
   async validateUser(loginDto: LoginDto, res: any) {
     const { email, password } = loginDto;
