@@ -11,7 +11,7 @@ import {
   UploadedFiles,
   UseGuards,
   UseInterceptors,
-  Version,
+  Version
 } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
 import {
@@ -19,7 +19,7 @@ import {
   ApiConsumes,
   ApiHeader,
   ApiOperation,
-  ApiTags,
+  ApiTags
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 import { FileUploadBody } from 'src/file/dto/file-upload-body.dto';
@@ -28,12 +28,12 @@ import { throwBadRequestErrorCheck } from 'src/global/exceptions/error-logic';
 import {
   GetModifiedBoardingHouseSittingPriceDTO,
   GetModifiedDayCarePriceDTO,
-  GetModifiedVisitWalkPriceDTO,
+  GetModifiedVisitWalkPriceDTO
 } from './dto/appointment-pricing.dto';
 import { AppointmentListsQueryParamsDto } from './dto/appointment-query.dto';
 import {
   AppointmentStartDto,
-  AppointmentStopDto,
+  AppointmentStopDto
 } from './dto/appointment-start-stop.dto';
 import { CancelAppointmentDto } from './dto/cancel-appointment.dto';
 import { CreateAppointmentCardDto } from './dto/create-appointment-card.dto';
@@ -566,7 +566,7 @@ export class AppointmentController {
       !appointmentOpk || appointmentOpk == undefined,
       'Invalid appointment opk. Please, try again after sometime with valid appointment opk.',
     );
-    return await this.appointmentCardService.fiindAllCardOfAppointment(
+    return await this.appointmentCardService.findAllCardOfAppointment(
       userId,
       appointmentOpk,
     );
@@ -581,7 +581,7 @@ export class AppointmentController {
       !id || id == undefined,
       'Invalid appointment card id. Please, try again after sometime with valid appointment card id.',
     );
-    return await this.appointmentCardService.fiindAppointmentCardById(
+    return await this.appointmentCardService.findAppointmentCardById(
       userId,
       BigInt(id),
     );
@@ -618,6 +618,31 @@ export class AppointmentController {
       userId,
       BigInt(id),
       updateAppointmentCardDto,
+    );
+  }
+
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard)
+  @Get('/card/check/:appointmentId/:appointmentDateId')
+  async checkAppointmentReport(
+    @Param('appointmentId') appointmentId: string,
+    @Param('appointmentDateId') appointmentDateId: string,
+    @Request() req: any,
+  ) {
+    const userId = BigInt(req.user?.id) ?? BigInt(-1);
+    throwBadRequestErrorCheck(
+      !appointmentId || appointmentId == undefined,
+      'Invalid appointment id. Please, try again after sometime with valid appointment id.',
+    );
+
+    throwBadRequestErrorCheck(
+      !appointmentDateId || appointmentDateId == undefined,
+      'Invalid appointment date id. Please, try again after sometime with valid appointment date id.',
+    );
+    return await this.appointmentCardService.checkAppointmentReport(
+      userId,
+      BigInt(appointmentId),
+      BigInt(appointmentDateId),
     );
   }
 }
