@@ -2494,11 +2494,15 @@ export class AppointmentProposalService {
     timeZone: string,
     timing: TimingType,
   ) {
-    const dates: Date[] = generateDatesFromAndTo(
-      new Date(proposalStartDate),
-      new Date(proposalEndDate),
-      [],
+    const startDate = utcToZonedTime(
+      toDate(proposalStartDate, { timeZone }),
+      timeZone,
     );
+    const endDate = utcToZonedTime(
+      toDate(proposalEndDate, { timeZone }),
+      timeZone,
+    );
+    const dates: Date[] = generateDatesFromAndTo(startDate, endDate, []);
 
     return this.calculateProposalPrice(
       serviceId,
