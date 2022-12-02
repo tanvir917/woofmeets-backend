@@ -268,7 +268,7 @@ export class AppointmentCardService {
     return uploadedFiles;
   }
 
-  async fiindAllCardOfAppointment(userId: bigint, appointmentOpk: string) {
+  async findAllCardOfAppointment(userId: bigint, appointmentOpk: string) {
     const [user, appointment] = await this.prismaService.$transaction([
       this.prismaService.user.findFirst({
         where: { id: userId, deletedAt: null },
@@ -305,7 +305,7 @@ export class AppointmentCardService {
     };
   }
 
-  async fiindAppointmentCardById(userId: bigint, id: bigint) {
+  async findAppointmentCardById(userId: bigint, id: bigint) {
     const [user, appointmentCard] = await this.prismaService.$transaction([
       this.prismaService.user.findFirst({
         where: { id: userId, deletedAt: null },
@@ -462,6 +462,47 @@ export class AppointmentCardService {
     return {
       message: 'Appointment card updated successfully.',
       data: updateAppointmentCard,
+    };
+  }
+
+  async checkAppointmentReport(
+    userId: bigint,
+    appointmentId: bigint,
+    appointmentDateId: bigint,
+  ) {
+    const [user, appointmentCard] = await this.prismaService.$transaction([
+      this.prismaService.user.findFirst({
+        where: { id: userId, deletedAt: null },
+        include: {
+          provider: true,
+        },
+      }),
+      this.prismaService.appointmentCard.findFirst({
+        where: {
+          appointmentId,
+          appointmentDateId,
+          deletedAt: null,
+        },
+      }),
+    ]);
+
+    throwNotFoundErrorCheck(!user, 'User not found.');
+    if (!appointmentCard) {
+      return {
+        message: 'Appointment report not found.',
+        data: {
+          cardFound: false,
+          appointmentCard,
+        },
+      };
+    }
+
+    return {
+      message: 'Appointment report found successfully.',
+      data: {
+        cardFound: true,
+        appointmentCard,
+      },
     };
   }
 }
