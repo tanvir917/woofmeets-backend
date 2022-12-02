@@ -76,6 +76,12 @@ export class OAuthService {
       this.prismaService.user.findFirst({
         where: {
           appleAccountId: appleAccountId,
+          deletedAt: null,
+          email: {
+            not: {
+              contains: 'DELETED',
+            },
+          },
         },
         include: {
           provider: {
