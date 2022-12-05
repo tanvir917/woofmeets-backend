@@ -1,7 +1,7 @@
-import { Injectable } from '@nestjs/common';
-import { PassportStrategy } from '@nestjs/passport';
 import { Strategy } from '@arendajaelu/nestjs-passport-apple';
+import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { PassportStrategy } from '@nestjs/passport';
 
 @Injectable()
 export class AppleStrategy extends PassportStrategy(Strategy, 'apple') {

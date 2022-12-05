@@ -1190,6 +1190,7 @@ model Billing {
   total                          Float?
   paid                           Boolean                          @default(false)
   paymentStatus                  String                           @default("unpaid")
+  currency                       String?
   meta                           Json?
   createdAt                      DateTime                         @default(now()) @db.Timestamptz(3)
   updatedAt                      DateTime?                        @updatedAt @db.Timestamptz(3)

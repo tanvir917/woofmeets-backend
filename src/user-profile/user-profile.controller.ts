@@ -320,4 +320,15 @@ export class UserProfileController {
     const userId = BigInt(req.user?.id) ?? BigInt(-1);
     return await this.userProfileService.submitOnboardingProcess(userId);
   }
+
+  @ApiOperation({
+    summary: 'Get country and currency of a user.',
+  })
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard)
+  @Get('country-currency')
+  getCountryAndCurrency(@Request() req: any) {
+    const userId = BigInt(req.user?.id) ?? BigInt(-1);
+    return this.userProfileBasicInfoService.getCountryAndCurrency(userId);
+  }
 }

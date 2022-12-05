@@ -206,6 +206,7 @@ export class ProviderService {
           email: providerUser?.email,
           avatar: providerUser?.image,
           timezone: providerUser?.timezone,
+          country: providerUser?.basicInfo?.country ?? null,
           rating: {
             average: reviewStatistics?._avg?.rating
               ? Math.round(Number(reviewStatistics?._avg?.rating?.toFixed(1)))
