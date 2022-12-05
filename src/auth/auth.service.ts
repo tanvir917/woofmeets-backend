@@ -362,6 +362,11 @@ export class AuthService {
       },
       include: {
         provider: true,
+        basicInfo: {
+          select: {
+            country: true,
+          },
+        },
       },
     });
 

@@ -118,6 +118,7 @@ export class UserProfileBasicInfoService {
         id: true,
         basicInfo: {
           include: {
+            country: true,
             user: {
               select: {
                 id: true,
@@ -256,6 +257,38 @@ export class UserProfileBasicInfoService {
     return {
       message: 'Profile picture updated',
       data: userUpdated,
+    };
+  }
+
+  async getCountryAndCurrency(userId: bigint) {
+    const user = await this.prismaService.basicInfo.findFirst({
+      where: {
+        userId,
+        deletedAt: null,
+      },
+      select: {
+        country: true,
+        user: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            image: true,
+          },
+        },
+      },
+    });
+
+    throwBadRequestErrorCheck(!user, 'User not found');
+
+    throwBadRequestErrorCheck(
+      !user?.country,
+      'User has no country and currency.',
+    );
+
+    return {
+      message: 'Country and currency found successfully',
+      data: user,
     };
   }
 }

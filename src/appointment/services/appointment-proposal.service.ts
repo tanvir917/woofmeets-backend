@@ -1522,6 +1522,11 @@ export class AppointmentProposalService {
               user: {
                 include: {
                   contact: true,
+                  basicInfo: {
+                    select: {
+                      country: true,
+                    },
+                  },
                 },
               },
             },
@@ -1583,6 +1588,9 @@ export class AppointmentProposalService {
             serviceChargePercentage:
               priceCalculation?.serviceChargeInParcentage,
             total: Number(priceCalculation?.total),
+            currency:
+              appointment?.provider?.user?.basicInfo?.country?.currencyCode ??
+              'usd',
           },
         }),
         this.prismaService.appointment.update({
@@ -2890,6 +2898,19 @@ export class AppointmentProposalService {
               createdAt: 'desc',
             },
           },
+          provider: {
+            select: {
+              user: {
+                select: {
+                  basicInfo: {
+                    select: {
+                      country: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
         },
       }),
     ]);
@@ -2921,6 +2942,9 @@ export class AppointmentProposalService {
         ),
         serviceChargePercentage: priceCalculation?.serviceChargeInParcentage,
         total: Number(priceCalculation?.total),
+        currency:
+          appointment?.provider?.user?.basicInfo?.country?.currencyCode ??
+          'usd',
       },
     });
 
