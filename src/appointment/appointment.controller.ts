@@ -11,7 +11,7 @@ import {
   UploadedFiles,
   UseGuards,
   UseInterceptors,
-  Version
+  Version,
 } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
 import {
@@ -19,7 +19,7 @@ import {
   ApiConsumes,
   ApiHeader,
   ApiOperation,
-  ApiTags
+  ApiTags,
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 import { FileUploadBody } from 'src/file/dto/file-upload-body.dto';
@@ -28,12 +28,12 @@ import { throwBadRequestErrorCheck } from 'src/global/exceptions/error-logic';
 import {
   GetModifiedBoardingHouseSittingPriceDTO,
   GetModifiedDayCarePriceDTO,
-  GetModifiedVisitWalkPriceDTO
+  GetModifiedVisitWalkPriceDTO,
 } from './dto/appointment-pricing.dto';
 import { AppointmentListsQueryParamsDto } from './dto/appointment-query.dto';
 import {
   AppointmentStartDto,
-  AppointmentStopDto
+  AppointmentStopDto,
 } from './dto/appointment-start-stop.dto';
 import { CancelAppointmentDto } from './dto/cancel-appointment.dto';
 import { CreateAppointmentCardDto } from './dto/create-appointment-card.dto';
