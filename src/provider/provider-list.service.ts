@@ -139,6 +139,7 @@ export class ProviderListService {
                     city: true,
                     state: true,
                     zipCode: true,
+                    country: true,
                   },
                 },
               },

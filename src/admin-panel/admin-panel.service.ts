@@ -7,7 +7,7 @@ import { LoginDto } from 'src/auth/dto/login.dto';
 import {
   throwBadRequestErrorCheck,
   throwNotFoundErrorCheck,
-  throwUnauthorizedErrorCheck
+  throwUnauthorizedErrorCheck,
 } from 'src/global/exceptions/error-logic';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { SecretService } from 'src/secret/secret.service';
@@ -802,7 +802,11 @@ export class AdminPanelService {
                 createdAt: true,
                 updatedAt: true,
                 deletedAt: true,
-                basicInfo: true,
+                basicInfo: {
+                  include: {
+                    country: true,
+                  },
+                },
                 contact: true,
                 emergencyContact: true,
               },

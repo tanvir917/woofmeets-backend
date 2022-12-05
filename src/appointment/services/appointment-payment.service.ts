@@ -84,7 +84,7 @@ export class AppointmentPaymentService {
       paymentIntent = await this.stripe.paymentIntents.create(
         {
           amount: Math.round(amount * 100),
-          currency: 'usd',
+          currency: billing?.currency ?? 'usd',
           payment_method: user?.userStripeCard[0].stripeCardId,
           customer: user?.userStripeCustomerAccount?.stripeCustomerId,
           confirm: true,

@@ -615,6 +615,11 @@ export class PaymentDispatcherService {
                   facebook: true,
                   google: true,
                   meta: true,
+                  basicInfo: {
+                    include: {
+                      country: true,
+                    },
+                  },
                   createdAt: true,
                   updatedAt: true,
                   deletedAt: true,
