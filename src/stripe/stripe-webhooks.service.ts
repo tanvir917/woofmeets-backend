@@ -1,4 +1,5 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
+import axios from 'axios';
 import { nextMonday } from 'date-fns';
 import { convertToZoneSpecificDateTime } from 'src/global/time/time-coverters';
 import { SmsService } from 'src/sms/sms.service';
@@ -495,6 +496,20 @@ export class StripeWebhooksService {
         });
       }
 
+      let exchangeRate: any;
+      try {
+        exchangeRate = await axios.get(
+          `${this.secretService.getStripeRateCreds().url}/${billing?.currency}`,
+          {
+            headers: {
+              'x-api-key': this.secretService.getStripeRateCreds().apiKey,
+            },
+          },
+        );
+      } catch (error) {
+        console.log(error);
+      }
+
       let providerPercentage = 0;
 
       if (
@@ -524,6 +539,7 @@ export class StripeWebhooksService {
             providerId: BigInt(providerId),
             paidAmount: appointmentBillingPayments?.amount,
             currency: appointmentBillingPayments?.currency,
+            exchangeRate: exchangeRate?.data?.data[0]?.rates?.usd,
             providerSubsStatus: provider?.subscriptionType,
             providerPercentage: providerPercentage,
             providerAmount: providerAmount,

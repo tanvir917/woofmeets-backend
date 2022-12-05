@@ -1228,6 +1228,7 @@ model AppointmentBillingTransactions {
   provider           Provider  @relation(fields: [providerId], references: [id])
   paidAmount         Float
   currency           String?   @default("usd")
+  exchangeRate       Float?
   providerSubsStatus String?
   providerPercentage Float?
   providerAmount     Float?

@@ -311,6 +311,14 @@ export class EnvironmentVariable {
   // @IsNotEmpty()
   @IsString()
   APPLE_KEYFILE_PATH?: string;
+
+  @IsNotEmpty()
+  @IsString()
+  STRIPE_RATE_URL: string;
+
+  @IsNotEmpty()
+  @IsString()
+  STRIPE_RATE_API_KEY: string;
 }
 
 export function validateEnvironmentVariables(
