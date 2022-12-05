@@ -189,14 +189,22 @@ export class ProviderListService {
           );
           providers.push({
             ...s,
-            distance: { ...tmp, unit: 'km' },
+            distance: {
+              id: tmp.id,
+              distance: tmp.distance * 0.621371,
+              unit: 'mi',
+            },
             availability: data,
           });
         } catch (e) {
           console.log('Provider list: availability ', e);
           providers.push({
             ...s,
-            distance: { ...tmp, unit: 'km' },
+            distance: {
+              id: tmp.id,
+              distance: tmp.distance * 0.621371,
+              unit: 'mi',
+            },
             availability: null,
           });
         }

@@ -205,6 +205,14 @@ export class SecretService {
       APPLE_KEYID: this.configService.get<string>('APPLE_KEYID'),
       APPLE_CALLBACK: this.configService.get<string>('APPLE_CALLBACK'),
       APPLE_KEYFILE_PATH: this.configService.get<string>('APPLE_KEYFILE_PATH'),
+
+      /**
+       * Stripe Rates
+       * */
+      STRIPE_RATE_URL: this.configService.get<string>('STRIPE_RATE_URL'),
+      STRIPE_RATE_API_KEY: this.configService.get<string>(
+        'STRIPE_RATE_API_KEY',
+      ),
     };
 
     this.#environment = plainToInstance(EnvironmentVariable, env);
@@ -373,6 +381,13 @@ export class SecretService {
     return {
       googleStoreId: this.#environment.APP_GOOGLE_STORE_ID,
       appleStoreId: this.#environment.APP_APPLE_STORE_ID,
+    };
+  }
+
+  getStripeRateCreds() {
+    return {
+      url: this.#environment.STRIPE_RATE_URL,
+      apiKey: this.#environment.STRIPE_RATE_API_KEY,
     };
   }
 
