@@ -7,7 +7,7 @@ import { LoginDto } from 'src/auth/dto/login.dto';
 import {
   throwBadRequestErrorCheck,
   throwNotFoundErrorCheck,
-  throwUnauthorizedErrorCheck,
+  throwUnauthorizedErrorCheck
 } from 'src/global/exceptions/error-logic';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { SecretService } from 'src/secret/secret.service';
@@ -827,16 +827,43 @@ export class AdminPanelService {
             serviceType: true,
           },
         },
-        appointmentProposal: true,
+        // appointmentProposal: {
+        //   orderBy: {
+        //     createdAt: 'desc',
+        //   },
+        // },
         appointmentPet: true,
+        billing: true,
       },
     });
 
     throwNotFoundErrorCheck(!appointment, 'Appointment not found.');
 
+    const [appointmentProposal, appointmentDates] =
+      await this.prismaService.$transaction([
+        this.prismaService.appointmentProposal.findMany({
+          where: {
+            appointmentId: appointment?.id,
+          },
+          orderBy: {
+            createdAt: 'desc',
+          },
+        }),
+        this.prismaService.appointmentDates.findMany({
+          where: {
+            appointmentId: appointment?.id,
+          },
+        }),
+      ]);
+
     return {
       messages: 'Appointment details found successfully.',
-      data: appointment,
+      data: {
+        ...appointment,
+        appointmentProposal: appointmentProposal[0],
+        startDate: appointmentDates[0],
+        endDate: appointmentDates[appointmentDates?.length - 1],
+      },
     };
   }
 

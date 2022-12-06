@@ -5,7 +5,7 @@ import {
   appointmentStatusEnum,
   petTypeEnum,
   Prisma,
-  subscriptionTypeEnum,
+  subscriptionTypeEnum
 } from '@prisma/client';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime';
 import axios from 'axios';
@@ -21,11 +21,11 @@ import {
   DaysOfWeek,
   extractDay,
   generateDatesFromAndTo,
-  generateDays,
+  generateDays
 } from 'src/global';
 import {
   throwBadRequestErrorCheck,
-  throwNotFoundErrorCheck,
+  throwNotFoundErrorCheck
 } from 'src/global/exceptions/error-logic';
 import { MessagingProxyService } from 'src/messaging/messaging.service';
 import { APPOINTMENT_BILLING_STATES } from 'src/payment-dispatcher/types';
@@ -42,13 +42,13 @@ import { PetsCheckDto } from '../dto/pet-check.dto';
 import { UpdateAppointmentProposalDto } from '../dto/update-appointment-proposal.dto';
 import {
   AppointmentProposalEnum,
-  AppointmentStatusEnum,
+  AppointmentStatusEnum
 } from '../helpers/appointment-enum';
 import {
   checkIfAnyDateHoliday,
   generateDatesFromProposalVisits,
   TimingType,
-  VisitType,
+  VisitType
 } from '../helpers/appointment-visits';
 
 @Injectable()
@@ -798,7 +798,11 @@ export class AppointmentProposalService {
               createdAt: true,
               updatedAt: true,
               deletedAt: true,
-              basicInfo: true,
+              basicInfo: {
+                include: {
+                  country: true,
+                },
+              },
               contact: true,
             },
           },
@@ -975,6 +979,7 @@ export class AppointmentProposalService {
             recurringStartDate,
             skipRecurringStartDate: false,
             recurringSelectedDay,
+            currency: provider?.user?.basicInfo?.country?.currencyCode,
             meta: { formattedMessage },
           },
         },
@@ -1231,7 +1236,11 @@ export class AppointmentProposalService {
                   createdAt: true,
                   updatedAt: true,
                   deletedAt: true,
-                  basicInfo: true,
+                  basicInfo: {
+                    include: {
+                      country: true,
+                    },
+                  },
                   contact: true,
                 },
               },
@@ -1325,6 +1334,7 @@ export class AppointmentProposalService {
         recurringStartDate,
         skipRecurringStartDate: false,
         recurringSelectedDay,
+        currency: appointment?.provider?.user?.basicInfo?.country?.currencyCode,
         meta: { formattedMessage },
       },
     });
@@ -2813,12 +2823,12 @@ export class AppointmentProposalService {
     );
 
     // this condition is now block for frontend implementation & test purpose
-    if (!this.secretService.getTwilioCreds().allowTest) {
-      throwBadRequestErrorCheck(
-        lastDate?.date > serverProviderZoneTime,
-        'Appointment not finished yet',
-      );
-    }
+    // if (!this.secretService.getTwilioCreds().allowTest) {
+    //   throwBadRequestErrorCheck(
+    //     lastDate?.date > serverProviderZoneTime,
+    //     'Appointment not finished yet',
+    //   );
+    // }
 
     const result = await this.prismaService.appointment.update({
       where: {
