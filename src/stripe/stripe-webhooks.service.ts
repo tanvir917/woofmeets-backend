@@ -150,9 +150,29 @@ export class StripeWebhooksService {
         'Customer not found',
       );
 
-      const invoice = await this.prismaService.userSubscriptionInvoices.update({
+      const invoice = await this.prismaService.userSubscriptionInvoices.upsert({
         where: { stripeInvoiceId: invoiceData?.id },
-        data: {
+        create: {
+          userId: user?.id,
+          userSubscriptionId: subscription?.id,
+          stripeInvoiceId: invoiceData?.id,
+          customerStripeId: user?.userStripeCustomerAccount?.stripeCustomerId,
+          customerEmail: invoiceData?.customer_email,
+          customerName: invoiceData?.customer_name,
+          total: invoiceData?.total / 100,
+          subTotal: invoiceData?.subtotal / 100,
+          amountDue: invoiceData?.amount_due / 100,
+          amountPaid: invoiceData?.amount_paid / 100,
+          amountRemaining: invoiceData?.amount_remaining / 100,
+          billingReason: invoiceData?.billing_reason,
+          currency: invoiceData?.currency,
+          paid: invoiceData?.paid,
+          status: invoiceData?.status,
+          billingDate: invoiceData?.paid ? new Date() : null,
+          invoicePdf: invoiceData?.invoice_pdf ?? null,
+          src: Object(invoiceData),
+        },
+        update: {
           customerStripeId: user?.userStripeCustomerAccount?.stripeCustomerId,
           customerEmail: invoiceData?.customer_email,
           customerName: invoiceData?.customer_name,
