@@ -14,3 +14,7 @@ export enum APPOINTMENT_BILLING_NEXT_STATE {
   UPDATE_AFTER_PAYOUT = 'UPDATE_AFTER_PAYOUT',
   FINISHED = 'FINISHED',
 }
+
+export enum CurrencyTypes {
+  USD = 'usd',
+}
