@@ -18,6 +18,7 @@ import { PaymentDispatcherBlockedDto } from './dto/payment-dispatcher.dto';
 import {
   APPOINTMENT_BILLING_NEXT_STATE,
   APPOINTMENT_BILLING_STATES,
+  CurrencyTypes,
 } from './types';
 
 type PayoutParams = {
@@ -108,7 +109,8 @@ export class PaymentDispatcherService {
             select: {
               id: true,
               providerAmount: true,
-
+              exchangeRate: true,
+              currency: true,
               provider: {
                 select: {
                   user: {
@@ -135,9 +137,15 @@ export class PaymentDispatcherService {
         const payoutDestination =
           payoutItem?.provider?.user?.userStripeConnectAccount?.stripeAccountId;
 
+        // Calculating the exchange rate if currency is not USD
+        const tempAmount =
+          payoutItem?.currency != CurrencyTypes.USD
+            ? payoutItem?.providerAmount * payoutItem?.exchangeRate
+            : payoutItem?.providerAmount;
+
         const result = await this.payout({
           billingId: payoutItem.id.toString(),
-          amount: payoutItem.providerAmount,
+          amount: tempAmount,
           payoutDestination: payoutDestination,
         });
 
@@ -335,7 +343,6 @@ export class PaymentDispatcherService {
     }
   }
 
-  //TODO: Add currency convertion in provider transfer amount
   async paySingleBillingTransaction(
     userId: bigint,
     billingTransactionId: bigint,
@@ -448,12 +455,18 @@ export class PaymentDispatcherService {
           }
           break;
         case APPOINTMENT_BILLING_NEXT_STATE.PAYING_OUT:
+          // Calculating the exchange rate if currency is not USD
+          const tempAmount =
+            tempTransaction?.currency != CurrencyTypes.USD
+              ? tempTransaction?.providerAmount * tempTransaction?.exchangeRate
+              : tempTransaction?.providerAmount;
+
           const payoutDestination =
             provider?.user?.userStripeConnectAccount?.stripeAccountId;
           const result = await this.singlePayout({
             billingId: tempTransaction?.billingId.toString(),
             billingTransactionId: tempTransaction?.id,
-            amount: tempTransaction?.providerAmount,
+            amount: tempAmount,
             payoutDestination: payoutDestination,
             idempotencyKey: `Transfer-${tempTransaction?.billingId}-${tempTransaction?.id}`,
           });
