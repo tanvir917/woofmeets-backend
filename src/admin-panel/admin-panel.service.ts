@@ -7,7 +7,7 @@ import { LoginDto } from 'src/auth/dto/login.dto';
 import {
   throwBadRequestErrorCheck,
   throwNotFoundErrorCheck,
-  throwUnauthorizedErrorCheck
+  throwUnauthorizedErrorCheck,
 } from 'src/global/exceptions/error-logic';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { SecretService } from 'src/secret/secret.service';
@@ -856,13 +856,17 @@ export class AdminPanelService {
         }),
       ]);
 
+    const sortDateByTime = appointmentDates?.sort(function (x, y) {
+      return new Date(x?.date).getTime() - new Date(y?.date).getTime();
+    });
+
     return {
       messages: 'Appointment details found successfully.',
       data: {
         ...appointment,
         appointmentProposal: appointmentProposal[0],
-        startDate: appointmentDates[0],
-        endDate: appointmentDates[appointmentDates?.length - 1],
+        startDate: sortDateByTime[0],
+        endDate: sortDateByTime[sortDateByTime?.length - 1],
       },
     };
   }

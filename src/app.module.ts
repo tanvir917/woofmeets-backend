@@ -49,6 +49,7 @@ import { PaymentDispatcherModule } from './payment-dispatcher/payment-dispatcher
 import { ConferenceModule } from './conference/conference.module';
 import { UserModule } from './user/user.module';
 import { UserApplicationVersionModule } from './user-application-version/user-application-version.module';
+import { PetReviewModule } from './pet-review/pet-review.module';
 
 @Module({
   imports: [
@@ -102,6 +103,7 @@ import { UserApplicationVersionModule } from './user-application-version/user-ap
     ConferenceModule,
     UserModule,
     UserApplicationVersionModule,
+    PetReviewModule,
   ],
   controllers: [AppController],
   providers: [AppService, SecretService, PrismaService, SmsService],

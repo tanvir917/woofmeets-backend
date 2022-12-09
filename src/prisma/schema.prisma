@@ -212,6 +212,7 @@ model User {
   reviewedByUser             Review[]                     @relation("reviewedBy")
   reviewedForUser            Review[]                     @relation("reviewedFor")
   appointmentBillingPayments AppointmentBillingPayments[]
+  petReview                  PetReview[]
 }
 
 model UserContact {
@@ -311,6 +312,7 @@ model Provider {
   backgroundCheck                BackgroundCheck[]
   review                         Review[]
   appointmentBillingTransactions AppointmentBillingTransactions[]
+  petReview                      PetReview[]
 }
 
 model ProviderServices {
@@ -546,6 +548,7 @@ model Pet {
   petBreed                       PetBreed[]
   petGallery                     PetGallery[]
   appointmentPet                 AppointmentPet[]
+  petReview                      PetReview[]
 }
 
 model PetBreed {
@@ -965,6 +968,7 @@ model Appointment {
   billing             Billing[]
   cancelAppointment   CancelAppointment[]
   appointmentCard     AppointmentCard[]
+  petReview           PetReview[]
 }
 
 model AppointmentProposal {
@@ -1309,4 +1313,22 @@ model UserApplicationVersion {
   createdAt                 DateTime  @default(now()) @db.Timestamptz(3)
   updatedAt                 DateTime? @updatedAt @db.Timestamptz(3)
   deletedAt                 DateTime? @db.Timestamptz(3)
+}
+
+model PetReview {
+  id            BigInt       @id @default(autoincrement())
+  userId        BigInt?
+  user          User?        @relation(fields: [userId], references: [id])
+  providerId    BigInt?
+  provider      Provider?    @relation(fields: [providerId], references: [id])
+  appointmentId BigInt?
+  appointment   Appointment? @relation(fields: [appointmentId], references: [id])
+  petId         BigInt?
+  pet           Pet?         @relation(fields: [petId], references: [id])
+  rating        Float?
+  comment       String?
+  meta          Json?
+  createdAt     DateTime     @default(now()) @db.Timestamptz(3)
+  updatedAt     DateTime?    @updatedAt @db.Timestamptz(3)
+  deletedAt     DateTime?    @db.Timestamptz(3)
 }
