@@ -609,7 +609,25 @@ export class PaymentDispatcherService {
         include: {
           billing: {
             include: {
-              appointment: true,
+              appointment: {
+                include: {
+                  user: {
+                    select: {
+                      id: true,
+                      opk: true,
+                      email: true,
+                      firstName: true,
+                      lastName: true,
+                      image: true,
+                    },
+                  },
+                  providerService: {
+                    include: {
+                      serviceType: true,
+                    },
+                  },
+                },
+              },
             },
           },
           provider: {
@@ -645,9 +663,38 @@ export class PaymentDispatcherService {
       });
 
     throwBadRequestErrorCheck(!appointmentBillingTransaction, 'No Data Found');
+
+    const [appointmentProposal, appointmentDates] =
+      await this.prisma.$transaction([
+        this.prisma.appointmentProposal.findMany({
+          where: {
+            appointmentId:
+              appointmentBillingTransaction?.billing?.appointment?.id,
+          },
+          orderBy: {
+            createdAt: 'desc',
+          },
+        }),
+        this.prisma.appointmentDates.findMany({
+          where: {
+            appointmentId:
+              appointmentBillingTransaction?.billing?.appointment?.id,
+          },
+        }),
+      ]);
+
+    const sortDateByTime = appointmentDates?.sort(function (x, y) {
+      return new Date(x?.date).getTime() - new Date(y?.date).getTime();
+    });
+
     return {
       message: 'Appointment Billing Transaction',
-      data: { ...appointmentBillingTransaction },
+      data: {
+        ...appointmentBillingTransaction,
+        appointmentProposal: appointmentProposal[0],
+        startDate: sortDateByTime[0],
+        endDate: sortDateByTime[sortDateByTime?.length - 1],
+      },
     };
   }
 
