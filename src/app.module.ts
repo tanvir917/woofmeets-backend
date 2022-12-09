@@ -49,6 +49,7 @@ import { PaymentDispatcherModule } from './payment-dispatcher/payment-dispatcher
 import { ConferenceModule } from './conference/conference.module';
 import { UserModule } from './user/user.module';
 import { UserApplicationVersionModule } from './user-application-version/user-application-version.module';
+import { BalancesModule } from './balances/balances.module';
 import { PetReviewModule } from './pet-review/pet-review.module';
 
 @Module({
@@ -103,6 +104,7 @@ import { PetReviewModule } from './pet-review/pet-review.module';
     ConferenceModule,
     UserModule,
     UserApplicationVersionModule,
+    BalancesModule,
     PetReviewModule,
   ],
   controllers: [AppController],
