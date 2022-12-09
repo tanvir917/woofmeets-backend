@@ -6,7 +6,7 @@ import {
   Request,
   Query,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { TransformInterceptor } from '../transform.interceptor';
 import { BalancesService } from './balances.service';
@@ -27,5 +27,19 @@ export class BalancesController {
   ) {
     const userId = BigInt(req.user?.id) ?? BigInt(-1);
     return this.balancesService.findPetOwnerPaymentHistory(userId, query);
+  }
+
+  @ApiOperation({
+    summary: 'Get pet sitter payment history',
+  })
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard)
+  @Get('pet-sitter')
+  async findPetSitterPaymentHistory(
+    @Request() req: any,
+    @Query() query: GetBalancesQueryDto,
+  ) {
+    const userId = BigInt(req.user?.id) ?? BigInt(-1);
+    return this.balancesService.findPetSitterPaymentHistory(userId, query);
   }
 }
