@@ -5,7 +5,7 @@ import {
   appointmentStatusEnum,
   petTypeEnum,
   Prisma,
-  subscriptionTypeEnum
+  subscriptionTypeEnum,
 } from '@prisma/client';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime';
 import axios from 'axios';
@@ -21,11 +21,11 @@ import {
   DaysOfWeek,
   extractDay,
   generateDatesFromAndTo,
-  generateDays
+  generateDays,
 } from 'src/global';
 import {
   throwBadRequestErrorCheck,
-  throwNotFoundErrorCheck
+  throwNotFoundErrorCheck,
 } from 'src/global/exceptions/error-logic';
 import { MessagingProxyService } from 'src/messaging/messaging.service';
 import { APPOINTMENT_BILLING_STATES } from 'src/payment-dispatcher/types';
@@ -42,13 +42,13 @@ import { PetsCheckDto } from '../dto/pet-check.dto';
 import { UpdateAppointmentProposalDto } from '../dto/update-appointment-proposal.dto';
 import {
   AppointmentProposalEnum,
-  AppointmentStatusEnum
+  AppointmentStatusEnum,
 } from '../helpers/appointment-enum';
 import {
   checkIfAnyDateHoliday,
   generateDatesFromProposalVisits,
   TimingType,
-  VisitType
+  VisitType,
 } from '../helpers/appointment-visits';
 
 @Injectable()
@@ -1817,6 +1817,17 @@ export class AppointmentProposalService {
       appointment?.opk,
     );
 
+    const checkAppointmentDates =
+      await this.prismaService.appointmentDates.findMany({
+        where: {
+          appointmentId: appointment?.id,
+        },
+      });
+
+    const sortDateByTime = checkAppointmentDates?.sort(function (x, y) {
+      return new Date(x?.date).getTime() - new Date(y?.date).getTime();
+    });
+
     const serverProviderZoneTime = utcToZonedTime(
       toDate(new Date(), {
         timeZone: appointment?.providerTimeZone,
@@ -1825,8 +1836,20 @@ export class AppointmentProposalService {
     );
 
     const diffDays = differenceInDays(
-      new Date(priceCalculationDetails?.formatedDatesByZone[0]?.date),
+      new Date(sortDateByTime[0]?.date),
       serverProviderZoneTime,
+    );
+
+    const appointmentCompleteCheck = differenceInDays(
+      serverProviderZoneTime,
+      new Date(sortDateByTime[sortDateByTime?.length - 1]?.date),
+    );
+
+    console.log(appointmentCompleteCheck, diffDays);
+
+    throwBadRequestErrorCheck(
+      appointmentCompleteCheck >= 1,
+      'Appointment already finished. Please, waiting for the pet owner appointment completion.',
     );
 
     let fullRefund = false;
@@ -1888,17 +1911,23 @@ export class AppointmentProposalService {
       );
     }
 
-    const refundPay = await this.stripeService.refundDispatcher({
-      amountInDollars: userRefundAmount,
-      chargeId:
-        appointment?.billing?.[0]?.appointmentBillingPayments?.[0]?.chargeId,
-      cancellation_reason: 'requested_by_customer',
-      metadata: {
-        type: 'appointment_refund',
-        userId: user?.id.toString(),
-        appointmentId: appointment?.id.toString(),
-      },
-    });
+    let refundPay = {
+      success: true,
+    };
+
+    if (userRefundAmount) {
+      refundPay = await this.stripeService.refundDispatcher({
+        amountInDollars: userRefundAmount,
+        chargeId:
+          appointment?.billing?.[0]?.appointmentBillingPayments?.[0]?.chargeId,
+        cancellation_reason: 'requested_by_customer',
+        metadata: {
+          type: 'appointment_refund',
+          userId: user?.id.toString(),
+          appointmentId: appointment?.id.toString(),
+        },
+      });
+    }
 
     if (refundPay?.success) {
       const [updatedAppointment] = await this.prismaService.$transaction([
@@ -1970,7 +1999,7 @@ export class AppointmentProposalService {
             }),
           },
         });
-      } else {
+      } else if (userRefundAmount) {
         await this.prismaService.appointmentBillingTransactions.update({
           where: {
             id: appointment?.billing[0]?.appointmentBillingTransactions[0]?.id,
@@ -1990,7 +2019,7 @@ export class AppointmentProposalService {
       }
 
       /*
-       * Appointment refund deitals update in proposal service
+       * Appointment refund details update in proposal service
        */
 
       const providerAmount = Math.max(
@@ -2018,16 +2047,8 @@ export class AppointmentProposalService {
        */
       const dates = [];
 
-      for (
-        let i = 0;
-        i < priceCalculationDetails?.formatedDatesByZone?.length;
-        i++
-      ) {
-        dates.push(
-          new Date(
-            priceCalculationDetails?.formatedDatesByZone[i]?.date,
-          ).toDateString(),
-        );
+      for (let i = 0; i < sortDateByTime?.length; i++) {
+        dates.push(new Date(sortDateByTime[i]?.date).toDateString());
       }
 
       const petsName = appointment?.appointmentProposal[0]?.appointmentPet?.map(
@@ -2070,8 +2091,7 @@ export class AppointmentProposalService {
           {
             first_name: appointment?.provider?.user?.firstName,
             appointment_opk: appointment?.opk,
-            appointment_dates:
-              priceCalculationDetails?.formatedDatesByZone[0]?.date,
+            appointment_dates: sortDateByTime[0]?.date,
           },
         );
       } catch (error) {
@@ -2111,6 +2131,10 @@ export class AppointmentProposalService {
       } catch (error) {
         console.log(error?.message);
       }
+      return {
+        message: 'Appointment cancelled successfully.',
+        data: updatedAppointment,
+      };
     } else {
       await this.prismaService.cancelAppointment.create({
         data: {
