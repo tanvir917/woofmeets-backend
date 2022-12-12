@@ -121,24 +121,16 @@ export class BalancesService {
     orderbyObj[sortBy] = sortOrder;
 
     const [count, paymentHistory] = await this.prismaService.$transaction([
-      this.prismaService.appointmentBillingPayments.count({
+      this.prismaService.appointmentBillingTransactions.count({
         where: {
-          billing: {
-            appointment: {
-              providerId: user?.provider?.id,
-            },
-          },
+          providerId: user?.provider?.id,
           ...statusQuery,
         },
       }),
 
-      this.prismaService.appointmentBillingPayments.findMany({
+      this.prismaService.appointmentBillingTransactions.findMany({
         where: {
-          billing: {
-            appointment: {
-              providerId: user?.provider?.id,
-            },
-          },
+          providerId: user?.provider?.id,
           ...statusQuery,
         },
         include: {
@@ -146,18 +138,18 @@ export class BalancesService {
             include: {
               appointment: {
                 include: {
+                  user: {
+                    select: {
+                      id: true,
+                      firstName: true,
+                      lastName: true,
+                      email: true,
+                      image: true,
+                    },
+                  },
                   appointmentPet: true,
                 },
               },
-            },
-          },
-          paidByUser: {
-            select: {
-              id: true,
-              firstName: true,
-              lastName: true,
-              email: true,
-              image: true,
             },
           },
         },
